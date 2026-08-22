@@ -75,7 +75,7 @@ pnpm build         # next build
 ```bash
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-PLATFORM_FEE_RATE=0.10            # 手数料率(表示のみに使用)
+PLATFORM_FEE_RATE=0.05            # 販売手数料率(表示のみに使用)
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=
