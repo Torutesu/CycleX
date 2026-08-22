@@ -17,6 +17,20 @@
 | [05_non_functional.md](docs/requirements/05_non_functional.md) | 非機能要件 |
 | [06_development_plan.md](docs/requirements/06_development_plan.md) | 開発計画・工数配分(160h)・受入基準 |
 
+### 実装計画(`docs/plan/` — 自律エージェント実行用)
+
+| ドキュメント | 内容 |
+|---|---|
+| [00_execution_guide.md](docs/plan/00_execution_guide.md) | 実行ガイド: グラウンドルール・ADR・環境変数・ディレクトリ構成・品質ゲート |
+| [01_bootstrap.md](docs/plan/01_bootstrap.md) | Phase 1: 雛形・DB スキーマ/RLS 全文 SQL・シード・CI |
+| [02_auth_profile.md](docs/plan/02_auth_profile.md) | Phase 2: 認証・プロフィール・共通レイアウト |
+| [03_listings.md](docs/plan/03_listings.md) | Phase 3: 出品・画像アップロード |
+| [04_search_favorites.md](docs/plan/04_search_favorites.md) | Phase 4: 検索・一覧・詳細・お気に入り |
+| [05_messages.md](docs/plan/05_messages.md) | Phase 5: メッセージ |
+| [06_transactions.md](docs/plan/06_transactions.md) | Phase 6: 取引・Stripe 決済・評価 |
+| [07_admin.md](docs/plan/07_admin.md) | Phase 7: 通報・管理画面 |
+| [08_notifications_polish.md](docs/plan/08_notifications_polish.md) | Phase 8: メール通知・仕上げ・E2E・デプロイ |
+
 ## 基本方針
 
 - **スマホファースト**: 全画面をモバイル(375px 基準)で設計し、PC はレスポンシブで対応
