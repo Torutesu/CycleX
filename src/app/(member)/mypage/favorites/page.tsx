@@ -22,7 +22,9 @@ export default async function FavoritesPage() {
          meetup_pref, favorites_count, listing_images(path, position), brands(name))`,
     )
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    // MVP の想定規模に対して十分な上限。超える場合はページングを検討する
+    .limit(100);
 
   const listings: ListingCardData[] = (data ?? [])
     .map((row) => row.listings)

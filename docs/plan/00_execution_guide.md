@@ -61,7 +61,7 @@ pnpm build         # next build
 | 2 | 認証は Supabase Auth(`@supabase/ssr` の Cookie セッション)。`public.users` プロフィールは auth.users への INSERT トリガーで自動作成 | FR-01 の大半を委譲 |
 | 3 | 認可は「RLS + Server Action 内ガード」の二重化。RLS は閲覧制御中心、状態遷移の正しさはサーバーコードで担保 | 単純化 |
 | 4 | 商品検索は pg_trgm(ILIKE + GIN index)。tsvector は使わない | 日本語形態素解析を避ける |
-| 5 | 画像は Supabase Storage に原本保存し、サムネイルは Storage の画像変換 URL(`?width=600` 等)で配信。オフライン変換処理は持たない | 実装ゼロでリサイズ要件を満たす |
+| 5 | 画像は Supabase Storage に原本保存し、配信サイズの調整は `next/image` に任せる(各所で `sizes` を指定)。オフライン変換処理は持たない | 実装ゼロでリサイズ要件を満たす。当初は Storage の画像変換(`render/image`)を想定したが、**Supabase の有料プラン限定機能**でありローカルでも使えないため方針変更 |
 | 6 | 決済確定は Stripe Webhook のみを正とする。`checkout.session.expired` で取引を自動キャンセルし商品を公開中へ戻す | 二重購入・宙吊り防止 |
 | 7 | 「1商品につき有効取引1件」は部分ユニークインデックスで DB 保証 | 排他制御 |
 | 8 | 評価の 14 日自動公開・取引完了は Vercel Cron(日次)+冪等な SQL で処理 | ジョブ基盤を持たない |

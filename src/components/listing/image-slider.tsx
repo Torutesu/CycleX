@@ -54,13 +54,12 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
           {paths.map((path, i) => (
             <div key={path} className="relative aspect-square w-full shrink-0 snap-center bg-muted">
               <Image
-                src={listingImageUrl(path, { width: 1200 })}
+                src={listingImageUrl(path)}
                 alt={`${title} の画像 ${i + 1}`}
                 fill
                 sizes="(max-width: 1024px) 100vw, 640px"
                 className="object-contain"
                 priority={i === 0}
-                unoptimized
               />
             </div>
           ))}
@@ -121,12 +120,11 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
                 )}
               >
                 <Image
-                  src={listingImageUrl(path, { width: 160 })}
+                  src={listingImageUrl(path)}
                   alt=""
                   fill
                   sizes="64px"
                   className="object-cover"
-                  unoptimized
                 />
               </button>
             </li>
@@ -139,12 +137,11 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
           <DialogTitle className="sr-only">{title} の画像</DialogTitle>
           <div className="relative aspect-square w-full">
             <Image
-              src={listingImageUrl(paths[index], { width: 1600 })}
+              src={listingImageUrl(paths[index])}
               alt={`${title} の画像 ${index + 1}`}
               fill
               sizes="100vw"
               className="object-contain"
-              unoptimized
             />
           </div>
         </DialogContent>

@@ -76,9 +76,10 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
     ? brands.filter((brand) => brand.name.toLowerCase().includes(brandQuery.toLowerCase()))
     : brands;
 
+  // min-h-0 が無いと flex-1 の領域が内容ぶん伸び、シートの上部が画面外へ押し出される
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-6 overflow-y-auto pb-4">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pb-4">
         {/* カテゴリ */}
         <section>
           <h3 className="mb-2 text-sm font-semibold">カテゴリ</h3>

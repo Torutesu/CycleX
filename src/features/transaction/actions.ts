@@ -96,7 +96,7 @@ export async function startPurchase(listingId: string): Promise<ActionResult<und
               product_data: {
                 name: listing.title,
                 ...(thumbnail
-                  ? { images: [listingImageUrl(thumbnail.path, { width: 600 })] }
+                  ? { images: [listingImageUrl(thumbnail.path)] }
                   : {}),
               },
             },

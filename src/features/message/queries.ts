@@ -207,11 +207,13 @@ export async function getThreadDetail(
       .select("id, display_name, avatar_url, status")
       .eq("id", counterpartyId)
       .maybeSingle(),
+    // 直近 200 件に限定する(スレッドが長くなっても描画量が膨らまないように)
     supabase
       .from("messages")
       .select("id, sender_id, body, created_at")
       .eq("thread_id", threadId)
-      .order("created_at", { ascending: true }),
+      .order("created_at", { ascending: false })
+      .limit(200),
   ]);
 
   return {
@@ -231,12 +233,16 @@ export async function getThreadDetail(
       avatarUrl: counterparty?.avatar_url ?? null,
       status: (counterparty?.status ?? "withdrawn") as UserStatus,
     },
-    messages: (messages ?? []).map((message) => ({
-      id: message.id,
-      body: message.body,
-      createdAt: message.created_at,
-      fromMe: message.sender_id === userId,
-    })),
+    // 取得は新しい順(直近を優先)なので、表示用に古い順へ戻す
+    messages: (messages ?? [])
+      .slice()
+      .reverse()
+      .map((message) => ({
+        id: message.id,
+        body: message.body,
+        createdAt: message.created_at,
+        fromMe: message.sender_id === userId,
+      })),
   };
 }
 

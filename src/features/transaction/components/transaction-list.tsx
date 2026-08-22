@@ -19,12 +19,11 @@ export function TransactionList({ transactions }: { transactions: TransactionLis
             <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">
               {transaction.listing.thumbnailPath ? (
                 <Image
-                  src={listingImageUrl(transaction.listing.thumbnailPath, { width: 160 })}
+                  src={listingImageUrl(transaction.listing.thumbnailPath)}
                   alt=""
                   fill
                   sizes="64px"
                   className="object-cover"
-                  unoptimized
                 />
               ) : (
                 <div className="flex size-full items-center justify-center text-[10px] text-muted-foreground">

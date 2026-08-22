@@ -32,7 +32,7 @@ export default async function TransactionPage({
 
   const role: "buyer" | "seller" = transaction.buyerId === user.id ? "buyer" : "seller";
   const action = nextActionFor(transaction.status, role, transaction.hasReviewed);
-  const avatarSrc = avatarImageUrl(transaction.counterparty.avatarUrl, 96);
+  const avatarSrc = avatarImageUrl(transaction.counterparty.avatarUrl);
 
   // 取引連絡は購入前の質問と同じスレッドで続ける(FR-07)
   const buyerId = transaction.buyerId;
@@ -155,12 +155,11 @@ export default async function TransactionPage({
         >
           {transaction.listing.thumbnailPath && (
             <Image
-              src={listingImageUrl(transaction.listing.thumbnailPath, { width: 200 })}
+              src={listingImageUrl(transaction.listing.thumbnailPath)}
               alt=""
               width={64}
               height={64}
               className="size-16 shrink-0 rounded-md object-cover"
-              unoptimized
             />
           )}
           <div className="min-w-0 flex-1">
@@ -184,7 +183,6 @@ export default async function TransactionPage({
                 width={44}
                 height={44}
                 className="size-11 rounded-full object-cover"
-                unoptimized
               />
             ) : (
               <Avatar className="size-11">

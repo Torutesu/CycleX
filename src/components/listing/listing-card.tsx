@@ -33,12 +33,11 @@ export function ListingCard({
         <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
           {listing.thumbnailPath ? (
             <Image
-              src={listingImageUrl(listing.thumbnailPath, { width: 600 })}
+              src={listingImageUrl(listing.thumbnailPath)}
               alt=""
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover transition-transform group-hover:scale-105"
-              unoptimized
             />
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground">

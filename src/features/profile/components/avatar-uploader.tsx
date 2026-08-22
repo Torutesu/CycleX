@@ -22,7 +22,7 @@ export function AvatarUploader({ userId, displayName, currentPath }: AvatarUploa
   const [path, setPath] = useState(currentPath);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const previewUrl = avatarImageUrl(path, 240);
+  const previewUrl = avatarImageUrl(path);
 
   async function handleFile(file: File) {
     if (!ALLOWED_IMAGE_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_TYPES)[number])) {
@@ -97,7 +97,6 @@ export function AvatarUploader({ userId, displayName, currentPath }: AvatarUploa
             width={80}
             height={80}
             className="size-20 rounded-full object-cover"
-            unoptimized
           />
         ) : (
           <Avatar className="size-20">

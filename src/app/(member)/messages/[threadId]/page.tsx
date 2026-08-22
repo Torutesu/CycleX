@@ -66,12 +66,11 @@ export default async function ThreadPage({
           >
             {thread.listing.thumbnailPath && (
               <Image
-                src={listingImageUrl(thread.listing.thumbnailPath, { width: 120 })}
+                src={listingImageUrl(thread.listing.thumbnailPath)}
                 alt=""
                 width={40}
                 height={40}
                 className="size-10 shrink-0 rounded-md object-cover"
-                unoptimized
               />
             )}
             <div className="min-w-0 flex-1">

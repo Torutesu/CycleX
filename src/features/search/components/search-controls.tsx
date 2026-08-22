@@ -55,7 +55,16 @@ export function MobileFilterSheet({ params, brands }: Omit<Props, "total">) {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="flex h-[85dvh] flex-col px-4 pb-4">
+      {/*
+        SheetContent は data-[side=bottom]:h-auto を持つため、素の h-* では上書きできない。
+        max-h で頭打ちにし、内部の overflow-y-auto にスクロールさせる。
+        自動フォーカスは中身をスクロールさせるので無効化する。
+      */}
+      <SheetContent
+        side="bottom"
+        className="flex max-h-[85dvh] flex-col px-4 pb-4"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         <SheetHeader className="px-0">
           <SheetTitle>絞り込み</SheetTitle>
         </SheetHeader>

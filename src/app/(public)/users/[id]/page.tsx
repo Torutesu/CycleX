@@ -51,7 +51,7 @@ export default async function PublicProfilePage({
     sellerListings.map((listing) => listing.id),
   );
 
-  const avatarSrc = avatarImageUrl(profile.avatarUrl, 128);
+  const avatarSrc = avatarImageUrl(profile.avatarUrl);
   const prefecture = labelOf(PREFECTURES, profile.prefecture);
   const withdrawn = profile.status === "withdrawn";
 
@@ -65,7 +65,6 @@ export default async function PublicProfilePage({
             width={72}
             height={72}
             className="size-18 rounded-full object-cover"
-            unoptimized
           />
         ) : (
           <Avatar className="size-18">

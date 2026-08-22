@@ -52,6 +52,7 @@
     "eslint-config-next": "16.3.2",
     "prettier": "^3.9.6",
     "server-only": "^0.0.1",
+    "sharp": "^0.35.3",
     "supabase": "^2.115.0",
     "tailwindcss": "^4",
     "typescript": "^5",

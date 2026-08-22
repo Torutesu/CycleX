@@ -98,12 +98,11 @@ export function ImageUploader({ userId, value, onChange, error }: ImageUploaderP
             className="group relative aspect-square overflow-hidden rounded-lg border bg-muted"
           >
             <Image
-              src={listingImageUrl(path, { width: 400 })}
+              src={listingImageUrl(path)}
               alt={`商品画像 ${index + 1}`}
               fill
               sizes="(max-width: 640px) 50vw, 200px"
               className="object-cover"
-              unoptimized
             />
 
             {index === 0 && (

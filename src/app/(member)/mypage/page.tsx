@@ -20,7 +20,7 @@ const MENU = [
 
 export default async function MyPage() {
   const user = await requireUser("/mypage");
-  const avatarSrc = avatarImageUrl(user.avatarUrl, 128);
+  const avatarSrc = avatarImageUrl(user.avatarUrl);
   const prefecture = labelOf(PREFECTURES, user.prefecture);
 
   return (
@@ -49,7 +49,6 @@ export default async function MyPage() {
             width={64}
             height={64}
             className="size-16 rounded-full object-cover"
-            unoptimized
           />
         ) : (
           <Avatar className="size-16">

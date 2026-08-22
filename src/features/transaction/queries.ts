@@ -136,6 +136,9 @@ export type TransactionListItem = {
   role: "buyer" | "seller";
 };
 
+/** 取引履歴で一度に取得する上限。MVP の想定規模では十分な件数。 */
+const TRANSACTION_LIST_LIMIT = 100;
+
 /** M-11: 取引履歴(購入した取引 / 出品した商品の取引) */
 export async function getTransactionsFor(
   userId: string,
@@ -148,7 +151,8 @@ export async function getTransactionsFor(
     .from("transactions")
     .select(TX_SELECT)
     .eq(column, userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(TRANSACTION_LIST_LIMIT);
 
   const rows = (data ?? []) as unknown as TransactionRow[];
   if (rows.length === 0) return [];

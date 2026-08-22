@@ -50,7 +50,7 @@ export async function generateMetadata({
     openGraph: {
       title: listing.title,
       images: listing.imagePaths[0]
-        ? [listingImageUrl(listing.imagePaths[0], { width: 1200 })]
+        ? [listingImageUrl(listing.imagePaths[0])]
         : undefined,
     },
   };
@@ -76,7 +76,7 @@ export default async function ItemDetailPage({
 
   const purchasable = canPurchase(listing.status);
   const showBikeSpecs = isBikeCategory(listing.category);
-  const avatarSrc = avatarImageUrl(listing.seller?.avatarUrl, 96);
+  const avatarSrc = avatarImageUrl(listing.seller?.avatarUrl);
 
   const specs: { label: string; value: string | null }[] = [
     { label: "カテゴリ", value: labelOf(CATEGORIES, listing.category) },
@@ -184,7 +184,6 @@ export default async function ItemDetailPage({
                     width={48}
                     height={48}
                     className="size-12 rounded-full object-cover"
-                    unoptimized
                   />
                 ) : (
                   <Avatar className="size-12">

@@ -1,10 +1,20 @@
 import type { Metadata, Viewport } from "next";
+import { Noto_Sans_JP } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Header } from "@/components/layout/header";
 import { TabBar } from "@/components/layout/tab-bar";
+import { MainArea, SiteChrome } from "@/components/layout/site-chrome";
 import { getCurrentUser } from "@/lib/session";
 import { getUnreadCount } from "@/features/message/queries";
 import "./globals.css";
+
+// 日本語 UI のため、環境に依存しないゴシック体を明示的に読み込む
+const notoSansJp = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -28,11 +38,13 @@ export default async function RootLayout({
   const unreadCount = user ? await getUnreadCount(user.id) : 0;
 
   return (
-    <html lang="ja">
+    <html lang="ja" className={notoSansJp.variable}>
       <body className="min-h-dvh antialiased">
-        <Header user={user} unreadCount={unreadCount} />
+        <SiteChrome>
+          <Header user={user} unreadCount={unreadCount} />
+        </SiteChrome>
         {/* スマホは下部タブバーの高さぶん余白を確保する */}
-        <main className="pb-20 md:pb-0">{children}</main>
+        <MainArea>{children}</MainArea>
         <TabBar unreadCount={unreadCount} />
         <Toaster position="top-center" richColors />
       </body>

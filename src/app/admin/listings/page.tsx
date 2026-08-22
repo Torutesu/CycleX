@@ -69,12 +69,11 @@ export default async function AdminListingsPage({
                   <div className="flex items-center gap-2.5">
                     {listing.thumbnailPath ? (
                       <Image
-                        src={listingImageUrl(listing.thumbnailPath, { width: 96 })}
+                        src={listingImageUrl(listing.thumbnailPath)}
                         alt=""
                         width={36}
                         height={36}
                         className="size-9 shrink-0 rounded object-cover"
-                        unoptimized
                       />
                     ) : (
                       <span className="flex size-9 shrink-0 items-center justify-center rounded bg-muted text-[9px] text-muted-foreground">

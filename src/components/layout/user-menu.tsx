@@ -31,7 +31,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
     );
   }
 
-  const avatarSrc = avatarImageUrl(user.avatarUrl, 64);
+  const avatarSrc = avatarImageUrl(user.avatarUrl);
 
   return (
     <DropdownMenu>

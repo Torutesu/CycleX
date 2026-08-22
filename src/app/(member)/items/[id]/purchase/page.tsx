@@ -70,12 +70,11 @@ export default async function PurchasePage({
         <div className="flex gap-3">
           {listing.imagePaths[0] && (
             <Image
-              src={listingImageUrl(listing.imagePaths[0], { width: 200 })}
+              src={listingImageUrl(listing.imagePaths[0])}
               alt=""
               width={80}
               height={80}
               className="size-20 shrink-0 rounded-md object-cover"
-              unoptimized
             />
           )}
           <div className="min-w-0 flex-1">

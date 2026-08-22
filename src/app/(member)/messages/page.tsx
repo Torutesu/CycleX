@@ -35,7 +35,7 @@ export default async function MessagesPage() {
       ) : (
         <ul className="mt-5 divide-y overflow-hidden rounded-xl border bg-card">
           {threads.map((thread) => {
-            const avatarSrc = avatarImageUrl(thread.counterparty.avatarUrl, 80);
+            const avatarSrc = avatarImageUrl(thread.counterparty.avatarUrl);
             const unread = thread.unreadCount > 0;
 
             return (
@@ -51,7 +51,6 @@ export default async function MessagesPage() {
                       width={40}
                       height={40}
                       className="size-10 shrink-0 rounded-full object-cover"
-                      unoptimized
                     />
                   ) : (
                     <Avatar className="size-10 shrink-0">
@@ -101,12 +100,11 @@ export default async function MessagesPage() {
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
                     {thread.listing.thumbnailPath && (
                       <Image
-                        src={listingImageUrl(thread.listing.thumbnailPath, { width: 120 })}
+                        src={listingImageUrl(thread.listing.thumbnailPath)}
                         alt=""
                         width={44}
                         height={44}
                         className="size-11 rounded-md object-cover"
-                        unoptimized
                       />
                     )}
                     {unread && (
