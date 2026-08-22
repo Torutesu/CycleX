@@ -164,16 +164,22 @@ export function NotificationPrefsForm({ prefs }: { prefs: Record<string, boolean
 
       <ul className="space-y-3">
         {NOTIFICATION_CATEGORIES.map((category) => (
-          <li key={category.name} className="flex items-start gap-3">
-            <Checkbox
-              id={`notify-${category.name}`}
-              name={category.name}
-              defaultChecked={prefs[category.name] !== false}
-              className="mt-0.5"
-            />
-            <label htmlFor={`notify-${category.name}`} className="cursor-pointer text-sm">
-              <span className="font-medium">{category.label}</span>
-              <span className="block text-xs text-muted-foreground">{category.description}</span>
+          <li key={category.name}>
+            {/* 行全体をラベルにして、タップ領域を 44px 以上確保する */}
+            <label
+              htmlFor={`notify-${category.name}`}
+              className="flex min-h-11 cursor-pointer items-start gap-3 py-1.5 text-sm"
+            >
+              <Checkbox
+                id={`notify-${category.name}`}
+                name={category.name}
+                defaultChecked={prefs[category.name] !== false}
+                className="mt-1"
+              />
+              <span>
+                <span className="font-medium">{category.label}</span>
+                <span className="block text-xs text-muted-foreground">{category.description}</span>
+              </span>
             </label>
           </li>
         ))}
@@ -231,12 +237,13 @@ export function WithdrawDialog() {
             </Alert>
           )}
 
-          <div className="flex items-start gap-3">
-            <Checkbox id="withdraw-confirm" name="confirm" value="yes" className="mt-0.5" />
-            <label htmlFor="withdraw-confirm" className="cursor-pointer text-sm">
-              上記の内容を確認し、退会に同意します
-            </label>
-          </div>
+          <label
+            htmlFor="withdraw-confirm"
+            className="flex min-h-11 cursor-pointer items-center gap-3 text-sm"
+          >
+            <Checkbox id="withdraw-confirm" name="confirm" value="yes" />
+            上記の内容を確認し、退会に同意します
+          </label>
 
           <DialogFooter className="gap-2 sm:gap-2">
             <Button type="button" variant="outline" className="h-11" onClick={() => setOpen(false)}>

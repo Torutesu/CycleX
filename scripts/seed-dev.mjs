@@ -84,6 +84,8 @@ for (let i = 0; i < COUNT; i += 1) {
     shipping_from_pref: pref,
     meetup_pref: delivery === "in_person" ? pref : null,
     favorites_count: 0,
+    // 過去に分散させる。すべて「今」だと出品のレート制限(10件/時)に掛かってしまう
+    created_at: new Date(Date.now() - randomInt(1, 90) * 86400000).toISOString(),
     published_at: new Date(Date.now() - randomInt(0, 90) * 86400000).toISOString(),
   });
 }
