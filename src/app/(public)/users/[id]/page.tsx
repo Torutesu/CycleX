@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { RatingStars } from "@/components/rating-stars";
+import { ListingGrid } from "@/components/listing/listing-grid";
+import { getListingsBySeller } from "@/features/search/queries";
+import { getFavoritedIds } from "@/features/favorite/queries";
 import { getCurrentUser } from "@/lib/session";
 import { avatarImageUrl } from "@/lib/images";
 import { formatDate } from "@/lib/utils";
@@ -36,7 +39,16 @@ export default async function PublicProfilePage({
   // 利用停止ユーザーのページは管理者以外に見せない(FR-11)
   if (profile.status === "suspended" && viewer?.role !== "admin") notFound();
 
-  const [summary, reviews] = await Promise.all([getRatingSummary(id), getPublishedReviews(id)]);
+  const [summary, reviews, sellerListings] = await Promise.all([
+    getRatingSummary(id),
+    getPublishedReviews(id),
+    getListingsBySeller(id, { limit: 12 }),
+  ]);
+
+  const favoritedIds = await getFavoritedIds(
+    viewer?.id ?? null,
+    sellerListings.map((listing) => listing.id),
+  );
 
   const avatarSrc = avatarImageUrl(profile.avatarUrl, 128);
   const prefecture = labelOf(PREFECTURES, profile.prefecture);
@@ -95,7 +107,17 @@ export default async function PublicProfilePage({
         </section>
       )}
 
-      {/* 出品中の商品は Phase 4 で商品カード実装後に接続する */}
+      {sellerListings.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-medium">出品中の商品</h2>
+          <ListingGrid
+            listings={sellerListings}
+            favoritedIds={favoritedIds}
+            isLoggedIn={Boolean(viewer)}
+            className="mt-3"
+          />
+        </section>
+      )}
 
       <section className="mt-8">
         <h2 className="text-sm font-medium">
