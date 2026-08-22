@@ -64,9 +64,14 @@ export default async function MyListingsPage({
 
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">出品した商品</h1>
-        <Button asChild size="sm" className="h-11">
-          <Link href="/sell">出品する</Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline" size="sm" className="h-11">
+            <Link href="/mypage/sales">取引を見る</Link>
+          </Button>
+          <Button asChild size="sm" className="h-11">
+            <Link href="/sell">出品する</Link>
+          </Button>
+        </div>
       </div>
 
       {/* 横スクロール可能なタブ(スマホで6タブが収まらないため) */}
