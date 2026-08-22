@@ -37,8 +37,16 @@ export function isUniqueViolation(error: unknown): boolean {
   );
 }
 
-/** 想定外の例外をユーザー向けメッセージへ変換する */
-export function toUserMessage(error: unknown, fallback = "処理に失敗しました。時間をおいて再度お試しください。"): string {
+/**
+ * 例外をユーザー向けメッセージへ変換する。
+ * AppError は業務ルール違反なのでそのまま表示し、
+ * 想定外の例外は詳細を伏せたうえでサーバーログに残す。
+ */
+export function toUserMessage(
+  error: unknown,
+  fallback = "処理に失敗しました。時間をおいて再度お試しください。",
+): string {
   if (error instanceof AppError) return error.message;
+  console.error("[unexpected error]", error);
   return fallback;
 }

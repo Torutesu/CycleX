@@ -169,7 +169,11 @@ create policy email_logs_admin_select on public.email_logs
 -- 実際の可否は上記ポリシーが決める(権限 AND ポリシーの二段構え)。
 -- =============================================================
 
-grant usage on schema public to anon, authenticated;
+grant usage on schema public to anon, authenticated, service_role;
+
+-- service_role は RLS をバイパスするが、テーブル権限は別途必要。
+-- 業務ロジック(取引遷移・Webhook・管理操作)はこのロールで実行する。
+grant all on all tables in schema public to service_role;
 
 -- 閲覧は全テーブルに許可し、範囲は RLS ポリシーで絞る
 grant select on all tables in schema public to anon, authenticated;
@@ -185,6 +189,8 @@ grant insert, update on public.reports to authenticated;
 -- 管理者操作(ポリシー側で is_admin() を要求している)
 grant insert, update, delete on public.brands to authenticated;
 
--- 以降のマイグレーションで追加されるテーブルにも既定で SELECT を付与する
+-- 以降のマイグレーションで追加されるテーブルにも既定の権限を付与する
 alter default privileges in schema public
   grant select on tables to anon, authenticated;
+alter default privileges in schema public
+  grant all on tables to service_role;
