@@ -15,6 +15,8 @@ import { getListingDetail } from "@/features/listing/queries";
 import { getListingsBySeller } from "@/features/search/queries";
 import { getRatingSummary } from "@/features/profile/queries";
 import { isFavorited } from "@/features/favorite/queries";
+import { findThreadByListing } from "@/features/message/queries";
+import { AskSellerButton } from "@/features/message/components/ask-seller-button";
 import { canPurchase } from "@/features/listing/rules";
 import { getCurrentUser } from "@/lib/session";
 import { avatarImageUrl, listingImageUrl } from "@/lib/images";
@@ -64,10 +66,11 @@ export default async function ItemDetailPage({
   if (!listing) notFound();
 
   const isOwner = user?.id === listing.sellerId;
-  const [favorited, ratingSummary, otherListings] = await Promise.all([
+  const [favorited, ratingSummary, otherListings, existingThreadId] = await Promise.all([
     isFavorited(user?.id ?? null, listing.id),
     listing.seller ? getRatingSummary(listing.seller.id) : Promise.resolve({ average: null, count: 0 }),
     getListingsBySeller(listing.sellerId, { excludeId: listing.id, limit: 6 }),
+    user && !isOwner ? findThreadByListing(listing.id, user.id) : Promise.resolve(null),
   ]);
 
   const purchasable = canPurchase(listing.status);
@@ -143,14 +146,23 @@ export default async function ItemDetailPage({
               purchasable={purchasable}
             />
             {!isOwner && (
-              <FavoriteButton
-                listingId={listing.id}
-                favorited={favorited}
-                count={listing.favoritesCount}
-                isLoggedIn={Boolean(user)}
-                variant="full"
-                className="w-full"
-              />
+              <>
+                <FavoriteButton
+                  listingId={listing.id}
+                  favorited={favorited}
+                  count={listing.favoritesCount}
+                  isLoggedIn={Boolean(user)}
+                  variant="full"
+                  className="w-full"
+                />
+                <AskSellerButton
+                  listingId={listing.id}
+                  sellerName={listing.seller?.displayName ?? "出品者"}
+                  isLoggedIn={Boolean(user)}
+                  existingThreadId={existingThreadId}
+                  className="h-11 w-full"
+                />
+              </>
             )}
           </div>
 
@@ -241,14 +253,24 @@ export default async function ItemDetailPage({
 
       {/* スマホ用の固定アクションバー(タブバーの上に重ねる) */}
       <div className="fixed inset-x-0 bottom-16 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {!isOwner && (
-            <FavoriteButton
-              listingId={listing.id}
-              favorited={favorited}
-              isLoggedIn={Boolean(user)}
-              className="shrink-0 border"
-            />
+            <>
+              <FavoriteButton
+                listingId={listing.id}
+                favorited={favorited}
+                isLoggedIn={Boolean(user)}
+                className="shrink-0 border"
+              />
+              <AskSellerButton
+                listingId={listing.id}
+                sellerName={listing.seller?.displayName ?? "出品者"}
+                isLoggedIn={Boolean(user)}
+                existingThreadId={existingThreadId}
+                iconOnly
+                className="size-11 shrink-0"
+              />
+            </>
           )}
           <div className="min-w-0 flex-1">
             <PrimaryAction
