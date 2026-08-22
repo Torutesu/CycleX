@@ -17,6 +17,7 @@ import { getRatingSummary } from "@/features/profile/queries";
 import { isFavorited } from "@/features/favorite/queries";
 import { findThreadByListing } from "@/features/message/queries";
 import { AskSellerButton } from "@/features/message/components/ask-seller-button";
+import { ReportDialog } from "@/features/report/components/report-dialog";
 import { canPurchase } from "@/features/listing/rules";
 import { getCurrentUser } from "@/lib/session";
 import { avatarImageUrl, listingImageUrl } from "@/lib/images";
@@ -241,6 +242,17 @@ export default async function ItemDetailPage({
             出品日 {formatDate(listing.publishedAt ?? listing.updatedAt)}
           </p>
         </section>
+      )}
+
+      {!isOwner && (
+        <div className="mt-8">
+          <ReportDialog
+            targetType="listing"
+            targetId={listing.id}
+            isLoggedIn={Boolean(user)}
+            returnTo={`/items/${listing.id}`}
+          />
+        </div>
       )}
 
       {/* 同じ出品者の商品 */}

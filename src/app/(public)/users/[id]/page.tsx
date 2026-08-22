@@ -7,6 +7,7 @@ import { RatingStars } from "@/components/rating-stars";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { getListingsBySeller } from "@/features/search/queries";
 import { getFavoritedIds } from "@/features/favorite/queries";
+import { ReportDialog } from "@/features/report/components/report-dialog";
 import { getCurrentUser } from "@/lib/session";
 import { avatarImageUrl } from "@/lib/images";
 import { formatDate } from "@/lib/utils";
@@ -149,6 +150,17 @@ export default async function PublicProfilePage({
           </ul>
         )}
       </section>
+
+      {viewer && viewer.id !== profile.id && !withdrawn && (
+        <div className="mt-8">
+          <ReportDialog
+            targetType="user"
+            targetId={profile.id}
+            isLoggedIn
+            returnTo={`/users/${profile.id}`}
+          />
+        </div>
+      )}
     </div>
   );
 }
