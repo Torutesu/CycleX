@@ -161,3 +161,30 @@ create policy reports_admin_update on public.reports
 -- -------------------------------------------------------------
 create policy email_logs_admin_select on public.email_logs
   for select using (public.is_admin());
+
+-- =============================================================
+-- ロール権限(GRANT)
+--
+-- RLS を有効にしただけではアクセスできない。テーブル権限を付与したうえで、
+-- 実際の可否は上記ポリシーが決める(権限 AND ポリシーの二段構え)。
+-- =============================================================
+
+grant usage on schema public to anon, authenticated;
+
+-- 閲覧は全テーブルに許可し、範囲は RLS ポリシーで絞る
+grant select on all tables in schema public to anon, authenticated;
+
+-- ログインユーザー自身の操作として許可するもの
+grant update on public.users to authenticated;
+grant insert, update, delete on public.listings to authenticated;
+grant insert, update, delete on public.listing_images to authenticated;
+grant insert, delete on public.favorites to authenticated;
+grant insert on public.threads to authenticated;
+grant insert, update on public.reports to authenticated;
+
+-- 管理者操作(ポリシー側で is_admin() を要求している)
+grant insert, update, delete on public.brands to authenticated;
+
+-- 以降のマイグレーションで追加されるテーブルにも既定で SELECT を付与する
+alter default privileges in schema public
+  grant select on tables to anon, authenticated;
