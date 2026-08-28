@@ -135,9 +135,18 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
   };
 }
 
-/** ILIKE のワイルドカードを無効化する */
+/**
+ * ILIKE のワイルドカードと、PostgREST のフィルタ構文で意味を持つ記号を無効化する。
+ *
+ * - `% _ \\` : SQL の LIKE パターン
+ * - `*`       : PostgREST が `%` として解釈するワイルドカード
+ * - `, ( ) "` : `or=(...)` の区切りとして解釈される
+ */
 function escapeLike(value: string): string {
-  return value.replace(/[%_\\]/g, (match) => `\\${match}`).replace(/[,()]/g, " ");
+  return value
+    .replace(/[%_\\]/g, (match) => `\\${match}`)
+    .replace(/[*,()"]/g, " ")
+    .trim();
 }
 
 /** ホーム用: 新着の公開商品 */

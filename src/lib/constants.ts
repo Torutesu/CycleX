@@ -309,6 +309,22 @@ export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
+export type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];
+
+const IMAGE_EXTENSIONS: Record<AllowedImageType, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+/**
+ * 保存名に使う拡張子を MIME タイプから決める。
+ * 利用者が付けたファイル名は信用せず、許可済みの形式だけを通す。
+ */
+export function extensionForImageType(type: string): string {
+  return IMAGE_EXTENSIONS[type as AllowedImageType] ?? "jpg";
+}
+
 /** 評価が自動公開されるまでの日数(報復評価抑止) */
 export const REVIEW_AUTO_PUBLISH_DAYS = 14;
 

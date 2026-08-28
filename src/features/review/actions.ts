@@ -80,14 +80,18 @@ export async function submitReview(
       throw new AppError("評価の登録に失敗しました。時間をおいて再度お試しください。");
     }
 
-    // 公開判定は登録直後の全評価を見て決める
-    const reviews = [
-      ...(existingReviews ?? []).map((review) => ({
-        reviewerId: review.reviewer_id,
-        createdAt: review.created_at,
-      })),
-      { reviewerId: user.id, createdAt: new Date().toISOString() },
-    ];
+    // 公開判定は INSERT のあとに読み直した結果で決める。
+    // 事前に読んだ一覧で判定すると、双方がほぼ同時に投稿したときに
+    // 両方が「相手はまだ」と判断してしまい、日次バッチが拾う14日後まで完了しない。
+    const { data: allReviews } = await supabase
+      .from("reviews")
+      .select("reviewer_id, created_at")
+      .eq("transaction_id", transactionId);
+
+    const reviews = (allReviews ?? []).map((review) => ({
+      reviewerId: review.reviewer_id,
+      createdAt: review.created_at,
+    }));
 
     const decision = resolveReviewPublication(reviews, transaction.receivedAt, new Date());
 

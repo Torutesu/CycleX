@@ -6,6 +6,8 @@ import {
   listingAfterCancel,
   SUSPENDABLE_LISTING_STATUSES,
   needsRefund,
+  canSuspendUserWithTransactions,
+  detectStateMismatch,
 } from "@/features/admin/rules";
 import type { ListingStatus, TransactionStatus } from "@/lib/constants";
 
@@ -105,5 +107,49 @@ describe("needsRefund", () => {
     for (const status of ["pending_payment", "paid", "shipped", "received", "completed"] as const) {
       expect(needsRefund(status, "2026-08-01T00:00:00Z")).toBe(false);
     }
+  });
+});
+
+describe("canSuspendUserWithTransactions", () => {
+  it("進行中の取引が無ければ停止できる", () => {
+    expect(canSuspendUserWithTransactions(0).allowed).toBe(true);
+  });
+
+  it("進行中の取引があれば停止させず、件数と代替手段を伝える", () => {
+    const check = canSuspendUserWithTransactions(2);
+    expect(check.allowed).toBe(false);
+    if (!check.allowed) {
+      expect(check.reason).toContain("2件");
+      expect(check.reason).toContain("非表示");
+    }
+  });
+});
+
+describe("detectStateMismatch", () => {
+  it("整合している組み合わせは検出しない", () => {
+    expect(detectStateMismatch("paid", "trading")).toBeNull();
+    expect(detectStateMismatch("shipped", "trading")).toBeNull();
+    expect(detectStateMismatch("completed", "sold")).toBeNull();
+  });
+
+  it("決済済みなのに商品が公開中のままなら検出する", () => {
+    expect(detectStateMismatch("paid", "published")).toContain("trading");
+  });
+
+  it("完了した取引の商品が売却済でなければ検出する", () => {
+    expect(detectStateMismatch("completed", "trading")).toContain("sold");
+  });
+
+  it("キャンセル済みの取引の商品が取引中のままなら検出する", () => {
+    expect(detectStateMismatch("canceled", "trading")).toContain("published");
+  });
+
+  it("キャンセル済みでも商品が売却済・非表示ならそのままでよい", () => {
+    expect(detectStateMismatch("canceled", "sold")).toBeNull();
+    expect(detectStateMismatch("canceled", "suspended")).toBeNull();
+  });
+
+  it("支払い待ちの段階では商品の状態を問わない", () => {
+    expect(detectStateMismatch("pending_payment", "published")).toBeNull();
   });
 });

@@ -31,6 +31,17 @@ export function avatarImageUrl(path: string | null | undefined): string | null {
   return publicUrl(AVATAR_BUCKET, path);
 }
 
+/**
+ * 画像パスが指定ユーザーのフォルダ配下かを判定する。
+ * Storage 側のポリシー(先頭フォルダ = 所有者 ID)と同じ規約をアプリ側でも検証する。
+ */
+export function isOwnedImagePath(path: string, userId: string): boolean {
+  if (!path.startsWith(`${userId}/`)) return false;
+  // 上位フォルダへ抜ける記法と、階層をまたぐパスは受け付けない
+  const rest = path.slice(userId.length + 1);
+  return rest.length > 0 && !rest.includes("/") && !rest.includes("..");
+}
+
 export const IMAGE_BUCKETS = {
   listing: LISTING_BUCKET,
   avatar: AVATAR_BUCKET,

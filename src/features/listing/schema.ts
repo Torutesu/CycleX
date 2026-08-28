@@ -99,6 +99,14 @@ export const listingFormSchema = z.object({
     .array(z.string().min(1))
     .max(MAX_IMAGES, `画像は${MAX_IMAGES}枚までです`)
     .default([]),
+  /**
+   * フォーム上で削除された画像のパス。保存が成功したあとに Storage から消す。
+   * 所有者の検証は actions.ts 側で行う。
+   */
+  discardedImagePaths: z
+    .array(z.string().min(1))
+    .max(MAX_IMAGES * 4)
+    .default([]),
 });
 
 export type ListingFormValues = z.infer<typeof listingFormSchema>;

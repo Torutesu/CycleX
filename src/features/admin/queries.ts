@@ -1,7 +1,8 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ADMIN_PAGE_SIZE } from "@/lib/constants";
+import { ADMIN_PAGE_SIZE, type ListingStatus, type TransactionStatus } from "@/lib/constants";
+import { detectStateMismatch } from "@/features/admin/rules";
 
 export type Paged<T> = {
   items: T[];
@@ -380,6 +381,87 @@ export async function listBrands() {
     .select("id, name, is_active, created_at")
     .order("name");
   return data ?? [];
+}
+
+// ============================================================
+// 整合性チェック(S2-7)
+// ============================================================
+
+export type StateMismatch = {
+  transactionId: string;
+  transactionStatus: string;
+  listingId: string;
+  listingTitle: string;
+  listingStatus: string;
+  reason: string;
+};
+
+/** 一度に持ち帰る件数の上限(ダッシュボードに出す用途なので多くは要らない) */
+const MISMATCH_LIMIT = 50;
+
+/**
+ * 取引と商品の状態が食い違っている行を探す。
+ *
+ * 状態遷移は「取引の更新 → 商品の更新 → 履歴の記録」を別々に実行しているため、
+ * 途中でプロセスが落ちるとズレが残る。起きたときに気づけるよう日次で照合する。
+ *
+ * 走査量を抑えるため、ズレが起こりうる組み合わせだけを DB 側で絞り込む。
+ */
+export async function findStateMismatches(): Promise<StateMismatch[]> {
+  const supabase = createAdminClient();
+  const select = "id, status, listings!inner(id, title, status)";
+
+  const [inProgress, completed, canceled] = await Promise.all([
+    // 決済後〜受取確認までは商品が「取引中」であるはず
+    supabase
+      .from("transactions")
+      .select(select)
+      .in("status", ["paid", "shipped", "received"])
+      .neq("listings.status", "trading")
+      .limit(MISMATCH_LIMIT),
+    // 完了した取引の商品は「売却済」であるはず
+    supabase
+      .from("transactions")
+      .select(select)
+      .eq("status", "completed")
+      .neq("listings.status", "sold")
+      .limit(MISMATCH_LIMIT),
+    // キャンセルされた取引の商品が「取引中」のまま残っていないか
+    supabase
+      .from("transactions")
+      .select(select)
+      .eq("status", "canceled")
+      .eq("listings.status", "trading")
+      .limit(MISMATCH_LIMIT),
+  ]);
+
+  const rows = [
+    ...(inProgress.data ?? []),
+    ...(completed.data ?? []),
+    ...(canceled.data ?? []),
+  ];
+
+  const mismatches: StateMismatch[] = [];
+
+  for (const row of rows) {
+    if (!row.listings) continue;
+    const reason = detectStateMismatch(
+      row.status as TransactionStatus,
+      row.listings.status as ListingStatus,
+    );
+    if (!reason) continue;
+
+    mismatches.push({
+      transactionId: row.id,
+      transactionStatus: row.status,
+      listingId: row.listings.id,
+      listingTitle: row.listings.title,
+      listingStatus: row.listings.status,
+      reason,
+    });
+  }
+
+  return mismatches;
 }
 
 // ============================================================

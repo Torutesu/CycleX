@@ -75,6 +75,8 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [values, setValues] = useState<ListingFormDefaults>(defaults);
+  // 一覧から外した画像。保存が成功した時点でサーバ側が Storage から消す
+  const [discardedPaths, setDiscardedPaths] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -114,6 +116,7 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
       shippingFromPref: values.shippingFromPref === NONE ? null : values.shippingFromPref || null,
       meetupPref: values.meetupPref === NONE ? null : values.meetupPref || null,
       imagePaths: values.imagePaths,
+      discardedImagePaths: discardedPaths,
     };
   }
 
@@ -167,6 +170,7 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
           userId={userId}
           value={values.imagePaths}
           onChange={(paths) => set("imagePaths", paths)}
+          onDiscard={(path) => setDiscardedPaths((prev) => [...prev, path])}
           error={fieldErrors.imagePaths}
         />
       </section>

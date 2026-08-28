@@ -44,14 +44,30 @@ export async function generateMetadata({
   const listing = await getListingDetail(id);
   if (!listing) return { title: "商品が見つかりません" };
 
+  // 「ブランド + モデル名」で探されることが多いので、タイトルに含める
+  const identity = [listing.brandName, listing.modelName].filter(Boolean).join(" ");
+  const title = identity && !listing.title.includes(identity)
+    ? `${listing.title}(${identity})`
+    : listing.title;
+
+  const description =
+    listing.description?.replace(/\s+/g, " ").trim().slice(0, 120) ??
+    `${formatPrice(listing.price)}で出品中の${labelOf(CATEGORIES, listing.category) ?? "商品"}です。`;
+
+  // 下書き・取下げ・運営非表示の商品は検索結果に載せない
+  const indexable = listing.status === "published" || listing.status === "trading";
+
   return {
-    title: listing.title,
-    description: listing.description?.slice(0, 120) ?? undefined,
+    title,
+    description,
+    alternates: { canonical: `/items/${listing.id}` },
+    robots: indexable ? undefined : { index: false, follow: false },
     openGraph: {
-      title: listing.title,
-      images: listing.imagePaths[0]
-        ? [listingImageUrl(listing.imagePaths[0])]
-        : undefined,
+      type: "website",
+      title,
+      description,
+      url: `/items/${listing.id}`,
+      images: listing.imagePaths[0] ? [listingImageUrl(listing.imagePaths[0])] : undefined,
     },
   };
 }

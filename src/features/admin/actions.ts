@@ -5,12 +5,14 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/features/admin/guard";
 import { ok, fail, toUserMessage, AppError, type ActionResult } from "@/lib/errors";
-import type { ListingStatus, UserStatus } from "@/lib/constants";
+import { ACTIVE_TRANSACTION_STATUSES, type ListingStatus, type UserStatus } from "@/lib/constants";
 import {
   canSuspendListing,
   canSuspendUser,
+  canSuspendUserWithTransactions,
   SUSPENDABLE_LISTING_STATUSES,
 } from "@/features/admin/rules";
+import { recordAdminAction } from "@/features/admin/audit";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
 import { notifyCanceled } from "@/features/notification/notify";
 
@@ -58,6 +60,16 @@ export async function suspendUser(
     );
     if (!check.allowed) throw new AppError(check.reason);
 
+    // 進行中の取引を抱えたまま停止すると、本人が発送操作をできず取引が止まる
+    const { count: activeCount } = await supabase
+      .from("transactions")
+      .select("*", { count: "exact", head: true })
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+      .in("status", [...ACTIVE_TRANSACTION_STATUSES]);
+
+    const txCheck = canSuspendUserWithTransactions(activeCount ?? 0);
+    if (!txCheck.allowed) throw new AppError(txCheck.reason);
+
     const { error } = await supabase
       .from("users")
       .update({ status: "suspended", suspended_reason: parsed.data })
@@ -65,15 +77,23 @@ export async function suspendUser(
 
     if (error) throw new AppError("利用停止に失敗しました。");
 
-    // 公開中・取下げ中の出品をまとめて非表示にする
-    await supabase
-      .from("listings")
-      .update({
-        status: "suspended",
-        suspended_reason: "利用者の利用停止に伴う非表示",
-      })
-      .eq("seller_id", userId)
-      .in("status", [...SUSPENDABLE_LISTING_STATUSES]);
+    // 公開中・取下げ中・下書きの出品をまとめて非表示にする。
+    // 解除時に元へ戻せるよう、直前のステータスを控えておく。
+    // 運営が個別に非表示にした商品は status_before_suspend が null のままなので、
+    // 一括復帰の対象にならない。
+    for (const status of SUSPENDABLE_LISTING_STATUSES) {
+      await supabase
+        .from("listings")
+        .update({
+          status: "suspended",
+          status_before_suspend: status,
+          suspended_reason: "利用者の利用停止に伴う非表示",
+        })
+        .eq("seller_id", userId)
+        .eq("status", status);
+    }
+
+    await recordAdminAction(admin.id, "suspend_user", "user", userId, parsed.data);
 
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${userId}`);
@@ -84,10 +104,15 @@ export async function suspendUser(
   }
 }
 
-/** 利用停止の解除。出品は自動復帰させず、個別に解除する。 */
+/**
+ * 利用停止の解除。
+ *
+ * 停止に伴って非表示にした出品(status_before_suspend が入っているもの)だけを
+ * 元のステータスへ戻す。運営が個別に非表示にした商品はそのまま残す。
+ */
 export async function unsuspendUser(userId: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAdminAction();
+    const admin = await requireAdminAction();
     const supabase = createAdminClient();
 
     const { error } = await supabase
@@ -98,8 +123,20 @@ export async function unsuspendUser(userId: string): Promise<ActionResult<undefi
 
     if (error) throw new AppError("利用停止の解除に失敗しました。");
 
+    for (const status of SUSPENDABLE_LISTING_STATUSES) {
+      await supabase
+        .from("listings")
+        .update({ status, status_before_suspend: null, suspended_reason: null })
+        .eq("seller_id", userId)
+        .eq("status", "suspended")
+        .eq("status_before_suspend", status);
+    }
+
+    await recordAdminAction(admin.id, "unsuspend_user", "user", userId);
+
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${userId}`);
+    revalidatePath("/search");
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));
@@ -116,7 +153,7 @@ export async function suspendListing(
   formData: FormData,
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdminAction();
+    const admin = await requireAdminAction();
     const listingId = formValue(formData, "listingId");
     const parsed = reasonSchema.safeParse(formValue(formData, "reason"));
     if (!parsed.success) return fail("入力内容を確認してください");
@@ -133,12 +170,20 @@ export async function suspendListing(
     const check = canSuspendListing(listing.status as ListingStatus);
     if (!check.allowed) throw new AppError(check.reason);
 
+    // 運営が個別に非表示にしたものは、利用停止解除の一括復帰では戻さない。
+    // 直前の状態は控えるが、復帰は unsuspendListing から明示的に行う。
     const { error } = await supabase
       .from("listings")
-      .update({ status: "suspended", suspended_reason: parsed.data })
+      .update({
+        status: "suspended",
+        status_before_suspend: null,
+        suspended_reason: parsed.data,
+      })
       .eq("id", listingId);
 
     if (error) throw new AppError("非表示化に失敗しました。");
+
+    await recordAdminAction(admin.id, "suspend_listing", "listing", listingId, parsed.data);
 
     revalidatePath("/admin/listings");
     revalidatePath(`/items/${listingId}`);
@@ -149,19 +194,38 @@ export async function suspendListing(
   }
 }
 
-/** 非表示の解除(公開中へ戻す) */
+/**
+ * 非表示の解除。
+ *
+ * 停止前の状態を控えてある場合はそこへ戻す。控えが無い(運営が個別に非表示にした)
+ * 場合は「取下げ中」へ戻し、公開するかどうかは出品者本人に委ねる。
+ * 一律で公開中に戻すと、元が下書き・取下げ中だった商品まで公開されてしまう。
+ */
 export async function unsuspendListing(listingId: string): Promise<ActionResult<undefined>> {
   try {
-    await requireAdminAction();
+    const admin = await requireAdminAction();
     const supabase = createAdminClient();
+
+    const { data: listing } = await supabase
+      .from("listings")
+      .select("status, status_before_suspend")
+      .eq("id", listingId)
+      .maybeSingle();
+
+    if (!listing) throw new AppError("商品が見つかりません。");
+    if (listing.status !== "suspended") throw new AppError("非表示の商品ではありません。");
+
+    const restored = (listing.status_before_suspend as ListingStatus | null) ?? "withdrawn";
 
     const { error } = await supabase
       .from("listings")
-      .update({ status: "published", suspended_reason: null })
+      .update({ status: restored, status_before_suspend: null, suspended_reason: null })
       .eq("id", listingId)
       .eq("status", "suspended");
 
     if (error) throw new AppError("非表示の解除に失敗しました。");
+
+    await recordAdminAction(admin.id, "unsuspend_listing", "listing", listingId, `→ ${restored}`);
 
     revalidatePath("/admin/listings");
     revalidatePath(`/items/${listingId}`);
@@ -201,6 +265,13 @@ export async function cancelTransaction(
     });
 
     await notifyCanceled(transactionId, parsed.data);
+    await recordAdminAction(
+      admin.id,
+      "cancel_transaction",
+      "transaction",
+      transactionId,
+      parsed.data,
+    );
 
     revalidatePath("/admin/transactions");
     revalidatePath(`/transactions/${transactionId}`);
@@ -236,6 +307,8 @@ export async function resolveReport(
 
     if (error) throw new AppError("対応状況の更新に失敗しました。");
 
+    await recordAdminAction(admin.id, "resolve_report", "report", reportId, parsed.data);
+
     revalidatePath("/admin/reports");
     return ok();
   } catch (error) {
@@ -258,14 +331,18 @@ export async function createBrand(
   formData: FormData,
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdminAction();
+    const admin = await requireAdminAction();
     const parsed = brandNameSchema.safeParse(formValue(formData, "name"));
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? "入力内容を確認してください");
     }
 
     const supabase = createAdminClient();
-    const { error } = await supabase.from("brands").insert({ name: parsed.data });
+    const { data: created, error } = await supabase
+      .from("brands")
+      .insert({ name: parsed.data })
+      .select("id")
+      .single();
 
     if (error) {
       throw new AppError(
@@ -274,6 +351,8 @@ export async function createBrand(
           : "ブランドの追加に失敗しました。",
       );
     }
+
+    await recordAdminAction(admin.id, "create_brand", "brand", created?.id ?? null, parsed.data);
 
     revalidatePath("/admin/brands");
     revalidatePath("/sell");
@@ -288,7 +367,7 @@ export async function renameBrand(
   formData: FormData,
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdminAction();
+    const admin = await requireAdminAction();
     const brandId = formValue(formData, "brandId");
     const parsed = brandNameSchema.safeParse(formValue(formData, "name"));
     if (!parsed.success) {
@@ -303,6 +382,8 @@ export async function renameBrand(
 
     if (error) throw new AppError("ブランド名の変更に失敗しました。");
 
+    await recordAdminAction(admin.id, "rename_brand", "brand", brandId, parsed.data);
+
     revalidatePath("/admin/brands");
     return ok();
   } catch (error) {
@@ -316,7 +397,7 @@ export async function toggleBrandActive(
   isActive: boolean,
 ): Promise<ActionResult<undefined>> {
   try {
-    await requireAdminAction();
+    const admin = await requireAdminAction();
     const supabase = createAdminClient();
 
     const { error } = await supabase
@@ -325,6 +406,14 @@ export async function toggleBrandActive(
       .eq("id", brandId);
 
     if (error) throw new AppError("ブランドの更新に失敗しました。");
+
+    await recordAdminAction(
+      admin.id,
+      "toggle_brand",
+      "brand",
+      brandId,
+      isActive ? "有効化" : "無効化",
+    );
 
     revalidatePath("/admin/brands");
     revalidatePath("/sell");

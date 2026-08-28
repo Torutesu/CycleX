@@ -22,7 +22,8 @@ const reportSchema = z.object({
 
 /**
  * FR-11: 商品・利用者の通報。
- * 同一ユーザーによる同一対象への通報は1回まで(UNIQUE 制約)。
+ * 同一ユーザーが同一対象を重ねて通報できるのは、前の通報が対応済みになるまで1件
+ * (部分ユニークインデックス)。対応後に再び問題が起きた場合は改めて通報できる。
  * 通報者の情報は被通報者に開示しない。
  */
 export async function submitReport(
@@ -73,7 +74,7 @@ export async function submitReport(
 
     if (error) {
       if (isUniqueViolation(error)) {
-        throw new AppError("この対象はすでに通報済みです。");
+        throw new AppError("この対象は現在対応中です。対応が完了するまでお待ちください。");
       }
       console.error("[report insert failed]", error);
       throw new AppError("通報の送信に失敗しました。時間をおいて再度お試しください。");

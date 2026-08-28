@@ -7,13 +7,20 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { listingImageUrl, IMAGE_BUCKETS } from "@/lib/images";
-import { ALLOWED_IMAGE_TYPES, IMAGE_MAX_BYTES, MAX_IMAGES } from "@/lib/constants";
+import {
+  ALLOWED_IMAGE_TYPES,
+  IMAGE_MAX_BYTES,
+  MAX_IMAGES,
+  extensionForImageType,
+} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 type ImageUploaderProps = {
   userId: string;
   value: string[];
   onChange: (paths: string[]) => void;
+  /** 一覧から外した画像のパス。保存が成功した時点で Storage から消す */
+  onDiscard: (path: string) => void;
   error?: string[];
 };
 
@@ -22,7 +29,7 @@ type ImageUploaderProps = {
  * 選択と同時に Storage へアップロードし、フォームにはパスのみを保持する。
  * 並び替えはドラッグではなく左右ボタン方式(スマホ互換と実装コストのため)。
  */
-export function ImageUploader({ userId, value, onChange, error }: ImageUploaderProps) {
+export function ImageUploader({ userId, value, onChange, onDiscard, error }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -53,8 +60,9 @@ export function ImageUploader({ userId, value, onChange, error }: ImageUploaderP
           continue;
         }
 
-        const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-        const objectPath = `${userId}/${crypto.randomUUID()}.${extension}`;
+        // 拡張子はファイル名ではなく検証済みの MIME から決める
+        // (ファイル名は任意の文字列で、そのまま使うとパスに混ざる)
+        const objectPath = `${userId}/${crypto.randomUUID()}.${extensionForImageType(file.type)}`;
         const { error: uploadError } = await supabase.storage
           .from(IMAGE_BUCKETS.listing)
           .upload(objectPath, file, { upsert: false, contentType: file.type });
@@ -81,12 +89,12 @@ export function ImageUploader({ userId, value, onChange, error }: ImageUploaderP
     onChange(next);
   }
 
-  async function remove(index: number) {
+  function remove(index: number) {
     const path = value[index];
     onChange(value.filter((_, i) => i !== index));
-    // 参照が外れた画像は Storage からも消す
-    const supabase = createClient();
-    await supabase.storage.from(IMAGE_BUCKETS.listing).remove([path]);
+    // ここでは Storage を触らない。保存せずに離脱した場合、実体だけ消えて
+    // DB が壊れたパスを参照したままになるため、削除は保存の成功後にまとめて行う。
+    onDiscard(path);
   }
 
   return (
@@ -113,7 +121,7 @@ export function ImageUploader({ userId, value, onChange, error }: ImageUploaderP
 
             <button
               type="button"
-              onClick={() => void remove(index)}
+              onClick={() => remove(index)}
               aria-label={`${index + 1}枚目を削除`}
               className="absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm"
             >

@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireUserAction } from "@/lib/session";
 import { ok, fail, toUserMessage, type ActionResult } from "@/lib/errors";
 import { profileSchema } from "@/features/profile/schema";
+import { IMAGE_BUCKETS, isOwnedImagePath } from "@/lib/images";
+import { removeStorageObjects } from "@/lib/storage";
 
 function formValue(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -72,15 +74,29 @@ export async function updateAvatar(path: string | null): Promise<ActionResult<un
   }
 
   // 自分のフォルダ配下のパスであることを確認する(他人のファイルを指せないように)
-  if (path !== null && !path.startsWith(`${userId}/`)) {
+  if (path !== null && !isOwnedImagePath(path, userId)) {
     return fail("不正な画像パスです");
   }
 
   const supabase = await createClient();
+
+  // 差し替え前のパスを控えておき、更新後に実体を消す
+  const { data: before } = await supabase
+    .from("users")
+    .select("avatar_url")
+    .eq("id", userId)
+    .maybeSingle();
+
   const { error } = await supabase.from("users").update({ avatar_url: path }).eq("id", userId);
 
   if (error) {
     return fail("アイコンの更新に失敗しました。時間をおいて再度お試しください。");
+  }
+
+  // 外部 URL(Google ログインのアイコン)は Storage に無いので対象外
+  const previous = before?.avatar_url;
+  if (previous && previous !== path && isOwnedImagePath(previous, userId)) {
+    await removeStorageObjects(IMAGE_BUCKETS.avatar, [previous]);
   }
 
   revalidatePath("/mypage/profile");

@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { getDashboardStats, getRecentActivity } from "@/features/admin/queries";
+import {
+  findStateMismatches,
+  getDashboardStats,
+  getRecentActivity,
+} from "@/features/admin/queries";
 import { TrendChart } from "@/features/admin/components/trend-chart";
 import { AdminHeader } from "@/features/admin/components/admin-table";
 import { formatPrice, formatDateTime } from "@/lib/utils";
@@ -10,7 +14,11 @@ import { REPORT_REASONS, TRANSACTION_STATUSES, labelOf } from "@/lib/constants";
 export const metadata: Metadata = { title: "ダッシュボード" };
 
 export default async function AdminDashboardPage() {
-  const [stats, activity] = await Promise.all([getDashboardStats(30), getRecentActivity()]);
+  const [stats, activity, mismatches] = await Promise.all([
+    getDashboardStats(30),
+    getRecentActivity(),
+    findStateMismatches(),
+  ]);
 
   const cards = [
     { label: "会員数", value: stats.userCount.toLocaleString(), href: "/admin/users" },
@@ -30,6 +38,30 @@ export default async function AdminDashboardPage() {
         >
           未対応の通報が <strong className="tabular-nums">{stats.openReportCount}</strong> 件あります
         </Link>
+      )}
+
+      {mismatches.length > 0 && (
+        <section className="mb-5 rounded-xl border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <h2 className="font-semibold text-destructive">
+            取引と商品の状態が食い違っています({mismatches.length}件)
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            処理の途中で中断された可能性があります。取引画面で内容を確認し、必要なら手動で戻してください。
+          </p>
+          <ul className="mt-3 space-y-1.5">
+            {mismatches.map((item) => (
+              <li key={item.transactionId} className="text-xs">
+                <Link
+                  href={`/items/${item.listingId}`}
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  {item.listingTitle}
+                </Link>
+                <span className="ml-2 text-muted-foreground">{item.reason}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">

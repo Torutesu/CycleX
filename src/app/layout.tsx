@@ -17,6 +17,8 @@ const notoSansJp = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
+  // OGP 画像や canonical の相対 URL を解決するための基準
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: {
     default: "CycleX | 自転車・パーツの個人間売買",
     template: "%s | CycleX",

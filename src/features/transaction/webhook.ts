@@ -4,7 +4,7 @@ import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { STALE_PAYMENT_CLEANUP_MINUTES } from "@/lib/constants";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
-import { notifyPaid } from "@/features/notification/notify";
+import { notifyDispute, notifyPaid } from "@/features/notification/notify";
 import {
   decideCompleted,
   decideExpired,
@@ -12,7 +12,10 @@ import {
 } from "@/features/transaction/webhook-rules";
 
 export type WebhookOutcome =
-  | { handled: true; action: "paid" | "expired" | "already_processed" | "awaiting_payment" }
+  | {
+      handled: true;
+      action: "paid" | "expired" | "already_processed" | "awaiting_payment" | "dispute_notified";
+    }
   | { handled: false; reason: string };
 
 /**
@@ -80,6 +83,28 @@ export async function handleCheckoutExpired(
   });
 
   return { handled: true, action: "expired" };
+}
+
+/**
+ * charge.dispute.created の処理。
+ *
+ * 反論資料の提出は Stripe ダッシュボードで行う(返金・送金 API は別紙1 3.(4) により対象外)。
+ * ここでは運営が気づけるよう通知するのみで、取引の状態は変更しない
+ * — 申し立てが認められるとは限らず、この時点で取引をキャンセルすると
+ * 正当な取引まで巻き添えになるため。
+ */
+export async function handleDisputeCreated(
+  dispute: Pick<Stripe.Dispute, "id" | "amount" | "reason" | "payment_intent" | "evidence_details">,
+): Promise<WebhookOutcome> {
+  await notifyDispute({
+    disputeId: dispute.id,
+    paymentIntentId: paymentIntentIdOf(dispute.payment_intent),
+    amount: dispute.amount,
+    reason: dispute.reason ?? null,
+    evidenceDueBy: dispute.evidence_details?.due_by ?? null,
+  });
+
+  return { handled: true, action: "dispute_notified" };
 }
 
 /**

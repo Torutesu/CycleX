@@ -34,6 +34,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          id: string
+          note: string | null
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_audit_logs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brands: {
         Row: {
           created_at: string
@@ -186,6 +224,7 @@ export type Database = {
           seller_id: string
           shipping_from_pref: string | null
           status: string
+          status_before_suspend: string | null
           suspended_reason: string | null
           title: string
           updated_at: string
@@ -214,6 +253,7 @@ export type Database = {
           seller_id: string
           shipping_from_pref?: string | null
           status?: string
+          status_before_suspend?: string | null
           suspended_reason?: string | null
           title?: string
           updated_at?: string
@@ -242,6 +282,7 @@ export type Database = {
           seller_id?: string
           shipping_from_pref?: string | null
           status?: string
+          status_before_suspend?: string | null
           suspended_reason?: string | null
           title?: string
           updated_at?: string

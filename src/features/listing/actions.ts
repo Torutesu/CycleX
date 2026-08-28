@@ -9,7 +9,8 @@ import { requireVerifiedUser } from "@/lib/session";
 import { assertRateLimit } from "@/lib/rate-limit";
 import { ok, fail, toUserMessage, AppError, type ActionResult } from "@/lib/errors";
 import { MAX_DRAFTS, type ListingStatus } from "@/lib/constants";
-import { IMAGE_BUCKETS } from "@/lib/images";
+import { IMAGE_BUCKETS, isOwnedImagePath } from "@/lib/images";
+import { removeStorageObjects } from "@/lib/storage";
 import {
   draftSchema,
   publishSchema,
@@ -25,20 +26,56 @@ import {
 
 type SaveResult = ActionResult<{ id: string }>;
 
-/** 画像行を position 付きで入れ直す(並び替え・削除をまとめて反映する) */
+/**
+ * 画像行を position 付きで入れ直す(並び替え・削除をまとめて反映する)。
+ * 参照が外れたオブジェクトは Storage からも消す(S2-2)。
+ */
 async function replaceImages(listingId: string, paths: string[]): Promise<void> {
   const admin = createAdminClient();
+
+  const { data: existing } = await admin
+    .from("listing_images")
+    .select("path")
+    .eq("listing_id", listingId);
+
   await admin.from("listing_images").delete().eq("listing_id", listingId);
 
-  if (paths.length === 0) return;
+  if (paths.length > 0) {
+    const rows = paths.map((path, index) => ({
+      listing_id: listingId,
+      path,
+      position: index,
+    }));
+    const { error } = await admin.from("listing_images").insert(rows);
+    if (error) throw new AppError("画像の保存に失敗しました。時間をおいて再度お試しください。");
+  }
 
-  const rows = paths.map((path, index) => ({
-    listing_id: listingId,
-    path,
-    position: index,
-  }));
-  const { error } = await admin.from("listing_images").insert(rows);
-  if (error) throw new AppError("画像の保存に失敗しました。時間をおいて再度お試しください。");
+  // DB の更新が終わってから消す。逆順だと、保存に失敗したときに実体だけ失う。
+  const kept = new Set(paths);
+  const orphans = (existing ?? []).map((row) => row.path).filter((path) => !kept.has(path));
+  await removeStorageObjects(IMAGE_BUCKETS.listing, orphans);
+}
+
+/**
+ * 出品フォームで「削除」された画像のうち、どの出品からも参照されていないものを消す。
+ * 保存が成功したあとにまとめて呼ぶ(保存前に消すと、保存しないまま離脱したときに
+ * DB は残っているのに実体が無い状態になる)。
+ */
+async function discardUnusedImages(paths: string[], userId: string): Promise<void> {
+  const owned = paths.filter((path) => isOwnedImagePath(path, userId));
+  if (owned.length === 0) return;
+
+  const admin = createAdminClient();
+  const { data: referenced } = await admin
+    .from("listing_images")
+    .select("path")
+    .in("path", owned);
+
+  const inUse = new Set((referenced ?? []).map((row) => row.path));
+  await removeStorageObjects(
+    IMAGE_BUCKETS.listing,
+    owned.filter((path) => !inUse.has(path)),
+  );
 }
 
 /**
@@ -99,6 +136,11 @@ async function upsertListing(
   const admin = createAdminClient();
   const row = toListingRow(values);
 
+  // 画像パスは自分のフォルダ配下に限る(Storage のポリシーと同じ規約をここでも検証する)
+  if (values.imagePaths.some((path) => !isOwnedImagePath(path, userId))) {
+    throw new AppError("画像の指定が正しくありません。画像を選び直してください。");
+  }
+
   if (values.id) {
     await assertEditable(values.id, userId);
 
@@ -126,6 +168,7 @@ async function upsertListing(
       throw new AppError("商品の保存に失敗しました。時間をおいて再度お試しください。");
     }
     await replaceImages(values.id, values.imagePaths);
+    await discardUnusedImages(values.discardedImagePaths, userId);
     return values.id;
   }
 
@@ -160,6 +203,7 @@ async function upsertListing(
   }
 
   await replaceImages(data.id, values.imagePaths);
+  await discardUnusedImages(values.discardedImagePaths, userId);
   return data.id;
 }
 

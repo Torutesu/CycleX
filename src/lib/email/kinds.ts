@@ -15,7 +15,8 @@ export type MailKind =
   | "tx_canceled"
   | "review_requested"
   | "review_received"
-  | "new_message";
+  | "new_message"
+  | "admin_dispute";
 
 type MailKindMeta = {
   subject: string;
@@ -35,6 +36,8 @@ export const MAIL_KINDS: Record<MailKind, MailKindMeta> = {
   review_requested: { subject: "評価のお願い", category: "review" },
   review_received: { subject: "評価が届きました", category: "review" },
   new_message: { subject: "新着メッセージがあります", category: "message" },
+  // 運営あて。応答期限があるため設定に関わらず必ず送る
+  admin_dispute: { subject: "【要対応】チャージバックの申し立てがありました", category: null },
 };
 
 /**

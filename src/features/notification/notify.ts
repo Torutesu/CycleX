@@ -270,3 +270,89 @@ export async function notifyNewMessage(threadId: string, senderId: string): Prom
     },
   });
 }
+
+// ============================================================
+// 運営向け
+// ============================================================
+
+export type DisputeInfo = {
+  /** Stripe の申し立て ID */
+  disputeId: string;
+  /** 対象の PaymentIntent。取引の特定に使う */
+  paymentIntentId: string | null;
+  amount: number;
+  reason: string | null;
+  /** 反論資料の提出期限(UNIX 秒) */
+  evidenceDueBy: number | null;
+};
+
+/**
+ * チャージバック(不正利用の申し立て)を運営へ通知する。
+ *
+ * Stripe には応答期限があり、過ぎると自動的に敗訴して代金が引き戻される。
+ * 通知だけでも受け取れるようにして、気づかないまま期限を逃す事態を防ぐ。
+ * 反論資料の提出は Stripe ダッシュボードから手作業で行う(別紙1 3.(4))。
+ */
+export async function notifyDispute(info: DisputeInfo): Promise<void> {
+  const supabase = createAdminClient();
+
+  // 決済 ID から該当取引を引き当てる。見つからなくても通知は送る。
+  const { data: transaction } = info.paymentIntentId
+    ? await supabase
+        .from("transactions")
+        .select("id, price, listings!inner(title)")
+        .eq("stripe_payment_intent_id", info.paymentIntentId)
+        .maybeSingle()
+    : { data: null };
+
+  const details = [
+    { label: "申し立て ID", value: info.disputeId },
+    { label: "金額", value: formatPrice(info.amount) },
+    { label: "理由", value: info.reason ?? "不明" },
+    {
+      label: "反論期限",
+      value: info.evidenceDueBy
+        ? new Date(info.evidenceDueBy * 1000).toLocaleString("ja-JP")
+        : "不明",
+    },
+  ];
+
+  if (transaction) {
+    details.unshift({ label: "商品", value: transaction.listings?.title ?? "(不明)" });
+  } else {
+    details.push({
+      label: "該当取引",
+      value: `見つかりませんでした(決済ID: ${info.paymentIntentId ?? "不明"})`,
+    });
+  }
+
+  const { data: admins } = await supabase
+    .from("users")
+    .select("id")
+    .eq("role", "admin")
+    .eq("status", "active");
+
+  if (!admins || admins.length === 0) {
+    console.error("[dispute] 通知先の管理者が見つかりません", info.disputeId);
+    return;
+  }
+
+  await Promise.all(
+    admins.map((admin) =>
+      sendMail({
+        userId: admin.id,
+        kind: "admin_dispute",
+        refId: transaction?.id,
+        body: {
+          intro:
+            "カード会社から不正利用の申し立てがありました。期限までに Stripe ダッシュボードで対応してください。",
+          details,
+          cta: transaction
+            ? { label: "取引を確認する", path: `/admin/transactions?q=${encodeURIComponent(transaction.listings?.title ?? "")}` }
+            : { label: "取引管理を開く", path: "/admin/transactions" },
+          outro: "期限を過ぎると自動的に申し立てが認められ、代金が引き戻されます。",
+        },
+      }),
+    ),
+  );
+}

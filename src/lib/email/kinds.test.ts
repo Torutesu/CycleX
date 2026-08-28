@@ -66,7 +66,8 @@ describe("MAIL_KINDS", () => {
     const alwaysSend = (Object.keys(MAIL_KINDS) as MailKind[]).filter(
       (kind) => MAIL_KINDS[kind].category === null,
     );
-    expect(alwaysSend.sort()).toEqual(["tx_canceled", "welcome"]);
+    // 認証系・トラブル対応・運営あての通知は設定で止められない
+    expect(alwaysSend.sort()).toEqual(["admin_dispute", "tx_canceled", "welcome"]);
   });
 });
 

@@ -9,6 +9,8 @@ import { getCurrentUser, requireUserAction } from "@/lib/session";
 import { ok, fail, type ActionResult, toUserMessage, AppError } from "@/lib/errors";
 import { absoluteUrl, safeRedirectPath } from "@/lib/utils";
 import { ACTIVE_TRANSACTION_STATUSES } from "@/lib/constants";
+import { IMAGE_BUCKETS } from "@/lib/images";
+import { removeUserFolder } from "@/lib/storage";
 import { canWithdraw, resolvePostLoginPath } from "@/features/auth/rules";
 import {
   signupSchema,
@@ -258,6 +260,9 @@ export async function withdraw(
 
   const user = await getCurrentUser();
   if (!user) return fail("ログインが必要です。");
+  if (user.status !== "active") {
+    return fail("現在のアカウント状態では退会手続きを行えません。運営までお問い合わせください。");
+  }
 
   const admin = createAdminClient();
 
@@ -297,7 +302,11 @@ export async function withdraw(
       .eq("seller_id", user.id)
       .in("status", ["published", "draft"]);
 
-    // 4. 以降ログインできないようにする
+    // 4. アイコン画像の実体を削除する。
+    //    avatar_url を null にするだけでは、公開 URL を知っていれば退会後も閲覧できてしまう。
+    await removeUserFolder(IMAGE_BUCKETS.avatar, user.id);
+
+    // 5. 以降ログインできないようにする
     await admin.auth.admin.updateUserById(user.id, { ban_duration: "876000h" });
   } catch (error) {
     return fail(toUserMessage(error));

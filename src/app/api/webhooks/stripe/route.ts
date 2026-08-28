@@ -4,6 +4,7 @@ import { getStripe, getWebhookSecret } from "@/lib/stripe";
 import {
   handleCheckoutCompleted,
   handleCheckoutExpired,
+  handleDisputeCreated,
 } from "@/features/transaction/webhook";
 
 /**
@@ -49,6 +50,11 @@ export async function POST(request: NextRequest) {
         if (!outcome.handled) {
           console.error("[stripe webhook] async_payment_failed 処理をスキップ:", outcome.reason);
         }
+        break;
+      }
+      // カード会社からの不正利用の申し立て。応答期限があるため運営へ通知する
+      case "charge.dispute.created": {
+        await handleDisputeCreated(event.data.object);
         break;
       }
       default:
