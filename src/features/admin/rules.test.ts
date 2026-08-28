@@ -5,6 +5,7 @@ import {
   isCancellable,
   listingAfterCancel,
   SUSPENDABLE_LISTING_STATUSES,
+  needsRefund,
 } from "@/features/admin/rules";
 import type { ListingStatus, TransactionStatus } from "@/lib/constants";
 
@@ -87,5 +88,22 @@ describe("isCancellable", () => {
       "shipped",
       "received",
     ]);
+  });
+});
+
+describe("needsRefund", () => {
+  it("入金済みのままキャンセルされた取引を返金対象とする", () => {
+    expect(needsRefund("canceled", "2026-08-01T00:00:00Z")).toBe(true);
+  });
+
+  it("未入金でキャンセルされた取引は返金対象にしない", () => {
+    expect(needsRefund("canceled", null)).toBe(false);
+    expect(needsRefund("canceled", undefined)).toBe(false);
+  });
+
+  it("キャンセルされていない取引は返金対象にしない", () => {
+    for (const status of ["pending_payment", "paid", "shipped", "received", "completed"] as const) {
+      expect(needsRefund(status, "2026-08-01T00:00:00Z")).toBe(false);
+    }
   });
 });

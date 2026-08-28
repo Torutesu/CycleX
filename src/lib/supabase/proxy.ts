@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
 
 /** ログイン必須のパス(前方一致) */
@@ -66,14 +67,18 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return NextResponse.redirect(loginUrl);
   }
 
-  if (user) {
-    // 利用停止ユーザーは案内ページ以外を閲覧できない
-    const { data: profile } = await supabase
+  // 会員向け・管理画面のときだけプロフィールを引く。
+  // 公開ページでも毎回引いていたため、全リクエストに DB 往復が乗っていた。
+  // role / status は anon には列単位で見せていないため service role で読む
+  // (id は getUser() で検証済み)。
+  if (user && (isProtected(pathname) || isAdminPath(pathname))) {
+    const { data: profile } = await createAdminClient()
       .from("users")
       .select("role, status")
       .eq("id", user.id)
       .maybeSingle();
 
+    // 利用停止ユーザーは会員向けの画面を操作できない
     if (profile?.status === "suspended" && pathname !== "/suspended") {
       const suspendedUrl = request.nextUrl.clone();
       suspendedUrl.pathname = "/suspended";

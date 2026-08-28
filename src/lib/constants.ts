@@ -312,8 +312,19 @@ export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as 
 /** 評価が自動公開されるまでの日数(報復評価抑止) */
 export const REVIEW_AUTO_PUBLISH_DAYS = 14;
 
-/** Stripe Checkout セッションの有効期限(分) */
-export const CHECKOUT_EXPIRES_MINUTES = 30;
+/**
+ * Stripe Checkout セッションの有効期限(分)。
+ *
+ * Stripe の `expires_at` は「現在より30分以上先」が要件。ちょうど30分で送ると
+ * サーバ時刻がわずかに遅れているだけで Session の作成が失敗するため、余裕を持たせる。
+ */
+export const CHECKOUT_EXPIRES_MINUTES = 45;
+
+/**
+ * 未決済のまま放置された取引を掃除するまでの経過時間(分)。
+ * Checkout の有効期限より必ず後にする(期限切れ Webhook を先に効かせるため)。
+ */
+export const STALE_PAYMENT_CLEANUP_MINUTES = 90;
 
 export function modelYearMax(): number {
   return new Date().getFullYear() + 1;

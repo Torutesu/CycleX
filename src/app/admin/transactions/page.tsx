@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { listTransactions } from "@/features/admin/queries";
+import { countRefundPending, listTransactions } from "@/features/admin/queries";
 import { cancelTransaction } from "@/features/admin/actions";
 import { AdminFilters } from "@/features/admin/components/admin-filters";
 import { ReasonDialog } from "@/features/admin/components/admin-actions";
@@ -11,9 +12,15 @@ import {
   AdminPagination,
   AdminTableShell,
 } from "@/features/admin/components/admin-table";
-import { isCancellable } from "@/features/admin/rules";
+import { isCancellable, needsRefund } from "@/features/admin/rules";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { TRANSACTION_STATUSES, labelOf, type TransactionStatus } from "@/lib/constants";
+
+/**
+ * 入金済みのままキャンセルされた取引を絞り込むためのフィルタ。
+ * 返金 API は対象外(別紙1 3.(4))のため、この一覧を見て Stripe ダッシュボードで手動対応する。
+ */
+const REFUND_FILTER_OPTIONS = [{ value: "pending", label: "返金対応が必要" }] as const;
 
 export const metadata: Metadata = { title: "取引管理" };
 
@@ -25,13 +32,17 @@ export default async function AdminTransactionsPage({
   const params = await searchParams;
   const page = Math.max(1, Number(params.page) || 1);
 
-  const result = await listTransactions({
-    query: params.q,
-    status: params.status,
-    from: params.from,
-    to: params.to,
-    page,
-  });
+  const [result, refundPending] = await Promise.all([
+    listTransactions({
+      query: params.q,
+      status: params.status,
+      refund: params.refund,
+      from: params.from,
+      to: params.to,
+      page,
+    }),
+    countRefundPending(),
+  ]);
 
   return (
     <>
@@ -39,6 +50,23 @@ export default async function AdminTransactionsPage({
         title="取引管理"
         description="取引の確認と、トラブル時のキャンセル操作を行います。返金は Stripe ダッシュボードで別途実施してください。"
       />
+
+      {refundPending > 0 && params.refund !== "pending" && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+          <AlertTriangle className="size-4 shrink-0 text-destructive" aria-hidden />
+          <span>
+            入金済みのままキャンセルされた取引が{" "}
+            <strong className="tabular-nums">{refundPending}</strong> 件あります。
+            Stripe ダッシュボードから返金してください。
+          </span>
+          <Link
+            href="/admin/transactions?refund=pending"
+            className="ml-auto font-medium text-primary underline-offset-4 hover:underline"
+          >
+            対象を表示
+          </Link>
+        </div>
+      )}
 
       <AdminFilters
         basePath="/admin/transactions"
@@ -50,6 +78,12 @@ export default async function AdminTransactionsPage({
             label: "ステータス",
             options: TRANSACTION_STATUSES,
             value: params.status ?? "",
+          },
+          {
+            name: "refund",
+            label: "返金対応",
+            options: REFUND_FILTER_OPTIONS,
+            value: params.refund ?? "",
           },
         ]}
         dateRange={{ from: params.from ?? "", to: params.to ?? "" }}
@@ -74,6 +108,7 @@ export default async function AdminTransactionsPage({
           <tbody className="divide-y">
             {result.items.map((tx) => {
               const cancellable = isCancellable(tx.status as TransactionStatus);
+              const refundNeeded = needsRefund(tx.status as TransactionStatus, tx.paidAt);
 
               return (
                 <tr key={tx.id} className="hover:bg-accent/30">
@@ -126,6 +161,11 @@ export default async function AdminTransactionsPage({
                     >
                       {labelOf(TRANSACTION_STATUSES, tx.status)}
                     </Badge>
+                    {refundNeeded && (
+                      <Badge variant="destructive" className="ml-1.5">
+                        要返金
+                      </Badge>
+                    )}
                   </td>
                   <td className="px-4 py-2.5">
                     {/* 決済 ID は Stripe ダッシュボードでの照合に使う */}

@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
-      case "checkout.session.completed": {
+      // completed は「セッション完了」であって入金確定ではない。
+      // 後払い手段では未入金のまま飛ぶため、確定は async_payment_succeeded で行う。
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
         const outcome = await handleCheckoutCompleted(event.data.object);
         if (!outcome.handled) {
           console.error("[stripe webhook] completed 処理をスキップ:", outcome.reason);
@@ -35,9 +38,16 @@ export async function POST(request: NextRequest) {
         break;
       }
       case "checkout.session.expired": {
-        const outcome = await handleCheckoutExpired(event.data.object);
+        const outcome = await handleCheckoutExpired(event.data.object, "payment_expired");
         if (!outcome.handled) {
           console.error("[stripe webhook] expired 処理をスキップ:", outcome.reason);
+        }
+        break;
+      }
+      case "checkout.session.async_payment_failed": {
+        const outcome = await handleCheckoutExpired(event.data.object, "payment_failed");
+        if (!outcome.handled) {
+          console.error("[stripe webhook] async_payment_failed 処理をスキップ:", outcome.reason);
         }
         break;
       }

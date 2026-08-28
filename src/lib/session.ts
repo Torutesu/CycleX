@@ -1,8 +1,10 @@
 import "server-only";
 
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { AppError } from "@/lib/errors";
 
 export type SessionUser = {
@@ -19,8 +21,11 @@ export type SessionUser = {
 /**
  * ログイン中ユーザーのプロフィールを返す。未ログインなら null。
  * Server Component / Server Action から使用する。
+ *
+ * 同一リクエスト内で何度も呼ばれる(レイアウト + 各ページ)ため `cache()` で包む。
+ * これがないと 1 ページの描画ごとに Supabase へ往復が積み上がる。
  */
-export async function getCurrentUser(): Promise<SessionUser | null> {
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<SessionUser | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,7 +33,11 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  // email / role / email_verified_at は anon・authenticated には列単位で
+  // 見せていない(20260101000004_harden_grants.sql)。
+  // 本人であることは getUser() で検証済みなので、その id に限って service role で引く。
+  const admin = createAdminClient();
+  const { data: profile } = await admin
     .from("users")
     .select("id, email, display_name, avatar_url, prefecture, role, status, email_verified_at")
     .eq("id", user.id)
@@ -47,7 +56,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     // Supabase Auth 側の確認完了が users へ同期される
     emailVerified: Boolean(profile.email_verified_at ?? user.email_confirmed_at),
   };
-}
+});
 
 /** ログイン必須のページで使用する。未ログインならログイン画面へ送る。 */
 export async function requireUser(nextPath?: string): Promise<SessionUser> {

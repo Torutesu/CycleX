@@ -41,6 +41,31 @@ async function replaceImages(listingId: string, paths: string[]): Promise<void> 
   if (error) throw new AppError("画像の保存に失敗しました。時間をおいて再度お試しください。");
 }
 
+/**
+ * 進行中の取引が紐づいている商品は、出品者側から動かせないようにする。
+ *
+ * 商品が `trading` になるのは決済確定(paid)後なので、購入者が Stripe の決済画面を
+ * 開いている `pending_payment` の間、商品は `published` のままになる。この隙間を塞がないと、
+ * 出品者が取下げ・値下げした直後に購入者が決済を完了できてしまう。
+ */
+async function assertNoActiveTransaction(listingId: string): Promise<void> {
+  const admin = createAdminClient();
+  const { count, error } = await admin
+    .from("transactions")
+    .select("*", { count: "exact", head: true })
+    .eq("listing_id", listingId)
+    .neq("status", "canceled");
+
+  // 判定できないときは安全側に倒して止める(金銭が絡むため通過させない)
+  if (error) {
+    console.error("[active transaction check failed]", error);
+    throw new AppError("状態を確認できませんでした。時間をおいて再度お試しください。");
+  }
+  if ((count ?? 0) > 0) {
+    throw new AppError("この商品は購入手続きが進行中のため、変更・取下げできません。");
+  }
+}
+
 /** 所有者と編集可否を確認する */
 async function assertEditable(listingId: string, userId: string): Promise<ListingStatus> {
   const admin = createAdminClient();
@@ -61,6 +86,8 @@ async function assertEditable(listingId: string, userId: string): Promise<Listin
         : "取引中または売却済みの商品は編集できません。",
     );
   }
+
+  await assertNoActiveTransaction(listingId);
   return status;
 }
 
@@ -197,6 +224,8 @@ async function changeStatus(
     if (!data) throw new AppError("商品が見つかりません。");
     if (data.seller_id !== user.id) throw new AppError("この商品を操作する権限がありません。");
     if (!guard(data.status as ListingStatus)) throw new AppError(errorMessage);
+
+    await assertNoActiveTransaction(listingId);
 
     const { error } = await admin.from("listings").update({ status: to }).eq("id", listingId);
     if (error) throw new AppError("状態の変更に失敗しました。時間をおいて再度お試しください。");

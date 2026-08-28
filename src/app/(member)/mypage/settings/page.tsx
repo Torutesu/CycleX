@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { requireUser } from "@/lib/session";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   ChangeEmailForm,
   ChangePasswordForm,
@@ -16,8 +16,9 @@ export const metadata: Metadata = { title: "設定" };
 export default async function SettingsPage() {
   const user = await requireUser("/mypage/settings");
 
-  const supabase = await createClient();
-  const { data } = await supabase
+  // notification_prefs は anon には見せていない列のため service role で読む
+  // (対象は requireUser() で確認済みの本人 ID のみ)。
+  const { data } = await createAdminClient()
     .from("users")
     .select("notification_prefs")
     .eq("id", user.id)

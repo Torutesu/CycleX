@@ -218,6 +218,7 @@ export type AdminTransactionRow = {
   status: string;
   price: number;
   createdAt: string;
+  paidAt: string | null;
   stripeSessionId: string | null;
   stripePaymentIntentId: string | null;
   listing: { id: string; title: string } | null;
@@ -228,6 +229,8 @@ export type AdminTransactionRow = {
 export async function listTransactions(options: {
   query?: string;
   status?: string;
+  /** "pending" のとき、返金対応が必要な取引のみに絞る */
+  refund?: string;
   from?: string;
   to?: string;
   page: number;
@@ -238,7 +241,7 @@ export async function listTransactions(options: {
   let builder = supabase
     .from("transactions")
     .select(
-      `id, status, price, created_at, stripe_session_id, stripe_payment_intent_id,
+      `id, status, price, created_at, paid_at, stripe_session_id, stripe_payment_intent_id,
        listings!inner(id, title),
        buyer:users!transactions_buyer_id_fkey(id, display_name),
        seller:users!transactions_seller_id_fkey(id, display_name)`,
@@ -250,6 +253,10 @@ export async function listTransactions(options: {
     builder = builder.ilike("listings.title", `%${escapeLike(options.query)}%`);
   }
   if (options.status) builder = builder.eq("status", options.status);
+  // 入金済みのままキャンセルされた取引 = 運営の手動返金が必要なもの
+  if (options.refund === "pending") {
+    builder = builder.eq("status", "canceled").not("paid_at", "is", null);
+  }
   if (options.from) builder = builder.gte("created_at", options.from);
   if (options.to) builder = builder.lte("created_at", `${options.to}T23:59:59`);
 
@@ -260,6 +267,7 @@ export async function listTransactions(options: {
     status: row.status,
     price: row.price,
     createdAt: row.created_at,
+    paidAt: row.paid_at,
     stripeSessionId: row.stripe_session_id,
     stripePaymentIntentId: row.stripe_payment_intent_id,
     listing: row.listings ? { id: row.listings.id, title: row.listings.title } : null,
@@ -268,6 +276,21 @@ export async function listTransactions(options: {
   }));
 
   return paged(items, count ?? 0, options.page);
+}
+
+/**
+ * 返金対応が必要な取引の件数。
+ * 管理画面の導線に出し、手動返金の取りこぼしを防ぐ。
+ */
+export async function countRefundPending(): Promise<number> {
+  const supabase = createAdminClient();
+  const { count } = await supabase
+    .from("transactions")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "canceled")
+    .not("paid_at", "is", null);
+
+  return count ?? 0;
 }
 
 // ============================================================

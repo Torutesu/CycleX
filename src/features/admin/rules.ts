@@ -62,3 +62,17 @@ export function listingAfterCancel(
 export function isCancellable(status: TransactionStatus): boolean {
   return status !== "completed" && status !== "canceled";
 }
+
+/**
+ * 運営による返金対応が必要な取引か(FR-08 / 別紙1 3.(4))。
+ *
+ * 入金済み(paid_at あり)のままキャンセルされた取引は、購入者の支払いだけが
+ * 残っている状態になる。返金 API の実装は対象外のため、この判定で対象を洗い出し、
+ * 運営が Stripe ダッシュボードから手動で返金する。
+ */
+export function needsRefund(
+  status: TransactionStatus,
+  paidAt: string | null | undefined,
+): boolean {
+  return status === "canceled" && Boolean(paidAt);
+}

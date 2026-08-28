@@ -3,12 +3,40 @@
 対象コミット: `db5dbb6`(Phase 1〜8 完了時点)
 観点: 正しさ・セキュリティ・性能・運用・リリース阻害要因
 
-lint / typecheck / Vitest 134件 / build はすべて通過している。以下は静的解析では出ない、
+lint / typecheck / Vitest / build はすべて通過している。以下は静的解析では出ない、
 設計・運用レベルの指摘。
+
+**S1 は `95f8ea6` 以降で修正済み(下記に修正内容を追記)。S2 以降は未着手。**
 
 ---
 
-## S1 リリース前に必ず直すもの
+## S1 リリース前に必ず直すもの — 対応済み
+
+### 1-0. 【追加検出】一般ユーザーが自分を管理者に昇格できた
+
+`supabase/migrations/20260101000002_rls.sql`(修正前)
+
+```sql
+grant update on public.users to authenticated;
+create policy users_update_self on public.users
+  for update using (auth.uid() = id) with check (auth.uid() = id);
+```
+
+RLS ポリシーは「どの行か」しか制御できず「どの列か」は制御できない。テーブル単位で
+UPDATE を許可していたため、ログイン済みユーザーが PostgREST を直接叩いて
+
+```
+PATCH /rest/v1/users?id=eq.<自分のID>   {"role": "admin"}
+```
+
+で**管理者権限を取得できた**。同じ経路で `status` を `active` に戻して利用停止を
+自力解除したり、`email_verified_at` を埋めてメール確認を迂回することもできた。
+
+**修正**: `20260101000004_harden_grants.sql` で列単位 GRANT に置き換え。
+本人が更新してよいのは `display_name / avatar_url / bio / prefecture / notification_prefs` のみ。
+あわせて、Server Action(service role)経由でしか書かない
+`listings` / `listing_images` / `threads` / `reports` / `brands` への
+authenticated からの直接書き込み権限を剥奪した。
 
 ### 1-1. 全会員のメールアドレスが匿名アクセスで取得できる
 
@@ -44,7 +72,20 @@ grant select (id, display_name, avatar_url, bio, prefecture, created_at)
 
 同じ問題が `listings.suspended_reason`(運営の非公開理由が誰でも読める)にもある。
 
-**工数目安 3〜4h**
+**修正**: 同マイグレーションで列単位 SELECT に置き換え。公開列は
+`id / display_name / avatar_url / bio / prefecture / status / created_at` のみ。
+非公開列を読む必要がある 3 か所を service role 経由に変更した。
+
+- `src/lib/session.ts` … `getCurrentUser`(email / role / email_verified_at)
+- `src/lib/supabase/proxy.ts` … ルート保護(role / status)
+- `src/app/(member)/mypage/settings/page.tsx` … 通知設定(notification_prefs)
+
+同時に `getCurrentUser` を `react.cache()` で包み、`proxy.ts` のプロフィール取得を
+会員向け・管理画面のパスに限定した(S2-5 の一部を同時対応。service role の呼び出しを
+増やしたため、往復を放置できなかったため)。
+
+なお `listings.suspended_reason` も同種の漏れだが、`select("*")` を使う画面が
+残っているため今回は対象外(下記 S3 に移動)。
 
 ---
 
@@ -64,10 +105,9 @@ Stripe の `expires_at` は「現在より30分以上先」が要件。ちょう
 「決済ページの準備に失敗しました」しか出ない。つまり**購入が一切通らない状態になりうる**のに、
 原因がログを見ないと分からない。
 
-修正: `CHECKOUT_EXPIRES_MINUTES` を 35〜60 にする。1行。
-`cleanupStalePendingTransactions` の既定値 60分もそれに合わせて見直す。
-
-**工数目安 10分**
+**修正**: `CHECKOUT_EXPIRES_MINUTES` を 45 分に変更。
+掃除バッチの閾値を `STALE_PAYMENT_CLEANUP_MINUTES = 90` として定数に切り出し、
+Checkout の期限より必ず後に効くようにした。
 
 ---
 
@@ -80,12 +120,14 @@ Stripe の `expires_at` は「現在より30分以上先」が要件。ちょう
 コンビニ払い・銀行振込を追加した瞬間、`completed` は「未入金」の状態でも飛ぶため
 **入金前に取引が成立する**。
 
-修正:
+**修正**:
 
-- `session.payment_status === "paid"` を遷移の条件に加える
-- `checkout.session.async_payment_succeeded` / `async_payment_failed` の分岐を先に用意しておく
-
-**工数目安 1h**
+- `decideCompleted` に `paymentStatus` を追加し、`paid` 以外は新設の `defer`
+  (取引を保留したまま 200 を返す)にした
+- `checkout.session.async_payment_succeeded` / `async_payment_failed` の分岐を追加
+- 後払い手段を有効にする場合に掃除バッチが未入金の取引を潰す点を
+  `cleanupStalePendingTransactions` の注意書きとして残した
+- テストを 5 件追加(未入金・状態判定の優先順位)
 
 ---
 
@@ -97,10 +139,9 @@ Stripe の `expires_at` は「現在より30分以上先」が要件。ちょう
 `pending_payment` の間、商品は `published` のままなので、出品者は取下げも価格変更もできる。
 その直後に購入者が決済を完了すると、取下げたはずの商品が売れ、価格変更前の金額で決済される。
 
-修正: `withdrawListing` と `assertEditable` で
-「`status <> 'canceled'` の transactions が存在するか」を確認して弾く。
-
-**工数目安 2h**
+**修正**: `assertNoActiveTransaction()` を追加し、`assertEditable`(編集)と
+`changeStatus`(取下げ・再公開)の両方から呼ぶようにした。
+判定に失敗したときは安全側に倒して操作を止める。
 
 ---
 
@@ -113,10 +154,14 @@ Stripe の `expires_at` は「現在より30分以上先」が要件。ちょう
 洗い出す手段が管理画面に無い**。運用で取りこぼすと、購入者は支払っただけの状態で放置される。
 
 返金 API の実装は別紙1 3.(4) で対象外だが、「返金対象の抽出」は対象外に含まれない。
-最低限、管理画面の取引一覧に「`canceled` かつ `paid_at` が入っている」フィルタを足し、
-Stripe の payment_intent ID を表示する。
+**修正**: 純粋判定 `needsRefund(status, paidAt)` を追加し、管理画面の取引一覧に
 
-**工数目安 2h**
+- 未対応件数を出す警告バナー(1クリックで対象だけに絞り込める)
+- 「返金対応」フィルタ
+- 各行の「要返金」バッジ
+
+を追加した。Stripe の payment_intent ID は元から表示されているため、
+そのままダッシュボードで照合できる。
 
 ---
 
@@ -302,6 +347,7 @@ CSP / X-Frame-Options / Referrer-Policy / X-Content-Type-Options / Permissions-P
 | 3-10 | `withdraw()` が `getCurrentUser()` を使っており、利用停止中でも退会できる | `src/features/auth/actions.ts` |
 | 3-11 | `proxy.ts` の matcher が画像拡張子で終わるパスを除外しているため、`/mypage/x.png` のようなパスがガードを迂回する(実在ルートは無いので実害なし) | `src/proxy.ts` |
 | 3-12 | 管理画面の権限不足時に `/404` へ rewrite しているが、App Router に `/404` ルートは無く、ステータスは 200 で返る(表示は not-found) | `src/lib/supabase/proxy.ts` |
+| 3-13 | `listings.suspended_reason`(運営の非表示理由)が anon から読める。列単位 GRANT に絞るには、先に `select("*")` を使っている 2 画面を明示列指定へ直す必要がある | `mypage/listings/page.tsx` / `sell/[id]/edit/page.tsx` |
 
 ---
 
@@ -366,13 +412,50 @@ CSP / X-Frame-Options / Referrer-Policy / X-Content-Type-Options / Permissions-P
 
 | 順 | 内容 | 目安 |
 |---|---|---|
-| 1 | S1-2(Checkout 期限)、S1-3(payment_status)、S2-8(評価の競合) | 2h |
-| 2 | S1-1(users の列 GRANT) | 4h |
-| 3 | S1-4(決済中の取下げ)、S1-5(返金対象の抽出) | 4h |
-| 4 | S2-5(往復削減)、S2-1(インデックス)、S2-9(ヘッダ) | 4h |
-| 5 | S2-2 / S2-3 / S2-4(画像まわり) | 5h |
-| 6 | 本番環境の設定と実機確認(Supabase Auth / Stripe / Resend / Vercel) | 8h |
-| 7 | S2-6(利用停止の運用)— 運用ルール確定後 | 4h |
-| 8 | S2-7(遷移の原子化)、S3 各種 | 8h |
+| — | ~~S1-0 〜 S1-5~~ | **対応済み** |
+| 1 | S2-8(評価の競合)、S2-9(セキュリティヘッダ)、S2-4(画像パス検証) | 2h |
+| 2 | S2-1(検索インデックス) | 1h |
+| 3 | S2-2 / S2-3(Storage の後始末) | 4h |
+| 4 | 本番環境の設定と実機確認(Supabase Auth / Stripe / Resend / Vercel) | 8h |
+| 5 | S2-6(利用停止の運用)— 運用ルール確定後 | 4h |
+| 6 | S2-7(遷移の原子化) | 4h |
+| 7 | S3 各種 | 6h |
 
-合計 **約 39h**。S1 と S2-5 / S2-9 までの「リリース最低ライン」は **約 14h**。
+残 **約 29h**。うちリリース前に必要なのは 1〜4 の **約 15h**。
+
+---
+
+## S1 修正の検証手順
+
+このセッションには Docker が無く、DB へ実際に適用しての確認ができていない。
+ローカル環境で以下を実施すること。
+
+```bash
+pnpm supabase start
+pnpm db:reset          # 4本のマイグレーションが順に通ることを確認
+```
+
+そのうえで anon key を使って権限が落ちていることを確認する。
+
+```bash
+ANON=$(pnpm supabase status -o json | jq -r '.ANON_KEY')
+URL=$(pnpm supabase status -o json | jq -r '.API_URL')
+
+# 1. email が読めないこと(42501 permission denied for column が返れば OK)
+curl -s "$URL/rest/v1/users?select=email" -H "apikey: $ANON"
+
+# 2. 公開列は読めること
+curl -s "$URL/rest/v1/users?select=id,display_name" -H "apikey: $ANON"
+```
+
+ログイン済みユーザーのトークンで、`role` の更新が拒否されることも確認する。
+
+```bash
+curl -s -X PATCH "$URL/rest/v1/users?id=eq.<自分のID>" \
+  -H "apikey: $ANON" -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" -d '{"role":"admin"}'
+```
+
+画面側は、ログイン・マイページ・設定・公開プロフィール・商品詳細・
+出品編集・お気に入り登録が従来どおり動くことを通しで確認する
+(列単位 GRANT の影響が出るとすればこの範囲)。
