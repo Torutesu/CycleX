@@ -7,7 +7,8 @@ lint / typecheck / Vitest / build はすべて通過している。以下は静�
 設計・運用レベルの指摘。
 
 **S1 は `5b49576` で、S2・S3 は推奨案どおり対応済み。**
-残るのは本番環境の設定・実機確認と、甲の判断・支給を待つ項目のみ。
+マイグレーションは実際の PostgreSQL に適用して検証済み([DB_VERIFICATION.md](DB_VERIFICATION.md))。
+残るのは外部サービスの実機確認と、甲の判断・支給を待つ項目のみ。
 対応内容は末尾の「S2 / S3 の対応内容」にまとめている。
 
 ---
@@ -427,42 +428,23 @@ CSP / X-Frame-Options / Referrer-Policy / X-Content-Type-Options / Permissions-P
 
 ---
 
-## S1 修正の検証手順
+## S1 修正の検証
 
-このセッションには Docker が無く、DB へ実際に適用しての確認ができていない。
-ローカル環境で以下を実施すること。
+ローカルに PostgreSQL 16 を立てて実際に適用・検証した。結果は
+[DB_VERIFICATION.md](DB_VERIFICATION.md) を参照。
 
-```bash
-pnpm supabase start
-pnpm db:reset          # 4本のマイグレーションが順に通ることを確認
-```
+- マイグレーション 6 本すべて適用可
+- `role` の自力昇格、`status` の自力解除、`email` / `role` の匿名参照 — いずれも拒否を確認
+- 公開列の参照と本人による更新は従来どおり動作
+- 二重購入の排他、通報の重複制限、お気に入りの対象制限も期待どおり
 
-そのうえで anon key を使って権限が落ちていることを確認する。
+検索インデックスについては、**日本語でも 3 文字以上なら索引が効く**ことを
+10 万件の実測で確認した。2 文字の検索は pg_trgm の仕様上どうしても全件走査になる
+(10 万件で 60ms 程度なので MVP の規模では問題にならない)。
 
-```bash
-ANON=$(pnpm supabase status -o json | jq -r '.ANON_KEY')
-URL=$(pnpm supabase status -o json | jq -r '.API_URL')
+あわせて、**本番 DB の `lc_ctype` を `C` にすると日本語の索引がまったく効かなくなる**ことが
+分かったため、デプロイ時の注意点として記録した。
 
-# 1. email が読めないこと(42501 permission denied for column が返れば OK)
-curl -s "$URL/rest/v1/users?select=email" -H "apikey: $ANON"
-
-# 2. 公開列は読めること
-curl -s "$URL/rest/v1/users?select=id,display_name" -H "apikey: $ANON"
-```
-
-ログイン済みユーザーのトークンで、`role` の更新が拒否されることも確認する。
-
-```bash
-curl -s -X PATCH "$URL/rest/v1/users?id=eq.<自分のID>" \
-  -H "apikey: $ANON" -H "Authorization: Bearer <access_token>" \
-  -H "Content-Type: application/json" -d '{"role":"admin"}'
-```
-
-画面側は、ログイン・マイページ・設定・公開プロフィール・商品詳細・
-出品編集・お気に入り登録が従来どおり動くことを通しで確認する
-(列単位 GRANT の影響が出るとすればこの範囲)。
-
----
 
 ## S2 / S3 の対応内容
 
