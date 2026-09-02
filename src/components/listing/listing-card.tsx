@@ -14,6 +14,8 @@ type ListingCardProps = {
   isLoggedIn?: boolean;
   /** 自分の出品にはお気に入りボタンを出さない */
   isOwn?: boolean;
+  /** 一覧の先頭など、画面に最初から見えている画像を先に読み込む */
+  priority?: boolean;
 };
 
 /** FR-04-5: 一覧に並ぶ商品カード。スマホ2列/PC4列のグリッド内で使う。 */
@@ -22,6 +24,7 @@ export function ListingCard({
   favorited = false,
   isLoggedIn = false,
   isOwn = false,
+  priority = false,
 }: ListingCardProps) {
   const badge = listingBadge(listing.status);
   const region = labelOf(PREFECTURES, listing.shippingFromPref ?? listing.meetupPref);
@@ -37,6 +40,7 @@ export function ListingCard({
               alt=""
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              priority={priority}
               className="object-cover transition-transform group-hover:scale-105"
             />
           ) : (
