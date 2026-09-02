@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ChevronLeft, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -28,7 +28,10 @@ export default async function PurchasePage({
   if (!listing) notFound();
 
   const isOwner = listing.sellerId === user.id;
-  const purchasable = canPurchase(listing.status) && !isOwner;
+  // 自分の出品では支払えない。無効なボタンだけの画面を見せても行き止まりなので戻す
+  if (isOwner) redirect(`/items/${listing.id}`);
+
+  const purchasable = canPurchase(listing.status);
   const demo = isDemoCheckout();
 
   return (

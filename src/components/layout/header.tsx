@@ -20,7 +20,7 @@ export function Header({ user, unreadCount }: HeaderProps) {
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-3 px-4 md:h-16 md:gap-6">
         <Link
           href="/"
-          className="shrink-0 text-lg font-bold tracking-tight text-primary md:text-xl"
+          className="inline-flex min-h-11 shrink-0 items-center text-lg font-bold tracking-tight text-primary md:text-xl"
         >
           CycleX
         </Link>

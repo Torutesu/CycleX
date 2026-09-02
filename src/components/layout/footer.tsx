@@ -15,10 +15,14 @@ export function Footer() {
         <p className="mt-1 text-sm text-muted-foreground">
           自転車・パーツの個人間売買マーケットプレイス
         </p>
-        <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        {/* 指で押す前提の高さを確保する */}
+        <ul className="mt-2 flex flex-wrap gap-x-6 text-sm">
           {LINKS.map((link) => (
             <li key={link.href}>
-              <Link href={link.href} className="text-muted-foreground hover:text-foreground">
+              <Link
+                href={link.href}
+                className="inline-flex min-h-11 items-center text-muted-foreground hover:text-foreground"
+              >
                 {link.label}
               </Link>
             </li>
