@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, PackageOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/session";
+import { EmptyState } from "@/components/common/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { listingImageUrl } from "@/lib/images";
 import { formatPrice, formatDate, cn } from "@/lib/utils";
@@ -123,17 +124,22 @@ export default async function MyListingsPage({
       </nav>
 
       {visible.length === 0 ? (
-        <div className="mt-10 flex flex-col items-center py-10 text-center">
-          <PackageOpen className="size-10 text-muted-foreground" aria-hidden />
-          <p className="mt-3 text-sm text-muted-foreground">
-            {labelOf(LISTING_STATUSES, activeTab)}の商品はありません。
-          </p>
-          {activeTab === "published" && (
-            <Button asChild className="mt-5 h-11">
-              <Link href="/sell">はじめて出品する</Link>
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={PackageOpen}
+          title={`${labelOf(LISTING_STATUSES, activeTab)}の商品はありません`}
+          description={
+            activeTab === "published"
+              ? "写真を数枚と価格があれば出品できます。下書きとして途中まで保存もできます。"
+              : undefined
+          }
+          action={
+            activeTab === "published" && (
+              <Button asChild className="h-11">
+                <Link href="/sell">はじめて出品する</Link>
+              </Button>
+            )
+          }
+        />
       ) : (
         <>
           <ul className="mt-5 divide-y overflow-hidden rounded-xl border bg-card">

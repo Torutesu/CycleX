@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/session";
+import { EmptyState } from "@/components/common/empty-state";
 import { getTransactionsFor } from "@/features/transaction/queries";
 import { TransactionList } from "@/features/transaction/components/transaction-list";
 import { isActiveTransaction } from "@/features/transaction/state";
@@ -76,15 +77,22 @@ export default async function SalesPage({
       </nav>
 
       {visible.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <Receipt className="size-10 text-muted-foreground" aria-hidden />
-          <p className="mt-3 text-sm text-muted-foreground">該当する取引はありません。</p>
-          {activeTab === "active" && (
-            <Button asChild className="mt-6 h-11">
-              <Link href="/sell">出品する</Link>
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={Receipt}
+          title="該当する取引はありません"
+          description={
+            activeTab === "active"
+              ? "出品した商品が売れると、発送のご連絡をここから行います。"
+              : undefined
+          }
+          action={
+            activeTab === "active" && (
+              <Button asChild className="h-11">
+                <Link href="/sell">出品する</Link>
+              </Button>
+            )
+          }
+        />
       ) : (
         <div className="mt-5">
           <TransactionList transactions={visible} />

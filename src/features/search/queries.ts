@@ -10,7 +10,7 @@ import {
   splitKeywords,
   type SearchParams,
 } from "@/features/search/params";
-import type { ListingStatus } from "@/lib/constants";
+import { CATEGORIES, type ListingStatus } from "@/lib/constants";
 
 export type ListingCardData = {
   id: string;
@@ -22,6 +22,7 @@ export type ListingCardData = {
   shippingFromPref: string | null;
   meetupPref: string | null;
   favoritesCount: number;
+  publishedAt: string | null;
   thumbnailPath: string | null;
   brandName: string | null;
 };
@@ -36,12 +37,13 @@ type ListingRow = {
   shipping_from_pref: string | null;
   meetup_pref: string | null;
   favorites_count: number;
+  published_at: string | null;
   listing_images: { path: string; position: number }[] | null;
   brands: { name: string } | null;
 };
 
 const CARD_SELECT =
-  "id, title, price, status, category, frame_size, shipping_from_pref, meetup_pref, favorites_count, listing_images(path, position), brands(name)";
+  "id, title, price, status, category, frame_size, shipping_from_pref, meetup_pref, favorites_count, published_at, listing_images(path, position), brands(name)";
 
 export function toCard(row: ListingRow): ListingCardData {
   const thumbnail = [...(row.listing_images ?? [])].sort((a, b) => a.position - b.position)[0];
@@ -55,6 +57,7 @@ export function toCard(row: ListingRow): ListingCardData {
     shippingFromPref: row.shipping_from_pref,
     meetupPref: row.meetup_pref,
     favoritesCount: row.favorites_count,
+    publishedAt: row.published_at,
     thumbnailPath: thumbnail?.path ?? null,
     brandName: row.brands?.name ?? null,
   };
@@ -231,4 +234,29 @@ export const getBrandOptions = cache(async function getBrandOptions(): Promise<
     .eq("is_active", true)
     .order("name");
   return data ?? [];
+});
+
+/**
+ * カテゴリごとの出品数。
+ *
+ * 「ロードバイク」を押した先に何台あるのか分からないまま
+ * 選ばせるのは不親切なので、入口の時点で件数を出す。
+ * カテゴリは8つと固定なので、件数だけを並列に数える
+ * (head:true なので行は転送されない)。
+ */
+export const getCategoryCounts = cache(async function getCategoryCounts(): Promise<
+  Map<string, number>
+> {
+  const supabase = await createClient();
+  const results = await Promise.all(
+    CATEGORIES.map(async (category) => {
+      const { count } = await supabase
+        .from("listings")
+        .select("*", { count: "exact", head: true })
+        .eq("category", category.value)
+        .in("status", ["published", "trading"]);
+      return [category.value, count ?? 0] as const;
+    }),
+  );
+  return new Map(results);
 });

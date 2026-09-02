@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListingGrid } from "@/components/listing/listing-grid";
+import { EmptyState } from "@/components/common/empty-state";
 import { FilterPanel } from "@/features/search/components/filter-panel";
 import {
   ActiveFilterChips,
@@ -82,18 +83,18 @@ export default async function SearchPage({
           </header>
 
           {result.items.length === 0 ? (
-            <div className="flex flex-col items-center py-16 text-center">
-              <SearchX className="size-10 text-muted-foreground" aria-hidden />
-              <p className="mt-3 font-medium">条件に合う商品が見つかりませんでした</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                キーワードを短くするか、絞り込み条件を減らしてお試しください。
-              </p>
-              {(hasActiveFilters(params) || params.q) && (
-                <Button asChild variant="outline" className="mt-6 h-11">
-                  <Link href="/search">条件をクリアして表示</Link>
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              icon={SearchX}
+              title="条件に合う商品が見つかりませんでした"
+              description="キーワードを短くするか、絞り込みを減らしてみてください。ブランド名はカタカナでも探せます。"
+              action={
+                (hasActiveFilters(params) || params.q) && (
+                  <Button asChild variant="outline" className="h-11">
+                    <Link href="/search">条件をクリアして表示</Link>
+                  </Button>
+                )
+              }
+            />
           ) : (
             <>
               <ListingGrid

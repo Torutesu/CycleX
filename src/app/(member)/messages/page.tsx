@@ -7,6 +7,7 @@ import { ja } from "date-fns/locale";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/session";
+import { EmptyState } from "@/components/common/empty-state";
 import { getThreadList } from "@/features/message/queries";
 import { avatarImageUrl, listingImageUrl } from "@/lib/images";
 import { cn } from "@/lib/utils";
@@ -22,16 +23,16 @@ export default async function MessagesPage() {
       <h1 className="text-xl font-bold">メッセージ</h1>
 
       {threads.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <MessageSquareDashed className="size-10 text-muted-foreground" aria-hidden />
-          <p className="mt-3 font-medium">やり取りはまだありません</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            気になる商品のページから、出品者に質問できます。
-          </p>
-          <Button asChild className="mt-6 h-11">
-            <Link href="/search">商品をさがす</Link>
-          </Button>
-        </div>
+        <EmptyState
+          icon={MessageSquareDashed}
+          title="やり取りはまだありません"
+          description="商品ページの「出品者に質問」から、購入前の確認ができます。取引が始まると、その連絡もここに並びます。"
+          action={
+            <Button asChild className="h-11">
+              <Link href="/search">商品をさがす</Link>
+            </Button>
+          }
+        />
       ) : (
         <ul className="mt-5 divide-y overflow-hidden rounded-xl border bg-card">
           {threads.map((thread) => {

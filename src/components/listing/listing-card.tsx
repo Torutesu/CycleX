@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ImageOff, MapPin } from "lucide-react";
+import { Heart, ImageOff, MapPin } from "lucide-react";
 import { FavoriteButton } from "@/components/listing/favorite-button";
 import { listingImageUrl } from "@/lib/images";
-import { formatPrice, cn } from "@/lib/utils";
+import { formatPrice, timeAgo, cn } from "@/lib/utils";
 import { labelOf, PREFECTURES, isBikeCategory } from "@/lib/constants";
 import { listingBadge } from "@/features/listing/rules";
 import type { ListingCardData } from "@/features/search/queries";
@@ -29,6 +29,7 @@ export function ListingCard({
   const badge = listingBadge(listing.status);
   const region = labelOf(PREFECTURES, listing.shippingFromPref ?? listing.meetupPref);
   const showFrameSize = isBikeCategory(listing.category) && listing.frameSize;
+  const posted = timeAgo(listing.publishedAt);
 
   return (
     <article className="group relative">
@@ -50,11 +51,19 @@ export function ListingCard({
             </div>
           )}
 
-          {badge && (
+          {/* 売れた商品を一覧で見分けられるよう、バッジではなく画像全体を覆う */}
+          {badge && badge.tone === "sold" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-foreground/55">
+              <span className="rounded-sm border-2 border-background px-3 py-1 text-sm font-bold tracking-wider text-background">
+                SOLD
+              </span>
+            </div>
+          )}
+
+          {badge && badge.tone !== "sold" && (
             <span
               className={cn(
                 "absolute left-2 top-2 rounded px-2 py-0.5 text-xs font-semibold",
-                badge.tone === "sold" && "bg-foreground text-background",
                 badge.tone === "trading" && "bg-amber-500 text-white",
                 badge.tone === "muted" && "bg-muted-foreground text-background",
               )}
@@ -77,6 +86,18 @@ export function ListingCard({
               </span>
             )}
           </div>
+          {/* 出品の新しさと注目度。中古品はこの2つで見比べられることが多い */}
+          {(posted || listing.favoritesCount > 0) && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {posted && <span>{posted}</span>}
+              {listing.favoritesCount > 0 && (
+                <span className="inline-flex items-center gap-0.5">
+                  <Heart className="size-3" aria-hidden />
+                  <span className="tabular-nums">{listing.favoritesCount}</span>
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </Link>
 

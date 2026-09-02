@@ -4,6 +4,7 @@ import { ChevronLeft, HeartOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { requireUser } from "@/lib/session";
+import { EmptyState } from "@/components/common/empty-state";
 import { createClient } from "@/lib/supabase/server";
 import { toCard } from "@/features/search/queries";
 import type { ListingCardData } from "@/features/search/queries";
@@ -19,7 +20,7 @@ export default async function FavoritesPage() {
     .select(
       `listing_id, created_at,
        listings!inner(id, title, price, status, category, frame_size, shipping_from_pref,
-         meetup_pref, favorites_count, listing_images(path, position), brands(name))`,
+         meetup_pref, favorites_count, published_at, listing_images(path, position), brands(name))`,
     )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
@@ -51,16 +52,16 @@ export default async function FavoritesPage() {
       </h1>
 
       {listings.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <HeartOff className="size-10 text-muted-foreground" aria-hidden />
-          <p className="mt-3 font-medium">お気に入りはまだありません</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            気になる商品のハートを押すと、ここにまとまります。
-          </p>
-          <Button asChild className="mt-6 h-11">
-            <Link href="/search">商品をさがす</Link>
-          </Button>
-        </div>
+        <EmptyState
+          icon={HeartOff}
+          title="お気に入りはまだありません"
+          description="気になる商品のハートを押すと、ここにまとまります。値下げや売り切れも追いやすくなります。"
+          action={
+            <Button asChild className="h-11">
+              <Link href="/search">商品をさがす</Link>
+            </Button>
+          }
+        />
       ) : (
         <ListingGrid
           listings={listings}

@@ -70,3 +70,29 @@ export function appBaseUrl(): string {
 export function absoluteUrl(path = "/"): string {
   return new URL(path, appBaseUrl()).toString();
 }
+
+/**
+ * 「3日前」のような相対表記。
+ *
+ * 出品の鮮度は購入判断に効くが、絶対日付だと一覧を眺めながら
+ * 頭の中で引き算することになる。1週間を超えたら日付に戻す
+ * (「48日前」は具体的に見えて実は分かりにくい)。
+ */
+export function timeAgo(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "";
+
+  const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (minutes < 1) return "たった今";
+  if (minutes < 60) return `${minutes}分前`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}時間前`;
+
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "昨日";
+  if (days < 7) return `${days}日前`;
+
+  return formatDate(date);
+}

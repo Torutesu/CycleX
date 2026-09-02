@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChevronLeft, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/session";
+import { EmptyState } from "@/components/common/empty-state";
 import { getTransactionsFor } from "@/features/transaction/queries";
 import { TransactionList } from "@/features/transaction/components/transaction-list";
 import { isActiveTransaction } from "@/features/transaction/state";
@@ -76,21 +77,28 @@ export default async function PurchasesPage({
       </nav>
 
       {visible.length === 0 ? (
-        <div className="flex flex-col items-center py-16 text-center">
-          <ShoppingBag className="size-10 text-muted-foreground" aria-hidden />
-          <p className="mt-3 text-sm text-muted-foreground">
-            {activeTab === "active"
-              ? "進行中の取引はありません。"
+        <EmptyState
+          icon={ShoppingBag}
+          title={
+            activeTab === "active"
+              ? "進行中の取引はありません"
               : activeTab === "completed"
-                ? "完了した取引はありません。"
-                : "キャンセルされた取引はありません。"}
-          </p>
-          {activeTab === "active" && (
-            <Button asChild className="mt-6 h-11">
-              <Link href="/search">商品をさがす</Link>
-            </Button>
-          )}
-        </div>
+                ? "完了した取引はありません"
+                : "キャンセルされた取引はありません"
+          }
+          description={
+            activeTab === "active"
+              ? "商品を購入すると、発送や受取のやり取りをここから進められます。"
+              : undefined
+          }
+          action={
+            activeTab === "active" && (
+              <Button asChild className="h-11">
+                <Link href="/search">商品をさがす</Link>
+              </Button>
+            )
+          }
+        />
       ) : (
         <div className="mt-5">
           <TransactionList transactions={visible} />
