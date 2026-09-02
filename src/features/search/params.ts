@@ -105,6 +105,63 @@ export function splitKeywords(query: string): string[] {
     .slice(0, 5);
 }
 
+/**
+ * カテゴリ名で検索されたときの読み替え(FR-04-1 の補完)。
+ *
+ * キーワード検索の対象はタイトル・説明・モデル名・ブランド名だが、
+ * 「ロードバイク」のようにカテゴリの呼び名で探す人が多く、
+ * そのままだと該当商品があっても 0 件になってしまう。
+ * 呼び名が一致したカテゴリの商品も検索結果に含める。
+ */
+
+/** 表記ゆれの吸収。左が入力、右がカテゴリの値 */
+const CATEGORY_ALIASES: Record<string, string> = {
+  ロード: "road",
+  クロス: "cross",
+  mtb: "mtb",
+  マウンテン: "mtb",
+  ママチャリ: "city",
+  シティ: "city",
+  電動: "ebike",
+  ebike: "ebike",
+  "e-bike": "ebike",
+  イーバイク: "ebike",
+  ミニベロ: "minivelo",
+  小径: "minivelo",
+};
+
+function normalize(value: string): string {
+  return value.toLowerCase().replace(/[\s　・]/g, "");
+}
+
+/** キーワードに対応するカテゴリの値。該当が無ければ空配列 */
+export function categoriesForKeyword(word: string): string[] {
+  const key = normalize(word);
+  if (key.length === 0) return [];
+
+  const matched = new Set<string>();
+
+  // 表示名との部分一致(「ロードバイク」「ロード」いずれも拾う)
+  for (const option of CATEGORIES) {
+    if (normalize(option.label).includes(key)) matched.add(option.value);
+  }
+  // 呼び名の読み替え
+  const alias = CATEGORY_ALIASES[key];
+  if (alias) matched.add(alias);
+
+  return [...matched];
+}
+
+/** キーワードに対応するパーツ種別の値。該当が無ければ空配列 */
+export function partsSubcategoriesForKeyword(word: string): string[] {
+  const key = normalize(word);
+  if (key.length === 0) return [];
+
+  return PARTS_SUBCATEGORIES.filter((option) => normalize(option.label).includes(key)).map(
+    (option) => option.value,
+  );
+}
+
 /** 検索条件を URL クエリ文字列へ戻す(ページ指定は上書き可能) */
 export function toQueryString(params: SearchParams, overrides: Partial<SearchParams> = {}): string {
   const merged = { ...params, ...overrides };

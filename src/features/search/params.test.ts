@@ -4,6 +4,8 @@ import {
   parseSearchParams,
   splitKeywords,
   toQueryString,
+  categoriesForKeyword,
+  partsSubcategoriesForKeyword,
 } from "@/features/search/params";
 
 describe("parseSearchParams", () => {
@@ -127,5 +129,48 @@ describe("hasActiveFilters", () => {
     expect(hasActiveFilters(parseSearchParams({ category: "road" }))).toBe(true);
     expect(hasActiveFilters(parseSearchParams({ size: "M" }))).toBe(true);
     expect(hasActiveFilters(parseSearchParams({ include_sold: "1" }))).toBe(true);
+  });
+});
+
+describe("categoriesForKeyword", () => {
+  it("カテゴリの表示名そのままで一致する", () => {
+    expect(categoriesForKeyword("ロードバイク")).toEqual(["road"]);
+    expect(categoriesForKeyword("クロスバイク")).toEqual(["cross"]);
+    expect(categoriesForKeyword("ミニベロ")).toEqual(["minivelo"]);
+  });
+
+  it("表示名の一部でも拾う", () => {
+    expect(categoriesForKeyword("ロード")).toContain("road");
+    expect(categoriesForKeyword("マウンテン")).toContain("mtb");
+  });
+
+  it("呼び名の揺れを吸収する", () => {
+    expect(categoriesForKeyword("MTB")).toContain("mtb");
+    expect(categoriesForKeyword("mtb")).toContain("mtb");
+    expect(categoriesForKeyword("ママチャリ")).toContain("city");
+    expect(categoriesForKeyword("電動")).toContain("ebike");
+    expect(categoriesForKeyword("e-bike")).toContain("ebike");
+  });
+
+  it("「バイク」のように複数に当たる語は該当をすべて返す", () => {
+    const hit = categoriesForKeyword("バイク");
+    expect(hit).toEqual(expect.arrayContaining(["road", "cross", "mtb"]));
+  });
+
+  it("カテゴリと関係ない語では何も返さない", () => {
+    expect(categoriesForKeyword("Trek")).toEqual([]);
+    expect(categoriesForKeyword("Domane")).toEqual([]);
+    expect(categoriesForKeyword("")).toEqual([]);
+  });
+});
+
+describe("partsSubcategoriesForKeyword", () => {
+  it("パーツ種別の名前で一致する", () => {
+    expect(partsSubcategoriesForKeyword("ホイール")).toEqual(["wheel"]);
+    expect(partsSubcategoriesForKeyword("サドル")).toEqual(["saddle"]);
+  });
+
+  it("関係ない語では何も返さない", () => {
+    expect(partsSubcategoriesForKeyword("Shimano")).toEqual([]);
   });
 });

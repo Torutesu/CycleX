@@ -3,6 +3,8 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import {
   SEARCH_PAGE_SIZE,
+  categoriesForKeyword,
+  partsSubcategoriesForKeyword,
   splitKeywords,
   type SearchParams,
 } from "@/features/search/params";
@@ -77,17 +79,26 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
     .select(CARD_SELECT, { count: "exact" })
     .in("status", statuses);
 
-  // キーワード: 語ごとに AND、各語はタイトル/説明/モデル名/自由入力ブランドの OR
+  // キーワード: 語ごとに AND、各語はタイトル/説明/モデル名/自由入力ブランドの OR。
+  // 「ロードバイク」のようにカテゴリの呼び名で探された場合は、そのカテゴリの商品も含める。
   for (const word of splitKeywords(params.q)) {
     const pattern = `%${escapeLike(word)}%`;
-    query = query.or(
-      [
-        `title.ilike.${pattern}`,
-        `description.ilike.${pattern}`,
-        `model_name.ilike.${pattern}`,
-        `brand_other.ilike.${pattern}`,
-      ].join(","),
-    );
+    const conditions = [
+      `title.ilike.${pattern}`,
+      `description.ilike.${pattern}`,
+      `model_name.ilike.${pattern}`,
+      `brand_other.ilike.${pattern}`,
+    ];
+
+    const categories = categoriesForKeyword(word);
+    if (categories.length > 0) conditions.push(`category.in.(${categories.join(",")})`);
+
+    const subcategories = partsSubcategoriesForKeyword(word);
+    if (subcategories.length > 0) {
+      conditions.push(`parts_subcategory.in.(${subcategories.join(",")})`);
+    }
+
+    query = query.or(conditions.join(","));
   }
 
   if (params.category) query = query.eq("category", params.category);
