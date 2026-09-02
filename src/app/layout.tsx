@@ -48,7 +48,7 @@ export default async function RootLayout({
         </SiteChrome>
         {/* スマホは下部タブバーの高さぶん余白を確保する */}
         <MainArea>{children}</MainArea>
-        <TabBar unreadCount={unreadCount} />
+        <TabBar signedIn={Boolean(user)} unreadCount={unreadCount} />
         <Toaster position="top-center" richColors />
       </body>
     </html>
