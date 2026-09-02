@@ -152,6 +152,79 @@ export function categoriesForKeyword(word: string): string[] {
   return [...matched];
 }
 
+/**
+ * ブランド名の読み替え。左が入力(カタカナ)、右が brands.name に含まれる表記。
+ *
+ * ブランドは listings.brand_id の外部キーで持っているため、
+ * listings 側の ILIKE では拾えず、ブランド名で探されると 0 件になってしまう。
+ * さらに brands.name は英字表記なので、日本語で入力されても一致しない。
+ */
+const BRAND_ALIASES: Record<string, string> = {
+  ピナレロ: "Pinarello",
+  コルナゴ: "Colnago",
+  ビアンキ: "Bianchi",
+  キャノンデール: "Cannondale",
+  キャニオン: "Canyon",
+  サーヴェロ: "Cervélo",
+  サーベロ: "Cervélo",
+  ジャイアント: "Giant",
+  メリダ: "Merida",
+  トレック: "Trek",
+  スペシャライズド: "Specialized",
+  スペシャ: "Specialized",
+  スコット: "Scott",
+  ジオス: "GIOS",
+  フジ: "FUJI",
+  ラレー: "RALEIGH",
+  ブロンプトン: "Brompton",
+  ダホン: "DAHON",
+  ターン: "tern",
+  アンカー: "ANCHOR",
+  ブリヂストン: "BRIDGESTONE",
+  ブリジストン: "BRIDGESTONE",
+  パナソニック: "Panasonic",
+  ヤマハ: "YAMAHA",
+  シマノ: "Shimano",
+  カンパニョーロ: "Campagnolo",
+  カンパ: "Campagnolo",
+  スラム: "SRAM",
+  マビック: "MAVIC",
+  フルクラム: "FULCRUM",
+  ネスト: "NESTO",
+  コーダーブルーム: "KhodaaBloom",
+  ルイガノ: "LOUIS GARNEAU",
+  ビーエムシー: "BMC",
+};
+
+/**
+ * キーワードに一致するブランドの id。該当が無ければ空配列。
+ *
+ * 英字表記はそのまま部分一致で、カタカナ表記は読み替えてから照合する。
+ * 1 文字だけの語は誤爆が多いので読み替えの対象にしない。
+ */
+export function brandIdsForKeyword(
+  word: string,
+  brands: readonly { id: string; name: string }[],
+): string[] {
+  const key = normalize(word);
+  if (key.length === 0) return [];
+
+  const terms = new Set<string>([key]);
+  if (key.length >= 2) {
+    for (const [kana, name] of Object.entries(BRAND_ALIASES)) {
+      const alias = normalize(kana);
+      if (alias.includes(key) || key.includes(alias)) terms.add(normalize(name));
+    }
+  }
+
+  return brands
+    .filter((brand) => {
+      const name = normalize(brand.name);
+      return [...terms].some((term) => name.includes(term));
+    })
+    .map((brand) => brand.id);
+}
+
 /** キーワードに対応するパーツ種別の値。該当が無ければ空配列 */
 export function partsSubcategoriesForKeyword(word: string): string[] {
   const key = normalize(word);

@@ -4,6 +4,7 @@ import {
   parseSearchParams,
   splitKeywords,
   toQueryString,
+  brandIdsForKeyword,
   categoriesForKeyword,
   partsSubcategoriesForKeyword,
 } from "@/features/search/params";
@@ -172,5 +173,43 @@ describe("partsSubcategoriesForKeyword", () => {
 
   it("関係ない語では何も返さない", () => {
     expect(partsSubcategoriesForKeyword("Shimano")).toEqual([]);
+  });
+});
+
+describe("brandIdsForKeyword", () => {
+  const brands = [
+    { id: "b-pinarello", name: "Pinarello" },
+    { id: "b-colnago", name: "Colnago" },
+    { id: "b-shimano", name: "Shimano" },
+    { id: "b-louis", name: "LOUIS GARNEAU" },
+    { id: "b-trek", name: "Trek" },
+  ];
+
+  it("英字表記でそのまま一致する", () => {
+    expect(brandIdsForKeyword("Pinarello", brands)).toEqual(["b-pinarello"]);
+    expect(brandIdsForKeyword("trek", brands)).toEqual(["b-trek"]);
+  });
+
+  it("カタカナ表記を英字表記に読み替える", () => {
+    expect(brandIdsForKeyword("ピナレロ", brands)).toEqual(["b-pinarello"]);
+    expect(brandIdsForKeyword("コルナゴ", brands)).toEqual(["b-colnago"]);
+    expect(brandIdsForKeyword("シマノ", brands)).toEqual(["b-shimano"]);
+  });
+
+  it("空白入りのブランド名も読み替えられる", () => {
+    expect(brandIdsForKeyword("ルイガノ", brands)).toEqual(["b-louis"]);
+  });
+
+  it("前方一致でも拾う", () => {
+    expect(brandIdsForKeyword("ピナ", brands)).toEqual(["b-pinarello"]);
+  });
+
+  it("1 文字の語では読み替えない", () => {
+    expect(brandIdsForKeyword("ピ", brands)).toEqual([]);
+  });
+
+  it("ブランドと関係ない語では何も返さない", () => {
+    expect(brandIdsForKeyword("ロードバイク", brands)).toEqual([]);
+    expect(brandIdsForKeyword("", brands)).toEqual([]);
   });
 });

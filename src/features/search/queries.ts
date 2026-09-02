@@ -1,8 +1,10 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import {
   SEARCH_PAGE_SIZE,
+  brandIdsForKeyword,
   categoriesForKeyword,
   partsSubcategoriesForKeyword,
   splitKeywords,
@@ -79,9 +81,14 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
     .select(CARD_SELECT, { count: "exact" })
     .in("status", statuses);
 
+  const words = splitKeywords(params.q);
+  // ブランドは外部キーなので listings 側の ILIKE では拾えない。
+  // 30 件程度の小さな表なので一度だけ引いて、語ごとに id へ読み替える。
+  const brands = words.length > 0 ? await getBrandOptions() : [];
+
   // キーワード: 語ごとに AND、各語はタイトル/説明/モデル名/自由入力ブランドの OR。
   // 「ロードバイク」のようにカテゴリの呼び名で探された場合は、そのカテゴリの商品も含める。
-  for (const word of splitKeywords(params.q)) {
+  for (const word of words) {
     const pattern = `%${escapeLike(word)}%`;
     const conditions = [
       `title.ilike.${pattern}`,
@@ -97,6 +104,9 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
     if (subcategories.length > 0) {
       conditions.push(`parts_subcategory.in.(${subcategories.join(",")})`);
     }
+
+    const brandIds = brandIdsForKeyword(word, brands);
+    if (brandIds.length > 0) conditions.push(`brand_id.in.(${brandIds.join(",")})`);
 
     query = query.or(conditions.join(","));
   }
@@ -207,8 +217,13 @@ export async function getListingsBySeller(
   return (data ?? []).map((row) => toCard(row as unknown as ListingRow));
 }
 
-/** 検索フィルタに出すブランド一覧 */
-export async function getBrandOptions(): Promise<{ id: string; name: string }[]> {
+/**
+ * 検索フィルタに出すブランド一覧。
+ * 同じリクエストの中でフィルタ表示とキーワード読み替えの両方から呼ばれるため memo 化する。
+ */
+export const getBrandOptions = cache(async function getBrandOptions(): Promise<
+  { id: string; name: string }[]
+> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("brands")
@@ -216,4 +231,4 @@ export async function getBrandOptions(): Promise<{ id: string; name: string }[]>
     .eq("is_active", true)
     .order("name");
   return data ?? [];
-}
+});
