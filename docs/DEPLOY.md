@@ -25,22 +25,23 @@ Supabase(データベース)と Vercel(アプリの配信)に載せる。
 
 ---
 
-## 2. マイグレーションを流す
+## 2. データベースを用意する
 
-手元のリポジトリで実行する。
+**`supabase/setup-hosted.sql` をまるごとコピーして、Supabase の `SQL Editor` に貼り付けて Run する。**
+これだけでテーブル・権限・インデックス・Storage・ブランドの初期データがすべて入る。
+CLI のインストールもログインも不要。
+
+更地から一度で通ること、同じものを二度流しても壊れないことを確認済み。
+
+<details>
+<summary>CLI で流したい場合(任意)</summary>
 
 ```bash
-# Supabase にログイン(ブラウザが開く)
 pnpm supabase login
-
-# 作ったプロジェクトと紐づける(データベースパスワードを聞かれる)
 pnpm supabase link --project-ref <Reference ID>
-
-# マイグレーション6本を適用する
 pnpm supabase db push
 ```
-
-`db push` が 6 本すべて適用したと出れば成功。
+</details>
 
 **適用後に一度だけ確認しておくとよいこと。** 日本語検索の索引が効く状態かを見る。
 Supabase の画面の `SQL Editor` で実行する。
