@@ -2,25 +2,30 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifyWelcome } from "@/features/notification/notify";
-import { safeRedirectPath } from "@/lib/utils";
+import { decideAuthCallback } from "@/features/auth/callback-rules";
 
 /**
  * メール確認リンク・OAuth・パスワードリセットの共通コールバック。
- * 認可コードをセッションへ交換したうえで next へ送る。
+ *
+ * `?code=`(PKCE)と `?token_hash=`(メールテンプレートの TokenHash 形式)の
+ * どちらでもセッションを張れるようにしている。判定は callback-rules.ts。
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
-  const code = searchParams.get("code");
-  const next = safeRedirectPath(searchParams.get("next"), "/mypage");
+  const decision = decideAuthCallback(searchParams);
 
-  if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=callback`);
+  if (decision.kind === "error") {
+    return NextResponse.redirect(`${origin}/login?error=${decision.reason}`);
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } =
+    decision.kind === "code"
+      ? await supabase.auth.exchangeCodeForSession(decision.code)
+      : await supabase.auth.verifyOtp({ type: decision.type, token_hash: decision.tokenHash });
 
   if (error) {
+    console.error("[auth callback] セッションを作れませんでした", decision.kind, error.message);
     return NextResponse.redirect(`${origin}/login?error=callback`);
   }
 
@@ -30,7 +35,7 @@ export async function GET(request: NextRequest) {
     await sendWelcomeOnce(data.user.id);
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  return NextResponse.redirect(`${origin}${decision.next}`);
 }
 
 async function sendWelcomeOnce(userId: string): Promise<void> {
