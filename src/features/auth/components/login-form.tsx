@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Field } from "@/components/form/field";
+import { PasswordInput } from "@/components/form/password-input";
 import { SubmitButton } from "@/components/form/submit-button";
 import { login } from "@/features/auth/actions";
 import type { ActionResult } from "@/lib/errors";
@@ -35,14 +36,7 @@ export function LoginForm({ next }: { next?: string }) {
       </Field>
 
       <Field id="password" label="パスワード" required>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          className="h-11"
-          required
-        />
+        <PasswordInput id="password" name="password" autoComplete="current-password" required />
       </Field>
 
       <div className="text-right">

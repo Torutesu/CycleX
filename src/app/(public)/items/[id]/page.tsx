@@ -46,9 +46,8 @@ export async function generateMetadata({
 
   // 「ブランド + モデル名」で探されることが多いので、タイトルに含める
   const identity = [listing.brandName, listing.modelName].filter(Boolean).join(" ");
-  const title = identity && !listing.title.includes(identity)
-    ? `${listing.title}(${identity})`
-    : listing.title;
+  const title =
+    identity && !listing.title.includes(identity) ? `${listing.title}(${identity})` : listing.title;
 
   const description =
     listing.description?.replace(/\s+/g, " ").trim().slice(0, 120) ??
@@ -72,11 +71,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function ItemDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [listing, user] = await Promise.all([getListingDetail(id), getCurrentUser()]);
 
@@ -85,7 +80,9 @@ export default async function ItemDetailPage({
   const isOwner = user?.id === listing.sellerId;
   const [favorited, ratingSummary, otherListings, existingThreadId] = await Promise.all([
     isFavorited(user?.id ?? null, listing.id),
-    listing.seller ? getRatingSummary(listing.seller.id) : Promise.resolve({ average: null, count: 0 }),
+    listing.seller
+      ? getRatingSummary(listing.seller.id)
+      : Promise.resolve({ average: null, count: 0 }),
     getListingsBySeller(listing.sellerId, { excludeId: listing.id, limit: 6 }),
     user && !isOwner ? findThreadByListing(listing.id, user.id) : Promise.resolve(null),
   ]);
@@ -98,7 +95,10 @@ export default async function ItemDetailPage({
     { label: "カテゴリ", value: labelOf(CATEGORIES, listing.category) },
     {
       label: "パーツの種類",
-      value: listing.category === "parts" ? labelOf(PARTS_SUBCATEGORIES, listing.partsSubcategory) : null,
+      value:
+        listing.category === "parts"
+          ? labelOf(PARTS_SUBCATEGORIES, listing.partsSubcategory)
+          : null,
     },
     { label: "ブランド", value: listing.brandName },
     { label: "モデル名", value: listing.modelName },
@@ -106,16 +106,20 @@ export default async function ItemDetailPage({
     {
       label: "フレームサイズ",
       value: showBikeSpecs
-        ? [labelOf(FRAME_SIZES, listing.frameSize), listing.frameSizeCm ? `${listing.frameSizeCm}cm` : null]
+        ? [
+            labelOf(FRAME_SIZES, listing.frameSize),
+            listing.frameSizeCm ? `${listing.frameSizeCm}cm` : null,
+          ]
             .filter(Boolean)
             .join(" / ") || null
         : null,
     },
     {
       label: "コンポーネント",
-      value: [labelOf(COMPONENTS, listing.component), listing.componentNote]
-        .filter(Boolean)
-        .join(" / ") || null,
+      value:
+        [labelOf(COMPONENTS, listing.component), listing.componentNote]
+          .filter(Boolean)
+          .join(" / ") || null,
     },
     { label: "走行距離の目安", value: showBikeSpecs ? labelOf(MILEAGES, listing.mileage) : null },
     { label: "コンディション", value: labelOf(CONDITIONS, listing.condition) },
@@ -240,9 +244,14 @@ export default async function ItemDetailPage({
           {specs
             .filter((spec) => spec.value)
             .map((spec) => (
-              <div key={spec.label} className="grid grid-cols-3 gap-3 px-4 py-2.5 text-sm">
-                <dt className="text-muted-foreground">{spec.label}</dt>
-                <dd className="col-span-2">{spec.value}</dd>
+              // ラベル列は最長の「走行距離の目安」に合わせて固定し、
+              // 語の途中で折り返さないよう break-keep を効かせる
+              <div
+                key={spec.label}
+                className="grid grid-cols-[7rem_1fr] gap-3 px-4 py-2.5 text-sm sm:grid-cols-[8rem_1fr]"
+              >
+                <dt className="break-keep text-muted-foreground">{spec.label}</dt>
+                <dd className="min-w-0">{spec.value}</dd>
               </div>
             ))}
         </dl>

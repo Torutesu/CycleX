@@ -18,7 +18,7 @@ const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_
 });
 
 const BASE = "http://localhost:3000";
-const OUT = "/tmp/shots";
+const OUT = process.env.SHOTS_DIR ?? "/tmp/shots";
 mkdirSync(OUT, { recursive: true });
 
 // 画像付きの商品を優先して選ぶ
@@ -28,7 +28,7 @@ const { data: item } = await db
   .eq("status", "published")
   .limit(1)
   .single();
-const { data: seller } = await db.from("users").select("id").eq("email", "rider1@example.com").single();
+const { data: seller } = await db.from("users").select("id").eq("email", "yamada@cyclex.test").single();
 const { data: thread } = await db.from("threads").select("id").limit(1).maybeSingle();
 const { data: txDone } = await db
   .from("transactions")
@@ -51,7 +51,7 @@ async function session(email, width) {
   if (email) {
     await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
     await page.fill("#email", email);
-    await page.fill("#password", "abcd1234");
+    await page.fill("#password", "パスワード123");
     await page.click('button[type="submit"]:has-text("ログイン")');
     await page.waitForTimeout(2500);
   }
@@ -99,7 +99,7 @@ await shot(guest, "m-profile", `/users/${seller.id}`, { full: true });
 await shot(guest, "m-login", "/login", { full: true });
 await shot(guest, "m-signup", "/signup", { full: true });
 
-const buyer = await session("rider2@example.com", 375);
+const buyer = await session("sato@cyclex.test", 375);
 await shot(buyer, "m-mypage", "/mypage", { full: true });
 await shot(buyer, "m-favorites", "/mypage/favorites", { full: true });
 await shot(buyer, "m-messages", "/messages", { full: true });
@@ -111,7 +111,7 @@ if (txDone) await shot(buyer, "m-review", `/transactions/${txDone.id}/review`, {
 await shot(buyer, "m-purchases", "/mypage/purchases", { full: true });
 await shot(buyer, "m-settings", "/mypage/settings", { full: true });
 
-const seller2 = await session("rider1@example.com", 375);
+const seller2 = await session("yamada@cyclex.test", 375);
 await shot(seller2, "m-sell", "/sell", { full: true });
 await shot(seller2, "m-listings", "/mypage/listings", { full: true });
 
@@ -122,10 +122,10 @@ await shot(guestPc, "d-search", "/search");
 await shot(guestPc, "d-item", `/items/${item.id}`);
 await shot(guestPc, "d-profile", `/users/${seller.id}`);
 
-const sellerPc = await session("rider1@example.com", 1280);
+const sellerPc = await session("yamada@cyclex.test", 1280);
 await shot(sellerPc, "d-sell", "/sell");
 
-const adminPc = await session("admin@example.com", 1280);
+const adminPc = await session("admin@cyclex.test", 1280);
 await shot(adminPc, "d-admin", "/admin");
 await shot(adminPc, "d-admin-users", "/admin/users");
 await shot(adminPc, "d-admin-listings", "/admin/listings");

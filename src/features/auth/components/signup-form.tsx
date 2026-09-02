@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Field } from "@/components/form/field";
+import { PasswordInput } from "@/components/form/password-input";
 import { SubmitButton } from "@/components/form/submit-button";
 import { signup } from "@/features/auth/actions";
 import { DISPLAY_NAME_MAX } from "@/lib/constants";
@@ -54,14 +55,7 @@ export function SignupForm() {
         hint="8文字以上、英字と数字をそれぞれ1文字以上含めてください"
         errors={fieldErrors?.password}
       >
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          className="h-11"
-          required
-        />
+        <PasswordInput id="password" name="password" autoComplete="new-password" required />
       </Field>
 
       <SubmitButton className="h-11 w-full" pendingLabel="登録中...">

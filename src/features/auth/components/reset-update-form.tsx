@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/form/field";
+import { PasswordInput } from "@/components/form/password-input";
 import { SubmitButton } from "@/components/form/submit-button";
 import { updatePassword } from "@/features/auth/actions";
 import type { ActionResult } from "@/lib/errors";
@@ -39,14 +39,7 @@ export function ResetUpdateForm() {
       )}
 
       <Field id="password" label="新しいパスワード" required errors={fieldErrors?.password}>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          className="h-11"
-          required
-        />
+        <PasswordInput id="password" name="password" autoComplete="new-password" required />
       </Field>
 
       <Field
@@ -55,12 +48,10 @@ export function ResetUpdateForm() {
         required
         errors={fieldErrors?.passwordConfirm}
       >
-        <Input
+        <PasswordInput
           id="passwordConfirm"
           name="passwordConfirm"
-          type="password"
           autoComplete="new-password"
-          className="h-11"
           required
         />
       </Field>
