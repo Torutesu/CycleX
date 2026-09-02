@@ -9,6 +9,8 @@ type FieldProps = {
   required?: boolean;
   /** 補足説明 */
   hint?: ReactNode;
+  /** 入力済みの文字数。上限に近づいたことを打ちながら把握できるようにする */
+  counter?: { value: number; max: number };
   /** サーバー/クライアント双方のエラーメッセージ */
   errors?: string[];
   className?: string;
@@ -19,21 +21,43 @@ type FieldProps = {
  * ラベル・補足・エラーをまとめて表示するフォーム項目のラッパー。
  * shadcn の Form(react-hook-form 前提)より軽量で、Server Action とも併用できる。
  */
-export function Field({ id, label, required, hint, errors, className, children }: FieldProps) {
+export function Field({
+  id,
+  label,
+  required,
+  hint,
+  counter,
+  errors,
+  className,
+  children,
+}: FieldProps) {
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
   const hasError = Boolean(errors && errors.length > 0);
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      <Label htmlFor={id} className="text-sm font-medium">
-        {label}
-        {required && (
-          <span className="ml-1 text-xs font-normal text-destructive" aria-hidden>
-            必須
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor={id} className="text-sm font-medium">
+          {label}
+          {required && (
+            <span className="ml-1 text-xs font-normal text-destructive" aria-hidden>
+              必須
+            </span>
+          )}
+        </Label>
+        {counter && (
+          <span
+            className={cn(
+              "shrink-0 text-xs tabular-nums",
+              counter.value > counter.max ? "text-destructive" : "text-muted-foreground",
+            )}
+            aria-hidden
+          >
+            {counter.value} / {counter.max}
           </span>
         )}
-      </Label>
+      </div>
       {children}
       {hint && !hasError && (
         <p id={hintId} className="text-xs text-muted-foreground">

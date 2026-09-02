@@ -41,10 +41,61 @@ test("未ログインで会員ページを開くとログインへ誘導され�
   await expect(page).toHaveURL(/\/login\?next=%2Fmypage/);
 });
 
+test("必須が抜けたまま公開すると、足りない項目がまとめて示される", async ({ page }) => {
+  await login(page, SELLER);
+  await page.goto("/sell");
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+
+  await page.getByRole("button", { name: "公開する" }).click();
+
+  const summary = page.getByRole("alert").filter({ hasText: "入力内容を確認してください" });
+  await expect(summary).toBeVisible({ timeout: 20_000 });
+  await expect(summary).toContainText("商品画像");
+  await expect(summary).toContainText("カテゴリ");
+  await expect(summary).toContainText("希望価格");
+
+  // まとめの項目を押すと、その入力欄まで移動する
+  await summary.getByRole("button", { name: /カテゴリ:/ }).click();
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const rect = document.getElementById("category")?.getBoundingClientRect();
+        return rect ? rect.top > 0 && rect.bottom < window.innerHeight : false;
+      }),
+    )
+    .toBe(true);
+});
+
+test("入力途中で離れても、戻れば内容を復元できる", async ({ page }) => {
+  const title = `復元テスト ${Date.now()}`;
+  await login(page, SELLER);
+  await page.goto("/sell");
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+
+  await page.fill("#title", title);
+  await page.fill("#description", "入力途中で別の画面へ移動したときの確認です。");
+  // 控えを取るまで少し待つ
+  await page.waitForTimeout(1200);
+
+  // スマホでは画面下のタブから誤って移動しやすい
+  await page.goto("/");
+  await page.goto("/sell");
+
+  await page.getByRole("button", { name: "入力内容を復元する" }).click();
+  await expect(page.locator("#title")).toHaveValue(title);
+  await expect(page.locator("#description")).toHaveValue(
+    "入力途中で別の画面へ移動したときの確認です。",
+  );
+});
+
 test("出品 → 検索でヒット → 詳細 → お気に入り", async ({ page }) => {
   // --- 出品 ---
   await login(page, SELLER);
   await page.goto("/sell");
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
 
   await page.setInputFiles('input[type="file"]', {
     name: "bike.png",

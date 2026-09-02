@@ -17,6 +17,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Field } from "@/components/form/field";
 import { ImageUploader } from "@/features/listing/components/image-uploader";
+import { useFormBackup } from "@/features/listing/components/use-form-backup";
 import { saveDraft, publishListing } from "@/features/listing/actions";
 import { calcFee } from "@/features/listing/rules";
 import {
@@ -35,6 +36,41 @@ import {
   modelYearMax,
 } from "@/lib/constants";
 import { formatPrice } from "@/lib/utils";
+
+/**
+ * エラーをまとめて出すときの項目名と並び順。
+ * フォームが長く、項目ごとのエラーだけだと
+ * 何が足りないのか画面をスクロールして探すことになる。
+ */
+const FIELD_LABELS: [key: string, label: string][] = [
+  ["imagePaths", "商品画像"],
+  ["category", "カテゴリ"],
+  ["partsSubcategory", "パーツの種類"],
+  ["title", "タイトル"],
+  ["brandId", "ブランド"],
+  ["brandOther", "ブランド名"],
+  ["modelName", "モデル名"],
+  ["modelYear", "年式"],
+  ["frameSize", "フレームサイズ"],
+  ["frameSizeCm", "フレームサイズ(cm)"],
+  ["component", "コンポーネント"],
+  ["componentNote", "コンポーネントの補足"],
+  ["mileage", "走行距離の目安"],
+  ["condition", "コンディション"],
+  ["description", "説明"],
+  ["price", "希望価格"],
+  ["deliveryMethod", "受渡方法"],
+  ["shippingFromPref", "発送元の地域"],
+  ["meetupPref", "受渡地域"],
+];
+
+/** 入力欄までスクロールして focus する。Select はトリガーが focus 対象 */
+function focusField(key: string) {
+  const element = document.getElementById(key);
+  if (!element) return;
+  element.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.setTimeout(() => element.focus({ preventScroll: true }), 300);
+}
 
 const NONE = "__none__";
 const BRAND_OTHER = "__other__";
@@ -80,6 +116,12 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
+  // 新規作成のときだけ、入力途中の控えを端末に持つ。
+  // 編集はサーバー側に正が残っているので対象外
+  const backupEnabled = !defaults.id;
+  const { backup, dismiss, clear } = useFormBackup("new", values, backupEnabled);
+  const hasBackup = Boolean(backup && backup.title !== defaults.title);
+
   const isParts = values.category === "parts";
   const showBikeFields = isBikeCategory(values.category);
   const priceNumber = Number(values.price);
@@ -93,6 +135,12 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
   function set<K extends keyof ListingFormDefaults>(key: K, value: ListingFormDefaults[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
+
+  // 上部にまとめて出す「足りない項目」。フォームの並び順に揃える
+  const missing = FIELD_LABELS.flatMap(([key, label]) => {
+    const message = fieldErrors[key]?.[0];
+    return message ? [{ key, label, message }] : [];
+  });
 
   function buildPayload() {
     return {
@@ -129,13 +177,16 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
       const result = mode === "draft" ? await saveDraft(payload) : await publishListing(payload);
 
       if (!result.ok) {
+        const errors = result.fieldErrors ?? {};
         setFormError(result.error);
-        setFieldErrors(result.fieldErrors ?? {});
+        setFieldErrors(errors);
         toast.error(result.error);
-        // 入力エラーの先頭までスクロールして気づけるようにする
+        // 何が足りないかは上部のまとめで示すので、まずそこを見せる
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
+
+      clear();
 
       if (mode === "draft") {
         set("id", result.data.id);
@@ -157,9 +208,49 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
         submit("publish");
       }}
     >
+      {hasBackup && (
+        <Alert>
+          <AlertDescription>
+            <p>前回この端末で入力していた内容が残っています。</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  if (backup) setValues(backup);
+                  dismiss();
+                }}
+              >
+                入力内容を復元する
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={clear}>
+                破棄して新しく書く
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {formError && (
         <Alert variant="destructive">
-          <AlertDescription>{formError}</AlertDescription>
+          <AlertDescription>
+            <p className="font-medium">{formError}</p>
+            {missing.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {missing.map(({ key, label, message }) => (
+                  <li key={key}>
+                    <button
+                      type="button"
+                      onClick={() => focusField(key)}
+                      className="text-left underline underline-offset-2"
+                    >
+                      {label}: {message}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </AlertDescription>
         </Alert>
       )}
 
@@ -226,6 +317,7 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
           label="タイトル"
           required
           hint="例: TREK Emonda SL5 2021年 サイズ52 105仕様"
+          counter={{ value: values.title.length, max: TITLE_MAX }}
           errors={fieldErrors.title}
         >
           <Input
@@ -411,7 +503,8 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
           id="description"
           label="説明"
           required
-          hint={`使用状況、傷の有無、付属品、購入時期など(${DESCRIPTION_MAX}文字以内)`}
+          hint="使用状況、傷の有無、付属品、購入時期など"
+          counter={{ value: values.description.length, max: DESCRIPTION_MAX }}
           errors={fieldErrors.description}
         >
           <Textarea
