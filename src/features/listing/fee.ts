@@ -1,6 +1,6 @@
 import "server-only";
 
-const DEFAULT_FEE_RATE = 0.05;
+const DEFAULT_FEE_RATE = 0.07;
 
 /**
  * 販売手数料率。表示のみに使用し、精算処理は本システムの対象外(別紙1 3.(4))。
