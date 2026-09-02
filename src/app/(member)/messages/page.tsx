@@ -82,7 +82,7 @@ export default async function MessagesPage() {
                       {thread.listing.title}
                     </p>
 
-                    {thread.lastMessage && (
+                    {thread.lastMessage ? (
                       <p
                         className={cn(
                           "mt-1 truncate text-sm",
@@ -93,6 +93,11 @@ export default async function MessagesPage() {
                           <span className="text-muted-foreground">自分: </span>
                         )}
                         {thread.lastMessage.body}
+                      </p>
+                    ) : (
+                      // 取引の開始時にも作られるため、まだ一言も交わしていない状態がある
+                      <p className="mt-1 truncate text-sm text-muted-foreground">
+                        まだメッセージはありません
                       </p>
                     )}
                   </div>

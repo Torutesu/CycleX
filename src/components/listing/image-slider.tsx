@@ -57,7 +57,7 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
                 src={listingImageUrl(path)}
                 alt={`${title} の画像 ${i + 1}`}
                 fill
-                sizes="(max-width: 1024px) 100vw, 640px"
+                sizes="(max-width: 1024px) 100vw, 560px"
                 className="object-contain"
                 priority={i === 0}
               />

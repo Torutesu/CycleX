@@ -144,8 +144,9 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
       )}
 
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10">
-        {/* 画像 */}
-        <div>
+        {/* 画像。PC では列幅いっぱいだと正方形が 750px 近くなり、
+            1枚見るのに画面を丸ごと使ってしまうので上限を設ける */}
+        <div className="lg:mx-auto lg:w-full lg:max-w-[560px]">
           <ImageSlider paths={listing.imagePaths} title={listing.title} />
         </div>
 
