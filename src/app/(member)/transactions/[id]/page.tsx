@@ -11,6 +11,7 @@ import { requireUser } from "@/lib/session";
 import { getTransactionDetail } from "@/features/transaction/queries";
 import { openThreadForListing } from "@/features/message/actions";
 import { nextActionFor } from "@/features/transaction/state";
+import { waitingNotice } from "@/features/transaction/guidance";
 import { StatusTimeline } from "@/features/transaction/components/status-timeline";
 import { ShipForm, ReceiveButton } from "@/features/transaction/components/transaction-actions";
 import { avatarImageUrl, listingImageUrl } from "@/lib/images";
@@ -32,6 +33,12 @@ export default async function TransactionPage({
 
   const role: "buyer" | "seller" = transaction.buyerId === user.id ? "buyer" : "seller";
   const action = nextActionFor(transaction.status, role, transaction.hasReviewed);
+  const notice = waitingNotice(
+    transaction.status,
+    role,
+    transaction.listing.deliveryMethod,
+    transaction.hasReviewed,
+  );
   const avatarSrc = avatarImageUrl(transaction.counterparty.avatarUrl);
 
   // 取引連絡は購入前の質問と同じスレッドで続ける(FR-07)
@@ -74,7 +81,9 @@ export default async function TransactionPage({
                 : "商品を発送してください"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              お支払いが完了しています。準備ができたら購入者へご連絡ください。
+              {transaction.listing.deliveryMethod === "in_person"
+                ? "お支払いが完了しています。購入者と待ち合わせのご相談をしてから、ご連絡ください。"
+                : "お支払いが完了しています。購入者からメッセージでお届け先が届いたら、発送してご連絡ください。"}
             </p>
             <div className="mt-4">
               <ShipForm
@@ -116,9 +125,18 @@ export default async function TransactionPage({
 
         {action === "wait" && (
           <>
-            <h2 className="text-base font-semibold">
-              {waitingMessage(transaction.status, role, transaction.hasReviewed)}
-            </h2>
+            <h2 className="text-base font-semibold">{notice.title}</h2>
+            {notice.detail && (
+              <p className="mt-1 text-sm text-muted-foreground">{notice.detail}</p>
+            )}
+            {notice.showMessageLink && threadId && (
+              <Button asChild className="mt-4 h-12 w-full">
+                <Link href={`/messages/${threadId}`}>
+                  <MessageCircle className="size-4" aria-hidden />
+                  メッセージを開く
+                </Link>
+              </Button>
+            )}
             {transaction.shippingNote && role === "seller" && (
               <p className="mt-3 whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm">
                 {transaction.shippingNote}
@@ -242,22 +260,3 @@ function HistoryRow({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function waitingMessage(
-  status: string,
-  role: "buyer" | "seller",
-  hasReviewed: boolean,
-): string {
-  if (status === "received" && hasReviewed) {
-    return "相手の評価をお待ちください";
-  }
-  if (status === "pending_payment") {
-    return role === "seller" ? "購入者のお支払いをお待ちください" : "お支払いの確認中です";
-  }
-  if (status === "paid") {
-    return "出品者からの発送・受渡のご連絡をお待ちください";
-  }
-  if (status === "shipped") {
-    return "購入者の受取確認をお待ちください";
-  }
-  return "相手の操作をお待ちください";
-}
