@@ -6,10 +6,18 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import { requireVerifiedUser } from "@/lib/session";
-import { ok, fail, toUserMessage, AppError, isUniqueViolation, type ActionResult } from "@/lib/errors";
+import {
+  ok,
+  fail,
+  toUserMessage,
+  AppError,
+  isUniqueViolation,
+  type ActionResult,
+} from "@/lib/errors";
 import { absoluteUrl } from "@/lib/utils";
 import { CHECKOUT_EXPIRES_MINUTES, SHIPPING_NOTE_MAX, type ListingStatus } from "@/lib/constants";
 import { listingImageUrl } from "@/lib/images";
+import { isDemoCheckout, demoSessionId } from "@/lib/demo";
 import { getTransaction, recordEvent, transitionTransaction } from "@/features/transaction/service";
 import { notifyShipped, notifyReceived } from "@/features/notification/notify";
 
@@ -75,59 +83,68 @@ export async function startPurchase(listingId: string): Promise<ActionResult<und
       (a, b) => a.position - b.position,
     )[0];
 
-    try {
-      const stripe = getStripe();
-      const session = await stripe.checkout.sessions.create({
-        mode: "payment",
-        payment_method_types: ["card"],
-        expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRES_MINUTES * 60,
-        client_reference_id: transaction.id,
-        metadata: {
-          transaction_id: transaction.id,
-          listing_id: listing.id,
-          buyer_id: user.id,
-        },
-        line_items: [
-          {
-            quantity: 1,
-            price_data: {
-              currency: "jpy",
-              unit_amount: listing.price,
-              product_data: {
-                name: listing.title,
-                ...(thumbnail
-                  ? { images: [listingImageUrl(thumbnail.path)] }
-                  : {}),
+    // Stripe 未設定のデモ環境では、決済ページの代わりに確認画面へ送る。
+    // 取引の作成・排他・状態遷移はここまでと以降で共通。
+    if (isDemoCheckout()) {
+      await supabase
+        .from("transactions")
+        .update({ stripe_session_id: demoSessionId(transaction.id) })
+        .eq("id", transaction.id);
+      await recordEvent(transaction.id, "created", user.id);
+      checkoutUrl = `/purchase/demo?tx=${transaction.id}`;
+    } else {
+      try {
+        const stripe = getStripe();
+        const session = await stripe.checkout.sessions.create({
+          mode: "payment",
+          payment_method_types: ["card"],
+          expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRES_MINUTES * 60,
+          client_reference_id: transaction.id,
+          metadata: {
+            transaction_id: transaction.id,
+            listing_id: listing.id,
+            buyer_id: user.id,
+          },
+          line_items: [
+            {
+              quantity: 1,
+              price_data: {
+                currency: "jpy",
+                unit_amount: listing.price,
+                product_data: {
+                  name: listing.title,
+                  ...(thumbnail ? { images: [listingImageUrl(thumbnail.path)] } : {}),
+                },
               },
             },
-          },
-        ],
-        success_url: absoluteUrl(`/purchase/complete?tx=${transaction.id}`),
-        cancel_url: absoluteUrl(`/items/${listing.id}?canceled=1`),
-      });
+          ],
+          success_url: absoluteUrl(`/purchase/complete?tx=${transaction.id}`),
+          cancel_url: absoluteUrl(`/items/${listing.id}?canceled=1`),
+        });
 
-      if (!session.url) throw new Error("Checkout session に URL がありません");
+        if (!session.url) throw new Error("Checkout session に URL がありません");
 
-      await supabase
-        .from("transactions")
-        .update({ stripe_session_id: session.id })
-        .eq("id", transaction.id);
+        await supabase
+          .from("transactions")
+          .update({ stripe_session_id: session.id })
+          .eq("id", transaction.id);
 
-      await recordEvent(transaction.id, "created", user.id);
-      checkoutUrl = session.url;
-    } catch (stripeError) {
-      // Checkout を作れなかった取引は残さない(商品を購入可能な状態へ戻す)
-      console.error("[stripe checkout failed]", stripeError);
-      await supabase
-        .from("transactions")
-        .update({
-          status: "canceled",
-          canceled_at: new Date().toISOString(),
-          canceled_reason: "checkout_creation_failed",
-        })
-        .eq("id", transaction.id);
+        await recordEvent(transaction.id, "created", user.id);
+        checkoutUrl = session.url;
+      } catch (stripeError) {
+        // Checkout を作れなかった取引は残さない(商品を購入可能な状態へ戻す)
+        console.error("[stripe checkout failed]", stripeError);
+        await supabase
+          .from("transactions")
+          .update({
+            status: "canceled",
+            canceled_at: new Date().toISOString(),
+            canceled_reason: "checkout_creation_failed",
+          })
+          .eq("id", transaction.id);
 
-      throw new AppError("決済ページの準備に失敗しました。時間をおいて再度お試しください。");
+        throw new AppError("決済ページの準備に失敗しました。時間をおいて再度お試しください。");
+      }
     }
   } catch (error) {
     return fail(toUserMessage(error));

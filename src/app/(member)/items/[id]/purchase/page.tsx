@@ -12,6 +12,7 @@ import { canPurchase } from "@/features/listing/rules";
 import { listingImageUrl } from "@/lib/images";
 import { formatPrice } from "@/lib/utils";
 import { DELIVERY_METHODS, PREFECTURES, labelOf } from "@/lib/constants";
+import { isDemoCheckout } from "@/lib/demo";
 
 export const metadata: Metadata = { title: "購入手続き" };
 
@@ -28,6 +29,7 @@ export default async function PurchasePage({
 
   const isOwner = listing.sellerId === user.id;
   const purchasable = canPurchase(listing.status) && !isOwner;
+  const demo = isDemoCheckout();
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -117,10 +119,17 @@ export default async function PurchasePage({
 
       <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-muted/50 p-3.5 text-xs text-muted-foreground">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-        <p>
-          お支払いは決済代行サービス(Stripe)の決済ページで行います。カード情報が CycleX
-          に保存されることはありません。決済後は取引画面から発送・受取のご連絡ができます。
-        </p>
+        {demo ? (
+          <p>
+            この環境はデモ用です。実際の支払いは発生せず、
+            次の画面で支払い済みの状態を再現します。以降の発送・受取・評価は本番と同じ流れで動きます。
+          </p>
+        ) : (
+          <p>
+            お支払いは決済代行サービス(Stripe)の決済ページで行います。カード情報が CycleX
+            に保存されることはありません。決済後は取引画面から発送・受取のご連絡ができます。
+          </p>
+        )}
       </div>
 
       <div className="mt-6">

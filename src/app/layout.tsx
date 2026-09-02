@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { Header } from "@/components/layout/header";
+import { DemoBanner } from "@/components/layout/demo-banner";
 import { TabBar } from "@/components/layout/tab-bar";
 import { MainArea, SiteChrome } from "@/components/layout/site-chrome";
 import { getCurrentUser } from "@/lib/session";
@@ -43,6 +44,7 @@ export default async function RootLayout({
   return (
     <html lang="ja" className={notoSansJp.variable}>
       <body className="min-h-dvh antialiased">
+        <DemoBanner />
         <SiteChrome>
           <Header user={user} unreadCount={unreadCount} />
         </SiteChrome>

@@ -42,6 +42,9 @@ export async function ensureUser(email: string, displayName: string): Promise<st
 }
 
 export async function login(page: Page, email: string): Promise<void> {
+  // すでに誰かでログインしていると /login は素通りしてしまうので、
+  // 必ず未ログインの状態から始める
+  await page.context().clearCookies();
   await page.goto("/login", { waitUntil: "networkidle" });
   await page.fill("#email", email);
   await page.fill("#password", TEST_PASSWORD);
