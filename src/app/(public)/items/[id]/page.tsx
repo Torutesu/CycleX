@@ -35,6 +35,15 @@ import {
   labelOf,
 } from "@/lib/constants";
 
+/**
+ * このルートには loading.tsx を置かない。
+ *
+ * loading.tsx があると本文の先頭が先に流れ出し、metadata もそれに合わせて
+ * ストリーミングされる。そうなると応答は 200 で始まってしまい、
+ * あとから notFound() しても状態コードを 404 に変えられない。
+ * 売り切れ・取下げで消える商品が多く、検索エンジンから見て
+ * 「存在するページ」が積み上がるのは避けたいので、待って 404 を返す。
+ */
 export async function generateMetadata({
   params,
 }: {
@@ -42,7 +51,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const listing = await getListingDetail(id);
-  if (!listing) return { title: "商品が見つかりません" };
+  // ここで打ち切らないと、head を書き出したあとに本体で notFound() することになり、
+  // 応答が 200 のまま「見つかりません」の画面を返す(検索エンジンから見ると
+  // 存在するページ)。売り切れや取下げで消える商品が多いので、必ず 404 にする。
+  if (!listing) notFound();
 
   // 「ブランド + モデル名」で探されることが多いので、タイトルに含める
   const identity = [listing.brandName, listing.modelName].filter(Boolean).join(" ");
@@ -133,9 +145,13 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 pb-32 md:pb-8">
       {listing.status === "suspended" && (
-        <Badge variant="destructive" className="mb-4">
-          この商品は運営により非公開になっています
-        </Badge>
+        <div className="mb-4">
+          <Badge variant="destructive">この商品は運営により非公開になっています</Badge>
+          {/* 理由は出品者にだけ。閲覧者に見せる情報ではない */}
+          {isOwner && listing.suspendedReason && (
+            <p className="mt-1.5 text-sm text-destructive">理由: {listing.suspendedReason}</p>
+          )}
+        </div>
       )}
       {listing.status === "draft" && (
         <Badge variant="secondary" className="mb-4">

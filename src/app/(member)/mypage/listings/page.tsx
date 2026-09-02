@@ -59,7 +59,9 @@ export default async function MyListingsPage({
   const from = (page - 1) * PER_PAGE;
   const { data: rows } = await supabase
     .from("listings")
-    .select("id, status, title, price, created_at, published_at, listing_images(path, position)")
+    .select(
+      "id, status, title, price, created_at, published_at, suspended_reason, listing_images(path, position)",
+    )
     .eq("seller_id", user.id)
     .eq("status", activeTab)
     .order("created_at", { ascending: false })
@@ -171,9 +173,15 @@ export default async function MyListingsPage({
                       <span>{formatDate(row.published_at ?? row.created_at)}</span>
                     </div>
                     {row.status === "suspended" && (
-                      <Badge variant="destructive" className="mt-1.5">
-                        運営により非公開
-                      </Badge>
+                      <div className="mt-1.5">
+                        <Badge variant="destructive">運営により非公開</Badge>
+                        {/* 理由が届かないと、出品者は何を直せばよいか分からない */}
+                        {row.suspended_reason && (
+                          <p className="mt-1 text-xs text-destructive">
+                            理由: {row.suspended_reason}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
 

@@ -25,7 +25,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   const profile = await getPublicProfile(id);
-  return { title: profile ? `${profile.displayName} さんのプロフィール` : "プロフィール" };
+  // 商品ページと同じ理由で、ここで 404 を確定させる
+  if (!profile) notFound();
+  return { title: `${profile.displayName} さんのプロフィール` };
 }
 
 export default async function PublicProfilePage({
