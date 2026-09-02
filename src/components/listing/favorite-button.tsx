@@ -12,6 +12,11 @@ type FavoriteButtonProps = {
   favorited: boolean;
   /** 件数を併記するか(商品詳細のみ) */
   count?: number;
+  /**
+   * 一覧カードなど、同じ画面に複数並ぶ場合の商品名。
+   * 付けないとどのボタンも「お気に入りに追加」としか読み上げられず区別できない。
+   */
+  listingTitle?: string;
   /** ログインしていない場合はログイン画面へ誘導する */
   isLoggedIn: boolean;
   /** 自分の出品では押せないようにする */
@@ -24,6 +29,7 @@ export function FavoriteButton({
   listingId,
   favorited,
   count,
+  listingTitle,
   isLoggedIn,
   disabled,
   variant = "icon",
@@ -63,6 +69,8 @@ export function FavoriteButton({
   }
 
   const label = optimistic.favorited ? "お気に入りから削除" : "お気に入りに追加";
+  // 商品名が渡されていれば読み上げで区別できるようにする
+  const iconLabel = listingTitle ? `${listingTitle} を${label}` : label;
 
   if (variant === "full") {
     return (
@@ -94,7 +102,7 @@ export function FavoriteButton({
       type="button"
       onClick={handleClick}
       disabled={disabled}
-      aria-label={label}
+      aria-label={iconLabel}
       aria-pressed={optimistic.favorited}
       className={cn(
         "flex size-11 items-center justify-center rounded-full bg-background/85 backdrop-blur transition-colors",

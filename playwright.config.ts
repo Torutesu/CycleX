@@ -1,4 +1,21 @@
 import { defineConfig, devices } from "@playwright/test";
+import { readFileSync } from "node:fs";
+
+// helpers.ts が service role キーを使うため .env.local を読む(scripts/ と同じ方式)。
+// 既に環境変数がある場合はそちらを優先する。
+try {
+  for (const line of readFileSync(".env.local", "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const separator = trimmed.indexOf("=");
+    if (separator < 0) continue;
+    const key = trimmed.slice(0, separator).trim();
+    if (process.env[key]) continue;
+    process.env[key] = trimmed.slice(separator + 1).trim().replace(/^"|"$/g, "");
+  }
+} catch {
+  // .env.local が無い環境(CI など)ではそのまま進む
+}
 
 /**
  * E2E スモーク(Phase 8)。

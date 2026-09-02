@@ -80,6 +80,7 @@ export function ListingCard({
         <FavoriteButton
           listingId={listing.id}
           favorited={favorited}
+          listingTitle={listing.title}
           isLoggedIn={isLoggedIn}
           className="absolute right-1 top-1"
         />

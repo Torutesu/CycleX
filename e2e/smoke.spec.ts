@@ -87,11 +87,14 @@ test("出品 → 検索でヒット → 詳細 → お気に入り", async ({ pa
   expect(itemHref).toBeTruthy();
 
   await page.goto(itemHref!);
-  await page.locator('button[aria-label="お気に入りに追加"]').first().click();
-  await expect(page.locator('button[aria-label="お気に入りから削除"]').first()).toBeVisible({
-    timeout: 15_000,
-  });
+  // 関連商品のカードにも同じボタンが並ぶため、商品名の付かないこの商品のものを選ぶ
+  const favorite = page.getByRole("button", { name: "お気に入りに追加", exact: true });
+  await favorite.first().click();
+  await expect(
+    page.getByRole("button", { name: "お気に入りから削除", exact: true }).first(),
+  ).toBeVisible({ timeout: 15_000 });
 
   await page.goto("/mypage/favorites");
-  await expect(page.locator("article").first()).toContainText(TITLE);
+  // 過去の実行分が残っていても通るよう、順序ではなく存在で判定する
+  await expect(page.locator("article", { hasText: TITLE })).toHaveCount(1);
 });
