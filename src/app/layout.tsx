@@ -6,6 +6,7 @@ import { TabBar } from "@/components/layout/tab-bar";
 import { MainArea, SiteChrome } from "@/components/layout/site-chrome";
 import { getCurrentUser } from "@/lib/session";
 import { getUnreadCount } from "@/features/message/queries";
+import { appBaseUrl } from "@/lib/utils";
 import "./globals.css";
 
 // 日本語 UI のため、環境に依存しないゴシック体を明示的に読み込む
@@ -18,7 +19,7 @@ const notoSansJp = Noto_Sans_JP({
 
 export const metadata: Metadata = {
   // OGP 画像や canonical の相対 URL を解決するための基準
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(appBaseUrl()),
   title: {
     default: "CycleX | 自転車・パーツの個人間売買",
     template: "%s | CycleX",

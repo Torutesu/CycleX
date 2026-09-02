@@ -49,8 +49,24 @@ export function safeRedirectPath(next: string | null | undefined, fallback = "/"
   return next;
 }
 
+/**
+ * アプリの基準 URL。
+ *
+ * 環境変数は「未設定」と「空文字で登録されている」の両方が起こりうる。
+ * `??` は空文字を拾ってしまい `new URL("")` が投げるため、trim して判定する。
+ * NEXT_PUBLIC_APP_URL が無いときは Vercel が自動で入れる本番ドメインに委ねる。
+ */
+export function appBaseUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit) return explicit.replace(/\/+$/, "");
+
+  const vercel = process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (vercel) return `https://${vercel}`;
+
+  return "http://localhost:3000";
+}
+
 /** アプリの絶対 URL を組み立てる(メール本文・OAuth リダイレクト用) */
 export function absoluteUrl(path = "/"): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  return new URL(path, base).toString();
+  return new URL(path, appBaseUrl()).toString();
 }
