@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { MessageCircle, Star } from "lucide-react";
+import { ChevronLeft, MessageCircle, Star } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,14 @@ export default async function TransactionPage({
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
+      <Link
+        href={role === "seller" ? "/mypage/sales" : "/mypage/purchases"}
+        className="mb-3 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ChevronLeft className="size-4" aria-hidden />
+        {role === "seller" ? "販売した取引へ戻る" : "購入した取引へ戻る"}
+      </Link>
+
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold">取引画面</h1>
         <Badge variant={transaction.status === "canceled" ? "destructive" : "secondary"}>

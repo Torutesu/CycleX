@@ -52,7 +52,7 @@ export default async function SearchPage({
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5">
+    <div className="mx-auto max-w-7xl px-4 py-6">
       <div className="lg:flex lg:gap-8">
         {/* PC: サイドバー / スマホ: ボトムシート(FR-04-2) */}
         <aside className="hidden w-64 shrink-0 lg:block">
@@ -64,7 +64,7 @@ export default async function SearchPage({
         <div className="min-w-0 flex-1">
           <header className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <h1 className="text-lg font-bold">
+              <h1 className="text-xl font-bold">
                 {params.q ? `「${params.q}」の検索結果` : "商品をさがす"}
                 <span className="ml-2 text-sm font-normal tabular-nums text-muted-foreground">
                   {result.total.toLocaleString()}件

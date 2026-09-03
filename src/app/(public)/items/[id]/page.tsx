@@ -144,7 +144,7 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-5 pb-32 md:pb-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 pb-32 md:pb-8">
       {listing.status === "suspended" && (
         <div className="mb-4">
           <Badge variant="destructive">この商品は運営により非公開になっています</Badge>

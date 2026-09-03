@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { ensureUser, login, TEST_PNG } from "./helpers";
+import { adminDb, ensureUser, login, TEST_PNG } from "./helpers";
 
 /**
  * 主要動線のスモークテスト(Phase 8)。
@@ -17,6 +17,17 @@ test.describe.configure({ mode: "serial" });
 test.beforeAll(async () => {
   await ensureUser(SELLER, "E2E出品者");
   await ensureUser(BUYER, "E2E購入者");
+});
+
+// 実行のたびに出品が積み上がると、画面確認のときに邪魔になる
+test.afterAll(async () => {
+  const db = adminDb();
+  const { data } = await db.from("listings").select("id").like("title", "E2E テスト出品%");
+  const ids = (data ?? []).map((row) => row.id);
+  if (ids.length === 0) return;
+  await db.from("favorites").delete().in("listing_id", ids);
+  await db.from("threads").delete().in("listing_id", ids);
+  await db.from("listings").delete().in("id", ids);
 });
 
 test("ゲストはホームと検索を閲覧できる", async ({ page }) => {

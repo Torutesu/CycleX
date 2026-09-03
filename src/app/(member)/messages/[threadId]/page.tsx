@@ -95,13 +95,15 @@ export default async function ThreadPage({
 
       {/* 吹き出し */}
       <div className="flex-1 space-y-3 px-4 py-4 md:border-x">
-        <p className="text-center text-xs text-muted-foreground">
+        <h1 className="text-center text-xs text-muted-foreground">
           {thread.counterparty.displayName} さんとのやり取り
-        </p>
+        </h1>
 
         {thread.messages.length === 0 && (
-          <p className="py-8 text-center text-sm text-muted-foreground">
+          <p className="py-8 text-center text-sm leading-relaxed text-muted-foreground">
             まだメッセージはありません。
+            <br />
+            気になる点があれば、購入前にこちらから確認できます。
           </p>
         )}
 
