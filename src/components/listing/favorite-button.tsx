@@ -80,7 +80,7 @@ export function FavoriteButton({
         disabled={disabled}
         aria-pressed={optimistic.favorited}
         className={cn(
-          "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium transition-colors",
+          "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-4 text-sm font-medium transition-[background-color,border-color,transform] active:scale-[0.98]",
           optimistic.favorited
             ? "border-destructive/40 bg-destructive/5 text-destructive"
             : "hover:bg-accent",
@@ -88,7 +88,13 @@ export function FavoriteButton({
           className,
         )}
       >
-        <Heart className={cn("size-4", optimistic.favorited && "fill-current")} aria-hidden />
+        <Heart
+        className={cn(
+          "size-4 transition-transform duration-200",
+          optimistic.favorited && "scale-110 fill-current",
+        )}
+        aria-hidden
+      />
         {label}
         {count !== undefined && (
           <span className="tabular-nums text-muted-foreground">{optimistic.count}</span>
@@ -105,15 +111,17 @@ export function FavoriteButton({
       aria-label={iconLabel}
       aria-pressed={optimistic.favorited}
       className={cn(
-        "flex size-11 items-center justify-center rounded-full bg-background/85 backdrop-blur transition-colors",
+        "flex size-11 items-center justify-center rounded-full bg-background/85 backdrop-blur transition-[background-color,transform] active:scale-90",
         disabled ? "cursor-not-allowed opacity-40" : "hover:bg-background",
         className,
       )}
     >
       <Heart
         className={cn(
-          "size-5",
-          optimistic.favorited ? "fill-destructive text-destructive" : "text-muted-foreground",
+          "size-5 transition-transform duration-200 ease-out",
+          optimistic.favorited
+            ? "scale-115 fill-destructive text-destructive"
+            : "text-muted-foreground",
         )}
         aria-hidden
       />

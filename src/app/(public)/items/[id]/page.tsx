@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { MapPin, Pencil } from "lucide-react";
+import { Clock, Heart, MapPin, Pencil } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import { ReportDialog } from "@/features/report/components/report-dialog";
 import { canPurchase } from "@/features/listing/rules";
 import { getCurrentUser } from "@/lib/session";
 import { avatarImageUrl, listingImageUrl } from "@/lib/images";
-import { formatPrice, formatDate } from "@/lib/utils";
+import { formatPrice, formatDate, timeAgo } from "@/lib/utils";
 import {
   CATEGORIES,
   COMPONENTS,
@@ -100,6 +100,7 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
   ]);
 
   const purchasable = canPurchase(listing.status);
+  const posted = timeAgo(listing.publishedAt ?? listing.updatedAt);
   const showBikeSpecs = isBikeCategory(listing.category);
   const avatarSrc = avatarImageUrl(listing.seller?.avatarUrl);
 
@@ -174,6 +175,22 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
           <p className="mt-0.5 text-xs text-muted-foreground">
             {listing.deliveryMethod === "shipping" ? "送料込み・税込" : "税込"}
           </p>
+
+          {/* 出品の新しさと注目度。中古品は価格だけでは判断しづらい */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            {posted && (
+              <span className="inline-flex items-center gap-1">
+                <Clock className="size-3.5" aria-hidden />
+                {posted}に出品
+              </span>
+            )}
+            {listing.favoritesCount > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Heart className="size-3.5" aria-hidden />
+                <span className="tabular-nums">{listing.favoritesCount}</span>人がお気に入り
+              </span>
+            )}
+          </div>
 
           {/* PC 用アクション(スマホは画面下部に固定) */}
           <div className="mt-5 hidden space-y-3 lg:block">

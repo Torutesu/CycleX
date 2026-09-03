@@ -6,6 +6,7 @@ import { MessageCircle, Star } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { requireUser } from "@/lib/session";
 import { getTransactionDetail } from "@/features/transaction/queries";
@@ -22,10 +23,13 @@ export const metadata: Metadata = { title: "取引画面" };
 
 export default async function TransactionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ reviewed?: string }>;
 }) {
   const { id } = await params;
+  const { reviewed } = await searchParams;
   const user = await requireUser(`/transactions/${id}`);
 
   const transaction = await getTransactionDetail(id, user.id);
@@ -53,6 +57,15 @@ export default async function TransactionPage({
           {labelOf(TRANSACTION_STATUSES, transaction.status)}
         </Badge>
       </div>
+
+      {/* 評価の登録直後。移動先で結果が分かるようにする */}
+      {reviewed === "1" && (
+        <Alert className="mt-4">
+          <AlertDescription>
+            評価を登録しました。相手の評価は、双方がそろった時点で公開されます。
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="mt-6">
         <StatusTimeline status={transaction.status} />

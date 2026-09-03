@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
@@ -17,22 +16,16 @@ const RATING_LABELS = ["", "とても悪い", "悪い", "ふつう", "良い", "
 
 /** M-06: ★1〜5 + コメント(FR-10) */
 export function ReviewForm({ transactionId }: { transactionId: string }) {
-  const router = useRouter();
   const [rating, setRating] = useState(0);
   const [state, formAction] = useActionState<ActionResult<undefined> | null, FormData>(
     submitReview,
     null,
   );
 
+  // 成功したときはサーバー側で取引画面へ移動するため、ここでは失敗だけ拾う
   useEffect(() => {
-    if (state?.ok) {
-      toast.success("評価を登録しました");
-      router.push(`/transactions/${transactionId}`);
-      router.refresh();
-    } else if (state && !state.ok) {
-      toast.error(state.error);
-    }
-  }, [state, router, transactionId]);
+    if (state && !state.ok) toast.error(state.error);
+  }, [state]);
 
   return (
     <form action={formAction} className="space-y-6">

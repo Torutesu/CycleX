@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListingGridSkeleton } from "@/components/common/skeletons";
 
 export default function SearchLoading() {
   return (
@@ -20,15 +21,7 @@ export default function SearchLoading() {
             <Skeleton className="h-11 w-28" />
             <Skeleton className="ml-auto h-11 w-40" />
           </div>
-          <ul className="mt-5 grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 lg:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <li key={i} className="space-y-2">
-                <Skeleton className="aspect-square w-full rounded-lg" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-20" />
-              </li>
-            ))}
-          </ul>
+          <ListingGridSkeleton className="mt-5" />
         </div>
       </div>
     </div>

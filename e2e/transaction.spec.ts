@@ -113,7 +113,8 @@ test("購入 → 支払い → 発送 → 受取確認 → 相互評価", async 
   await page.getByRole("button", { name: "5 / 5" }).click();
   await page.fill("#comment", "梱包が丁寧でした。ありがとうございました。");
   await page.getByRole("button", { name: "評価を登録する" }).click();
-  await expect(page).toHaveURL(/\/transactions\//, { timeout: 20_000 });
+  // 登録できたら取引画面へ戻る。評価画面に留まったままなら失敗している
+  await expect(page).toHaveURL(/\/transactions\/[0-9a-f-]+\?reviewed=1$/, { timeout: 20_000 });
 
   // --- 出品者も評価すると取引が完了する ---
   await login(page, SELLER);
@@ -121,7 +122,22 @@ test("購入 → 支払い → 発送 → 受取確認 → 相互評価", async 
   await page.getByRole("button", { name: "5 / 5" }).click();
   await page.fill("#comment", "スムーズなお取引でした。");
   await page.getByRole("button", { name: "評価を登録する" }).click();
-  await expect(page).toHaveURL(/\/transactions\//, { timeout: 20_000 });
+  await expect(page).toHaveURL(/\/transactions\/[0-9a-f-]+\?reviewed=1$/, { timeout: 20_000 });
+
+  // 双方の評価がそろった時点で取引が完了する
+  await expect
+    .poll(
+      async () => {
+        const { data } = await adminDb()
+          .from("transactions")
+          .select("status")
+          .eq("listing_id", listingId)
+          .single();
+        return data?.status;
+      },
+      { timeout: 20_000 },
+    )
+    .toBe("completed");
 
   await page.goto(txPath);
   await expect(page.getByRole("heading", { name: "取引が完了しました" })).toBeVisible();

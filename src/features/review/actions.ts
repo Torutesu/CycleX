@@ -1,10 +1,11 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireVerifiedUser } from "@/lib/session";
-import { ok, fail, toUserMessage, AppError, type ActionResult } from "@/lib/errors";
+import { fail, toUserMessage, AppError, type ActionResult } from "@/lib/errors";
 import { REVIEW_COMMENT_MAX } from "@/lib/constants";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
 import { canSubmitReview, resolveReviewPublication } from "@/features/review/rules";
@@ -32,6 +33,8 @@ export async function submitReview(
   _prev: ActionResult<undefined> | null,
   formData: FormData,
 ): Promise<ActionResult<undefined>> {
+  let done: string;
+
   try {
     const user = await requireVerifiedUser();
     const transactionId = String(formData.get("transactionId") ?? "");
@@ -121,8 +124,14 @@ export async function submitReview(
     revalidatePath(`/transactions/${transactionId}`);
     revalidatePath(`/users/${revieweeId}`);
     revalidatePath("/mypage/purchases");
-    return ok();
+    done = transactionId;
   } catch (error) {
     return fail(toUserMessage(error));
   }
+
+  // 移動はサーバー側で行う。
+  // クライアント側で移動しようとすると、上の revalidatePath による再描画で
+  // 先にフォームが画面から消え、移動の処理が走らないまま
+  // 「すでに評価を登録しています」の画面に取り残される。
+  redirect(`/transactions/${done}?reviewed=1`);
 }

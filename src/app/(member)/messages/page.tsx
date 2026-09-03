@@ -14,6 +14,15 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "メッセージ" };
 
+/**
+ * このセグメントには loading.tsx を置かない。
+ *
+ * 親に読み込み中の表示があると、その下の /messages/[id] でも
+ * 本文が先に流れ出してしまい、他人のやりとりを開いたときに
+ * notFound() しても応答が 200 のままになる。
+ * 一覧の読み込みは軽いので、骨組みより 404 の正しさを取る。
+ */
+
 export default async function MessagesPage() {
   const user = await requireUser("/messages");
   const threads = await getThreadList(user.id);

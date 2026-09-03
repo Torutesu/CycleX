@@ -33,7 +33,10 @@ export function ListingCard({
 
   return (
     <article className="group relative">
-      <Link href={`/items/${listing.id}`} className="block">
+      <Link
+        href={`/items/${listing.id}`}
+        className="block transition-transform duration-150 active:scale-[0.98]"
+      >
         <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
           {listing.thumbnailPath ? (
             <Image

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, PlusCircle, MessageCircle, User, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,23 @@ const GUEST_TABS: Tab[] = [
 ];
 
 /**
+ * タブを押してから画面が変わるまでの間を埋める。
+ *
+ * 遷移が始まったことが分からないと、効いていないと思って
+ * 何度も押されてしまう。押したタブのアイコンを薄く脈打たせる。
+ */
+function PendingDot() {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+  return (
+    <span
+      aria-hidden
+      className="absolute -bottom-0.5 left-1/2 size-1 -translate-x-1/2 animate-pulse rounded-full bg-primary"
+    />
+  );
+}
+
+/**
  * スマホ用の下部固定タブバー(FR-14)。
  * md 以上ではヘッダーナビゲーションに切り替わるため非表示にする。
  */
@@ -76,12 +94,13 @@ export function TabBar({ signedIn = false, unreadCount = 0 }: TabBarProps) {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] transition-colors",
+                  "flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] transition-colors active:bg-accent/60",
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <span className="relative">
                   <Icon className="size-5" aria-hidden />
+                  <PendingDot />
                   {tab.href === "/messages" && unreadCount > 0 && (
                     <span className="absolute -right-2 -top-1 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-semibold leading-4 text-white">
                       {unreadCount > 99 ? "99+" : unreadCount}
