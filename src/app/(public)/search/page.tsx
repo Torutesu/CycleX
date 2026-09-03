@@ -3,6 +3,7 @@ import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListingGrid } from "@/components/listing/listing-grid";
+import { QuickFilters } from "@/features/search/components/quick-filters";
 import { EmptyState } from "@/components/common/empty-state";
 import { FilterPanel } from "@/features/search/components/filter-panel";
 import {
@@ -78,6 +79,8 @@ export default async function SearchPage({
                 <SortSelect params={params} />
               </div>
             </div>
+
+            <QuickFilters params={params} />
 
             <ActiveFilterChips params={params} brands={brands} />
           </header>

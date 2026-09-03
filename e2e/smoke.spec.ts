@@ -47,6 +47,35 @@ test("ゲストはホームと検索を閲覧できる", async ({ page }) => {
   expect(overflows).toBe(false);
 });
 
+test("シートを開かずにカテゴリと価格帯で絞り込める", async ({ page }) => {
+  await page.goto("/search");
+  const heading = page.getByRole("heading", { level: 1 });
+  const countOf = async () => Number((await heading.innerText()).replace(/[^0-9]/g, ""));
+
+  const all = await countOf();
+  expect(all).toBeGreaterThan(0);
+
+  await page.getByRole("link", { name: "ロードバイク", exact: true }).click();
+  await expect(page).toHaveURL(/category=road/);
+  const roadOnly = await countOf();
+  expect(roadOnly).toBeLessThan(all);
+
+  // 価格帯は重ねて効く
+  await page.getByRole("link", { name: "15〜30万円" }).click();
+  await expect(page).toHaveURL(/category=road.*price_min=150000/);
+  expect(await countOf()).toBeLessThanOrEqual(roadOnly);
+
+  // 同じ価格帯をもう一度押すと解除される
+  await page.getByRole("link", { name: "15〜30万円" }).click();
+  await expect(page).not.toHaveURL(/price_min/);
+  expect(await countOf()).toBe(roadOnly);
+
+  // 「すべて」でカテゴリが外れる
+  await page.getByRole("link", { name: "すべて", exact: true }).click();
+  await expect(page).not.toHaveURL(/category/);
+  expect(await countOf()).toBe(all);
+});
+
 test("未ログインで会員ページを開くとログインへ誘導される", async ({ page }) => {
   await page.goto("/mypage");
   await expect(page).toHaveURL(/\/login\?next=%2Fmypage/);
