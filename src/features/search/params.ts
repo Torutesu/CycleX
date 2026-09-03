@@ -206,8 +206,22 @@ export function brandIdsForKeyword(
   word: string,
   brands: readonly { id: string; name: string }[],
 ): string[] {
+  return brands.filter((brand) => brandMatches(word, brand.name)).map((brand) => brand.id);
+}
+
+/**
+ * キーワードに一致するブランド名。検索窓の候補に使う。
+ * 結果の絞り込みと同じ読み替えを通すので、
+ * 候補に出た語で検索して 0 件になることがない。
+ */
+export function brandNamesForKeyword(word: string, names: readonly string[]): string[] {
+  return names.filter((name) => brandMatches(word, name));
+}
+
+/** 入力語が、このブランド名を指しているか */
+function brandMatches(word: string, brandName: string): boolean {
   const key = normalize(word);
-  if (key.length === 0) return [];
+  if (key.length === 0) return false;
 
   const terms = new Set<string>([key]);
   if (key.length >= 2) {
@@ -217,12 +231,8 @@ export function brandIdsForKeyword(
     }
   }
 
-  return brands
-    .filter((brand) => {
-      const name = normalize(brand.name);
-      return [...terms].some((term) => name.includes(term));
-    })
-    .map((brand) => brand.id);
+  const target = normalize(brandName);
+  return [...terms].some((term) => target.includes(term));
 }
 
 /** キーワードに対応するパーツ種別の値。該当が無ければ空配列 */

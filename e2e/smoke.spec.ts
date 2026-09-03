@@ -47,6 +47,38 @@ test("ゲストはホームと検索を閲覧できる", async ({ page }) => {
   expect(overflows).toBe(false);
 });
 
+test("検索窓が候補と履歴を出す", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+
+  const box = page.getByRole("combobox", { name: "キーワード検索" });
+
+  // カタカナで打っても英字のブランドを出す(結果の絞り込みと同じ読み替え)
+  await box.fill("ピナ");
+  await expect(page.getByRole("option", { name: /Pinarello/ })).toBeVisible();
+
+  // カテゴリ名も候補になる
+  await box.fill("ロード");
+  await expect(page.getByRole("option", { name: /ロードバイク/ })).toBeVisible();
+
+  // 候補を押すとその語で検索できる
+  await box.fill("ピナ");
+  await page.getByRole("option", { name: /Pinarello/ }).click();
+  await expect(page).toHaveURL(/\/search\?q=Pinarello/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Pinarello");
+
+  // 検索した語は履歴に残る
+  await page.goto("/");
+  await page.getByRole("combobox", { name: "キーワード検索" }).click();
+  await expect(page.getByRole("option", { name: /Pinarello/ })).toBeVisible();
+
+  // 入力を消せる
+  await page.getByRole("combobox", { name: "キーワード検索" }).fill("テスト");
+  await page.getByRole("button", { name: "キーワードを消す" }).click();
+  await expect(page.getByRole("combobox", { name: "キーワード検索" })).toHaveValue("");
+});
+
 test("シートを開かずにカテゴリと価格帯で絞り込める", async ({ page }) => {
   await page.goto("/search");
   const heading = page.getByRole("heading", { level: 1 });

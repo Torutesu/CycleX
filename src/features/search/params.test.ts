@@ -5,6 +5,7 @@ import {
   splitKeywords,
   toQueryString,
   brandIdsForKeyword,
+  brandNamesForKeyword,
   categoriesForKeyword,
   partsSubcategoriesForKeyword,
 } from "@/features/search/params";
@@ -211,5 +212,30 @@ describe("brandIdsForKeyword", () => {
   it("ブランドと関係ない語では何も返さない", () => {
     expect(brandIdsForKeyword("ロードバイク", brands)).toEqual([]);
     expect(brandIdsForKeyword("", brands)).toEqual([]);
+  });
+});
+
+describe("brandNamesForKeyword", () => {
+  const names = ["Pinarello", "Colnago", "Shimano", "LOUIS GARNEAU", "Trek"];
+
+  it("カタカナの入力途中でも英字のブランドを出す", () => {
+    expect(brandNamesForKeyword("ピナ", names)).toEqual(["Pinarello"]);
+    expect(brandNamesForKeyword("ルイガノ", names)).toEqual(["LOUIS GARNEAU"]);
+  });
+
+  it("英字はそのまま前方一致でも拾う", () => {
+    expect(brandNamesForKeyword("shim", names)).toEqual(["Shimano"]);
+  });
+
+  it("候補に出た語で検索しても 0 件にならない(同じ判定を使う)", () => {
+    const brands = names.map((name, index) => ({ id: `b${index}`, name }));
+    for (const name of brandNamesForKeyword("ピナ", names)) {
+      expect(brandIdsForKeyword(name, brands).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("関係ない語では何も出さない", () => {
+    expect(brandNamesForKeyword("ロードバイク", names)).toEqual([]);
+    expect(brandNamesForKeyword("", names)).toEqual([]);
   });
 });
