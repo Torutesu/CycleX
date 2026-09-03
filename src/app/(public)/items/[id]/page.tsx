@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ImageSlider } from "@/components/listing/image-slider";
+import { ExpandableText } from "@/components/common/expandable-text";
 import { FavoriteButton } from "@/components/listing/favorite-button";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { getListingDetail } from "@/features/listing/queries";
@@ -276,7 +277,7 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
       {listing.description && (
         <section className="mt-8 lg:max-w-2xl">
           <h2 className="text-base font-semibold">商品の説明</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed">{listing.description}</p>
+          <ExpandableText text={listing.description} className="mt-3" />
           <p className="mt-4 text-xs text-muted-foreground">
             出品日 {formatDate(listing.publishedAt ?? listing.updatedAt)}
           </p>

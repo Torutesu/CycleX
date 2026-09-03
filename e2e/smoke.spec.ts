@@ -11,6 +11,10 @@ import { adminDb, ensureUser, login, TEST_PNG } from "./helpers";
 const SELLER = "e2e-seller@example.com";
 const BUYER = "e2e-buyer@example.com";
 const TITLE = `E2E テスト出品 ${Date.now()}`;
+const LONG_DESCRIPTION = Array.from(
+  { length: 14 },
+  (_, i) => `${i + 1}行目: E2E テスト用の出品です。状態は良好で、試乗のみの使用です。`,
+).join("\n");
 
 test.describe.configure({ mode: "serial" });
 
@@ -183,7 +187,8 @@ test("出品 → 検索でヒット → 詳細 → お気に入り", async ({ pa
   await page.click('[role="option"]:has-text("Trek")');
   await page.click("#condition");
   await page.click('[role="option"]:has-text("目立った傷や汚れなし")');
-  await page.fill("#description", "E2E テスト用の出品です。状態は良好で、試乗のみの使用です。");
+  // 折りたたみの確認も兼ねて、10行に収まらない長さにする
+  await page.fill("#description", LONG_DESCRIPTION);
   await page.fill("#price", "123456");
   await page.click("#deliveryMethod");
   await page.click('[role="option"]:has-text("配送")');
@@ -193,6 +198,14 @@ test("出品 → 検索でヒット → 詳細 → お気に入り", async ({ pa
   await page.click('button:has-text("公開する")');
   await page.waitForURL(/\/items\//, { timeout: 30_000 });
   await expect(page.getByRole("heading", { level: 1 })).toContainText(TITLE);
+
+  // --- 長い説明は畳まれ、開くと全文が出る ---
+  const more = page.getByRole("button", { name: "続きを読む" });
+  await expect(more).toBeVisible();
+  const collapsed = await page.evaluate(() => document.body.scrollHeight);
+  await more.click();
+  await expect(page.getByRole("button", { name: "閉じる" })).toBeVisible();
+  expect(await page.evaluate(() => document.body.scrollHeight)).toBeGreaterThan(collapsed);
 
   // --- 検索でヒットする ---
   await page.goto(`/search?q=${encodeURIComponent(TITLE)}`);
@@ -220,4 +233,51 @@ test("出品 → 検索でヒット → 詳細 → お気に入り", async ({ pa
   await page.goto("/mypage/favorites");
   // 過去の実行分が残っていても通るよう、順序ではなく存在で判定する
   await expect(page.locator("article", { hasText: TITLE })).toHaveCount(1);
+});
+
+test("写真を拡大して前後に送れる", async ({ page }) => {
+  // 写真が複数ある出品を探す。無ければこの確認は飛ばす
+  await page.goto("/search");
+  const hrefs = await page
+    .locator('a[href^="/items/"]')
+    .evaluateAll((links) => [...new Set(links.map((link) => link.getAttribute("href") ?? ""))]);
+
+  let found = false;
+  for (const href of hrefs.slice(0, 12)) {
+    await page.goto(href);
+    if ((await page.getByRole("button", { name: "2枚目を表示" }).count()) > 0) {
+      found = true;
+      break;
+    }
+  }
+  test.skip(!found, "写真が2枚以上ある出品が見当たらない");
+
+  const slider = page
+    .locator("div.relative")
+    .filter({ has: page.getByRole("button", { name: "画像を拡大表示" }) })
+    .first();
+  const dialog = page.getByRole("dialog");
+  const dialogCounter = dialog.locator("span.tabular-nums");
+
+  await page.getByRole("button", { name: "画像を拡大表示" }).click();
+  await expect(dialogCounter).toHaveText(/^1 \//);
+
+  const total = Number(((await dialogCounter.textContent()) ?? "").split("/")[1].trim());
+  expect(total).toBeGreaterThan(1);
+
+  // ボタンで最後まで送る。途中の位置がスクロールから流れてきても番号は戻らない
+  for (let i = 1; i < total; i += 1) {
+    await dialog.getByRole("button", { name: "次の画像" }).click();
+    await expect(dialogCounter).toHaveText(new RegExp(`^${i + 1} /`));
+  }
+
+  // 末尾では「次の画像」が押せなくなりフォーカスが外れる。
+  // それでも戻れること(キーをダイアログではなく画面全体で受けていること)を確かめる
+  await page.keyboard.press("ArrowLeft");
+  await expect(dialogCounter).toHaveText(new RegExp(`^${total - 1} /`));
+
+  // 拡大表示で送った位置は、閉じたあとの本体にも引き継がれる
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(slider.locator("span.tabular-nums")).toHaveText(new RegExp(`^${total - 1} /`));
 });
