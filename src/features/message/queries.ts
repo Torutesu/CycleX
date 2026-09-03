@@ -46,6 +46,8 @@ export type ThreadDetail = {
     createdAt: string;
     fromMe: boolean;
   }[];
+  /** 相手からの未読があるか。既読にする通信を出すかどうかの判断に使う */
+  hasUnread: boolean;
 };
 
 type ThreadRow = {
@@ -210,7 +212,7 @@ export async function getThreadDetail(
     // 直近 200 件に限定する(スレッドが長くなっても描画量が膨らまないように)
     supabase
       .from("messages")
-      .select("id, sender_id, body, created_at")
+      .select("id, sender_id, body, created_at, read_at")
       .eq("thread_id", threadId)
       .order("created_at", { ascending: false })
       .limit(200),
@@ -233,6 +235,9 @@ export async function getThreadDetail(
       avatarUrl: counterparty?.avatar_url ?? null,
       status: (counterparty?.status ?? "withdrawn") as UserStatus,
     },
+    hasUnread: (messages ?? []).some(
+      (message) => message.sender_id !== userId && message.read_at === null,
+    ),
     // 取得は新しい順(直近を優先)なので、表示用に古い順へ戻す
     messages: (messages ?? [])
       .slice()

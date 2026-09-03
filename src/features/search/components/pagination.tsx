@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toQueryString, type SearchParams } from "@/features/search/params";
+import { useChipNavigation } from "@/features/search/components/search-transition";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -31,6 +34,9 @@ function href(params: SearchParams, page: number): string {
 
 /** FR-04-4: ページネーション。スマホは前後ボタン中心、PC はページ番号も表示する。 */
 export function SearchPagination({ params, totalPages }: Props) {
+  // 読み込み中が分かるよう、条件の切り替えと同じ仕組みに乗せる
+  const onPageClick = useChipNavigation();
+
   if (totalPages <= 1) return null;
 
   const current = Math.min(params.page, totalPages);
@@ -40,6 +46,7 @@ export function SearchPagination({ params, totalPages }: Props) {
       {current > 1 ? (
         <Link
           href={href(params, current - 1)}
+          onClick={(event) => onPageClick(event, href(params, current - 1))}
           rel="prev"
           className="inline-flex min-h-11 items-center gap-1 rounded-md border px-3 text-sm hover:bg-accent"
         >
@@ -63,6 +70,7 @@ export function SearchPagination({ params, totalPages }: Props) {
             <li key={item}>
               <Link
                 href={href(params, item)}
+                onClick={(event) => onPageClick(event, href(params, item))}
                 aria-current={item === current ? "page" : undefined}
                 className={cn(
                   "inline-flex size-11 items-center justify-center rounded-md text-sm tabular-nums",
@@ -85,6 +93,7 @@ export function SearchPagination({ params, totalPages }: Props) {
       {current < totalPages ? (
         <Link
           href={href(params, current + 1)}
+          onClick={(event) => onPageClick(event, href(params, current + 1))}
           rel="next"
           className="inline-flex min-h-11 items-center gap-1 rounded-md border px-3 text-sm hover:bg-accent"
         >

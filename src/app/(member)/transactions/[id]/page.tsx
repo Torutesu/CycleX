@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { requireUser } from "@/lib/session";
 import { getTransactionDetail } from "@/features/transaction/queries";
-import { openThreadForListing } from "@/features/message/actions";
+import { openThreadForListing } from "@/features/message/service";
 import { nextActionFor } from "@/features/transaction/state";
 import { waitingNotice } from "@/features/transaction/guidance";
 import { StatusTimeline } from "@/features/transaction/components/status-timeline";

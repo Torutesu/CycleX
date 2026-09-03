@@ -3,7 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMail, findLastSentAt } from "@/lib/email/send";
 import { shouldThrottleMessageNotification } from "@/lib/email/kinds";
-import { formatPrice } from "@/lib/utils";
+import { formatDateTime, formatPrice } from "@/lib/utils";
 
 /**
  * FR-13 のメール通知フック。
@@ -311,9 +311,7 @@ export async function notifyDispute(info: DisputeInfo): Promise<void> {
     { label: "理由", value: info.reason ?? "不明" },
     {
       label: "反論期限",
-      value: info.evidenceDueBy
-        ? new Date(info.evidenceDueBy * 1000).toLocaleString("ja-JP")
-        : "不明",
+      value: info.evidenceDueBy ? formatDateTime(new Date(info.evidenceDueBy * 1000)) : "不明",
     },
   ];
 

@@ -72,13 +72,21 @@ test("出品者に質問 → 返信 → 未読バッジが消える", async ({ p
   await page.goto("/messages");
   await expect(page.getByText("こちらまだ販売中でしょうか。試乗は可能ですか。")).toBeVisible();
   await page.locator('a[href^="/messages/"]').first().click();
-  await page.locator("textarea").fill("販売中です。試乗もご相談いただけます。");
+
+  // 開いた時点で既読になる。読み込み直さなくてもバッジは消える
+  await expect(tabBar.getByText("1", { exact: true })).toHaveCount(0);
+
+  const composer = page.locator("textarea");
+  await composer.fill("販売中です。試乗もご相談いただけます。");
   await page.getByRole("button", { name: "送信" }).click();
+
+  // 送信の往復を待たずに、入力欄は空になり自分の吹き出しが出る
+  await expect(composer).toHaveValue("");
   await expect(page.getByText("販売中です。試乗もご相談いただけます。")).toBeVisible({
     timeout: 20_000,
   });
 
-  // --- スレッドを開いたので未読は消える ---
+  // --- 読み込み直しても未読は戻らない ---
   await page.goto("/");
   await expect(tabBar.getByText("1", { exact: true })).toHaveCount(0);
 });

@@ -1,5 +1,12 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
-import { timeAgo, safeRedirectPath, formatPrice } from "@/lib/utils";
+import {
+  timeAgo,
+  safeRedirectPath,
+  formatPrice,
+  formatDate,
+  formatDateTime,
+  formatTime,
+} from "@/lib/utils";
 
 describe("timeAgo", () => {
   const now = new Date("2026-09-10T12:00:00+09:00");
@@ -56,5 +63,28 @@ describe("safeRedirectPath", () => {
 describe("formatPrice", () => {
   it("3桁区切りで円を付ける", () => {
     expect(formatPrice(215000)).toBe("¥215,000");
+  });
+});
+
+describe("日時の表示", () => {
+  // 実行環境が UTC でも、日本の利用者が見る時刻で出す
+  it("日本時間で整形する", () => {
+    expect(formatDateTime("2026-09-10T12:00:00Z")).toBe("2026/09/10 21:00");
+    expect(formatDate("2026-09-10T12:00:00Z")).toBe("2026/09/10");
+    expect(formatTime("2026-09-10T12:00:00Z")).toBe("21:00");
+  });
+
+  it("UTC で日付が変わる時刻でも日本の日付になる", () => {
+    // 日本では 9/11 の朝
+    expect(formatDate("2026-09-10T22:30:00Z")).toBe("2026/09/11");
+    expect(formatTime("2026-09-10T22:30:00Z")).toBe("07:30");
+  });
+
+  it("値が無いときと壊れた値", () => {
+    expect(formatDateTime(null)).toBe("—");
+    expect(formatDate(undefined)).toBe("—");
+    expect(formatDateTime("not-a-date")).toBe("—");
+    expect(formatTime("not-a-date")).toBe("");
+    expect(formatTime(null)).toBe("");
   });
 });

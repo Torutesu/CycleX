@@ -3,23 +3,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ChevronLeft, RotateCw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/session";
 import { getThreadDetail } from "@/features/message/queries";
-import { markThreadRead } from "@/features/message/actions";
-import { MessageComposer } from "@/features/message/components/message-composer";
-import { ScrollToBottom } from "@/features/message/components/scroll-to-bottom";
+import { Conversation } from "@/features/message/components/conversation";
+import { MarkThreadRead } from "@/features/message/components/mark-read";
 import { listingImageUrl } from "@/lib/images";
-import { formatPrice, formatDate, cn } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
 import { LISTING_STATUSES, labelOf } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "メッセージ" };
-
-/** 日付の区切り線を入れるため、直前のメッセージと日付が変わったかを見る */
-function isNewDay(current: string, previous: string | undefined): boolean {
-  if (!previous) return true;
-  return new Date(current).toDateString() !== new Date(previous).toDateString();
-}
 
 export default async function ThreadPage({
   params,
@@ -31,9 +23,6 @@ export default async function ThreadPage({
 
   const thread = await getThreadDetail(threadId, user.id);
   if (!thread) notFound();
-
-  // 表示と同時に相手発信の未読を既読にする
-  await markThreadRead(threadId, user.id);
 
   const disabledReason =
     thread.counterparty.status === "withdrawn"
@@ -93,68 +82,15 @@ export default async function ThreadPage({
         </div>
       </header>
 
-      {/* 吹き出し */}
-      <div className="flex-1 space-y-3 px-4 py-4 md:border-x">
-        <h1 className="text-center text-xs text-muted-foreground">
-          {thread.counterparty.displayName} さんとのやり取り
-        </h1>
+      <Conversation
+        threadId={threadId}
+        messages={thread.messages}
+        counterpartyName={thread.counterparty.displayName}
+        counterpartyWithdrawn={thread.counterparty.status === "withdrawn"}
+        disabledReason={disabledReason}
+      />
 
-        {thread.messages.length === 0 && (
-          <p className="py-8 text-center text-sm leading-relaxed text-muted-foreground">
-            まだメッセージはありません。
-            <br />
-            気になる点があれば、購入前にこちらから確認できます。
-          </p>
-        )}
-
-        {thread.messages.map((message, index) => (
-          <div key={message.id}>
-            {isNewDay(message.createdAt, thread.messages[index - 1]?.createdAt) && (
-              <p className="my-4 text-center text-xs text-muted-foreground">
-                {formatDate(message.createdAt)}
-              </p>
-            )}
-            <div className={cn("flex", message.fromMe ? "justify-end" : "justify-start")}>
-              <div className="max-w-[80%]">
-                <div
-                  className={cn(
-                    "whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm",
-                    message.fromMe
-                      ? "rounded-br-sm bg-primary text-primary-foreground"
-                      : "rounded-bl-sm bg-muted",
-                  )}
-                >
-                  {message.body}
-                </div>
-                <time
-                  className={cn(
-                    "mt-0.5 block text-[10px] text-muted-foreground",
-                    message.fromMe ? "text-right" : "text-left",
-                  )}
-                >
-                  {new Date(message.createdAt).toLocaleTimeString("ja-JP", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </time>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {thread.counterparty.status === "withdrawn" && (
-          <div className="pt-2 text-center">
-            <Badge variant="secondary">相手は退会済みです</Badge>
-          </div>
-        )}
-
-        <ScrollToBottom dependency={thread.messages.length} />
-      </div>
-
-      {/* 入力欄(スマホはタブバーの上に固定) */}
-      <div className="sticky bottom-16 z-20 md:static md:rounded-b-xl md:border md:border-t-0">
-        <MessageComposer threadId={threadId} disabledReason={disabledReason} />
-      </div>
+      <MarkThreadRead threadId={threadId} hasUnread={thread.hasUnread} />
     </div>
   );
 }

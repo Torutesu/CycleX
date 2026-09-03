@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { CATEGORIES } from "@/lib/constants";
 import { toQueryString, type SearchParams } from "@/features/search/params";
+import { useChipNavigation } from "@/features/search/components/search-transition";
 import { cn } from "@/lib/utils";
 
 /**
@@ -41,6 +42,9 @@ function href(params: SearchParams, overrides: Partial<SearchParams>) {
 }
 
 export function QuickFilters({ params }: { params: SearchParams }) {
+  // 押した瞬間に一覧が薄くなるよう、遷移は共通の仕組みに乗せる
+  const onChipClick = useChipNavigation();
+
   const priceActive = (band: (typeof PRICE_BANDS)[number]) =>
     params.priceMin === band.min && params.priceMax === band.max;
 
@@ -51,6 +55,7 @@ export function QuickFilters({ params }: { params: SearchParams }) {
         <li>
           <Link
             href={href(params, { category: null, sub: null })}
+            onClick={(event) => onChipClick(event, href(params, { category: null, sub: null }))}
             aria-current={params.category ? undefined : "true"}
             className={chipClass(!params.category)}
           >
@@ -59,13 +64,12 @@ export function QuickFilters({ params }: { params: SearchParams }) {
         </li>
         {CATEGORIES.map((category) => {
           const active = params.category === category.value;
+          const target = href(params, { category: active ? null : category.value, sub: null });
           return (
             <li key={category.value}>
               <Link
-                href={href(params, {
-                  category: active ? null : category.value,
-                  sub: null,
-                })}
+                href={target}
+                onClick={(event) => onChipClick(event, target)}
                 aria-current={active ? "true" : undefined}
                 className={chipClass(active)}
               >
@@ -79,13 +83,15 @@ export function QuickFilters({ params }: { params: SearchParams }) {
       <ul className="flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {PRICE_BANDS.map((band) => {
           const active = priceActive(band);
+          const target = href(params, {
+            priceMin: active ? null : band.min,
+            priceMax: active ? null : (band.max ?? null),
+          });
           return (
             <li key={band.label}>
               <Link
-                href={href(params, {
-                  priceMin: active ? null : band.min,
-                  priceMax: active ? null : (band.max ?? null),
-                })}
+                href={target}
+                onClick={(event) => onChipClick(event, target)}
                 aria-current={active ? "true" : undefined}
                 className={chipClass(active)}
               >

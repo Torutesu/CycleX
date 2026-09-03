@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * 表示に使う時間帯。
+ *
+ * 対象は日本国内のみだが、実行環境の時計は UTC のことが多い(Vercel など)。
+ * 指定しないと出品日や取引日時が9時間ずれて出るため、ここで固定する。
+ */
+const TIME_ZONE = "Asia/Tokyo";
+
 /** 価格を「¥12,345」形式で整形する */
 export function formatPrice(price: number | null | undefined): string {
   if (price === null || price === undefined) return "—";
@@ -22,6 +30,7 @@ export function formatDateTime(value: string | Date | null | undefined): string 
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: TIME_ZONE,
   }).format(date);
 }
 
@@ -34,6 +43,19 @@ export function formatDate(value: string | Date | null | undefined): string {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+    timeZone: TIME_ZONE,
+  }).format(date);
+}
+
+/** 時刻を「14:30」形式で整形する */
+export function formatTime(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: TIME_ZONE,
   }).format(date);
 }
 

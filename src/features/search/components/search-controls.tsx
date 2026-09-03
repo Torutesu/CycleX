@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FilterPanel } from "@/features/search/components/filter-panel";
+import { useSearchNavigation } from "@/features/search/components/search-transition";
 import { toQueryString, hasActiveFilters, type SearchParams } from "@/features/search/params";
 import {
   CATEGORIES,
@@ -34,11 +35,10 @@ import type { SortOption } from "@/lib/constants";
 type Props = {
   params: SearchParams;
   brands: { id: string; name: string }[];
-  total: number;
 };
 
 /** スマホ用の絞り込みトリガー(ボトムシート) */
-export function MobileFilterSheet({ params, brands }: Omit<Props, "total">) {
+export function MobileFilterSheet({ params, brands }: Props) {
   const [open, setOpen] = useState(false);
   const activeCount = countActiveFilters(params);
 
@@ -76,17 +76,18 @@ export function MobileFilterSheet({ params, brands }: Omit<Props, "total">) {
 
 /** 並び替えセレクト */
 export function SortSelect({ params }: { params: SearchParams }) {
-  const router = useRouter();
+  const { pending, navigate } = useSearchNavigation();
 
   return (
     <Select
       value={params.sort}
       onValueChange={(value) => {
         const query = toQueryString(params, { sort: value as SortOption, page: 1 });
-        router.push(`/search${query ? `?${query}` : ""}`);
+        navigate(`/search${query ? `?${query}` : ""}`);
       }}
     >
       <SelectTrigger className="h-11 w-40" aria-label="並び替え">
+        {pending && <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />}
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
@@ -110,7 +111,7 @@ export function ActiveFilterChips({
   params: SearchParams;
   brands: { id: string; name: string }[];
 }) {
-  const router = useRouter();
+  const { navigate } = useSearchNavigation();
   if (!hasActiveFilters(params)) return null;
 
   const chips: Chip[] = [];
@@ -173,7 +174,7 @@ export function ActiveFilterChips({
 
   function go(next: Partial<SearchParams>) {
     const query = toQueryString(params, { ...next, page: 1 });
-    router.push(`/search${query ? `?${query}` : ""}`);
+    navigate(`/search${query ? `?${query}` : ""}`);
   }
 
   return (

@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,7 @@ import {
   PRICE_PRESETS,
 } from "@/lib/constants";
 import { toQueryString, type SearchParams } from "@/features/search/params";
+import { useSearchNavigation } from "@/features/search/components/search-transition";
 import { cn } from "@/lib/utils";
 
 type FilterPanelProps = {
@@ -27,7 +27,7 @@ type FilterPanelProps = {
 
 /** FR-04-2: 絞り込みフォーム。スマホはボトムシート、PC はサイドバーに配置する。 */
 export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
-  const router = useRouter();
+  const { navigate } = useSearchNavigation();
   const [draft, setDraft] = useState<SearchParams>(params);
   const [brandQuery, setBrandQuery] = useState("");
 
@@ -48,7 +48,7 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
   function apply() {
     // 条件を変えたら1ページ目に戻す
     const query = toQueryString(draft, { page: 1 });
-    router.push(`/search${query ? `?${query}` : ""}`);
+    navigate(`/search${query ? `?${query}` : ""}`);
     onApplied?.();
   }
 
@@ -68,7 +68,7 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
     };
     setDraft(cleared);
     const query = toQueryString(cleared, { page: 1 });
-    router.push(`/search${query ? `?${query}` : ""}`);
+    navigate(`/search${query ? `?${query}` : ""}`);
     onApplied?.();
   }
 

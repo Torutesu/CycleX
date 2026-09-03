@@ -281,3 +281,16 @@ test("写真を拡大して前後に送れる", async ({ page }) => {
   await expect(dialog).toHaveCount(0);
   await expect(slider.locator("span.tabular-nums")).toHaveText(new RegExp(`^${total - 1} /`));
 });
+
+test("ページを送ると、見ている件数の範囲が変わる", async ({ page }) => {
+  await page.goto("/search");
+  const heading = page.getByRole("heading", { level: 1 });
+  const next = page.getByRole("link", { name: "次へ" });
+  test.skip((await next.count()) === 0, "全件が1ページに収まっていて確認できない");
+
+  await expect(heading).toContainText(/件中 1〜\d+件/);
+  await next.click();
+  await expect(page).toHaveURL(/page=2/);
+  await expect(heading).toContainText(/件中 \d+〜\d+件/);
+  await expect(heading).not.toContainText(/件中 1〜/);
+});
