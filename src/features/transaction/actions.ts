@@ -98,6 +98,8 @@ export async function startPurchase(listingId: string): Promise<ActionResult<und
         const session = await stripe.checkout.sessions.create({
           mode: "payment",
           payment_method_types: ["card"],
+          // 国内向けのため、決済画面もブラウザ設定によらず日本語で出す
+          locale: "ja",
           expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_EXPIRES_MINUTES * 60,
           client_reference_id: transaction.id,
           metadata: {

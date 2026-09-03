@@ -6,6 +6,9 @@ import {
   formatDate,
   formatDateTime,
   formatTime,
+  jstDateKey,
+  startOfJstDay,
+  jstYear,
 } from "@/lib/utils";
 
 describe("timeAgo", () => {
@@ -86,5 +89,26 @@ describe("日時の表示", () => {
     expect(formatDateTime("not-a-date")).toBe("—");
     expect(formatTime("not-a-date")).toBe("");
     expect(formatTime(null)).toBe("");
+  });
+});
+
+describe("日本時間の日付", () => {
+  it("UTC で前日でも、日本の日付で返す", () => {
+    // 日本では 9/11 の朝7時半
+    expect(jstDateKey("2026-09-10T22:30:00Z")).toBe("2026-09-11");
+    expect(jstDateKey("2026-09-10T12:00:00Z")).toBe("2026-09-10");
+    // 日本の 0:00 ちょうど / 23:59
+    expect(jstDateKey("2026-09-10T15:00:00Z")).toBe("2026-09-11");
+    expect(jstDateKey("2026-09-10T14:59:59Z")).toBe("2026-09-10");
+  });
+
+  it("その日の始まりは日本時間の 0 時", () => {
+    expect(startOfJstDay("2026-09-10T22:30:00Z").toISOString()).toBe("2026-09-10T15:00:00.000Z");
+  });
+
+  it("年も日本時間で数える", () => {
+    // 日本では 2027/01/01、UTC ではまだ 2026/12/31
+    expect(jstYear("2026-12-31T16:00:00Z")).toBe(2027);
+    expect(jstYear("2026-12-31T14:00:00Z")).toBe(2026);
   });
 });

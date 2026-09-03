@@ -130,8 +130,35 @@ const CATEGORY_ALIASES: Record<string, string> = {
   小径: "minivelo",
 };
 
+/**
+ * ひらがなをカタカナに寄せる。
+ * 「ぴなれろ」と打たれても「ピナレロ」の読み替えに当てるため。
+ */
+function toKatakana(value: string): string {
+  return value.replace(/[\u3041-\u3096]/g, (char) =>
+    String.fromCodePoint(char.codePointAt(0)! + 0x60),
+  );
+}
+
+/**
+ * 日本語入力のゆれを吸収する。
+ *
+ * 日本語 IME は「ＴＲＥＫ」のような全角英数や半角カナを普通に出すので、
+ * NFKC で半角英数・全角カナへ寄せてから比べる。
+ */
 function normalize(value: string): string {
-  return value.toLowerCase().replace(/[\s　・]/g, "");
+  return toKatakana(value.normalize("NFKC")).toLowerCase().replace(/[\s　・]/g, "");
+}
+
+/**
+ * 本文の部分一致に使う綴りの候補。
+ *
+ * 出品の表記も入力も全角と半角が混ざるため、どちらで打たれても
+ * 当たるよう両方の綴りで探す。
+ */
+export function keywordVariants(word: string): string[] {
+  const normalized = word.normalize("NFKC");
+  return normalized === word ? [word] : [word, normalized];
 }
 
 /** キーワードに対応するカテゴリの値。該当が無ければ空配列 */

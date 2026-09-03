@@ -3,6 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ADMIN_PAGE_SIZE, type ListingStatus, type TransactionStatus } from "@/lib/constants";
 import { detectStateMismatch } from "@/features/admin/rules";
+import { jstDateKey, startOfJstDay } from "@/lib/utils";
 
 export type Paged<T> = {
   items: T[];
@@ -479,7 +480,9 @@ export type DashboardStats = {
 
 export async function getDashboardStats(days = 30): Promise<DashboardStats> {
   const supabase = createAdminClient();
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  // 日本時間の日付で数える。UTC の日付で束ねると、朝9時までの分が前日に積まれる
+  const today = startOfJstDay();
+  const since = new Date(today.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
   const sinceIso = since.toISOString();
 
   const [
@@ -509,14 +512,13 @@ export async function getDashboardStats(days = 30): Promise<DashboardStats> {
   // 日別に集計する(件数が限られるためアプリ側で行う)
   const buckets = new Map<string, { users: number; listings: number; transactions: number }>();
   for (let i = days - 1; i >= 0; i -= 1) {
-    const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const date = jstDateKey(new Date(today.getTime() - i * 24 * 60 * 60 * 1000));
     buckets.set(date, { users: 0, listings: 0, transactions: 0 });
   }
 
   const bump = (iso: string | null, key: "users" | "listings" | "transactions") => {
     if (!iso) return;
-    const date = iso.slice(0, 10);
-    const bucket = buckets.get(date);
+    const bucket = buckets.get(jstDateKey(iso));
     if (bucket) bucket[key] += 1;
   };
 

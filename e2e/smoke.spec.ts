@@ -62,6 +62,12 @@ test("検索窓が候補と履歴を出す", async ({ page }) => {
   await box.fill("ピナ");
   await expect(page.getByRole("option", { name: /Pinarello/ })).toBeVisible();
 
+  // 変換前のひらがなや、IME が出す全角英字でも同じ候補になる
+  await box.fill("ぴな");
+  await expect(page.getByRole("option", { name: /Pinarello/ })).toBeVisible();
+  await box.fill("Ｐｉｎａ");
+  await expect(page.getByRole("option", { name: /Pinarello/ })).toBeVisible();
+
   // カテゴリ名も候補になる
   await box.fill("ロード");
   await expect(page.getByRole("option", { name: /ロードバイク/ })).toBeVisible();

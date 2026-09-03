@@ -109,7 +109,7 @@ export default async function SearchPage({
                 <EmptyState
                   icon={SearchX}
                   title="条件に合う商品が見つかりませんでした"
-                  description="キーワードを短くするか、絞り込みを減らしてみてください。ブランド名はカタカナでも探せます。"
+                  description="キーワードを短くするか、絞り込みを減らしてみてください。ブランド名はカタカナやひらがなでも探せます。"
                   action={
                     (hasActiveFilters(params) || params.q) && (
                       <Button asChild variant="outline" className="h-11">

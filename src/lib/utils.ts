@@ -47,6 +47,28 @@ export function formatDate(value: string | Date | null | undefined): string {
   }).format(date);
 }
 
+/**
+ * 日本時間での「YYYY-MM-DD」。日別の集計に使う。
+ *
+ * 日本標準時は夏時間を持たず常に UTC+9 なので、固定のずらしで足りる。
+ * これを使わずに UTC の日付で数えると、朝9時までの出来事が
+ * 前日に積まれてしまう。
+ */
+export function jstDateKey(value: string | Date = new Date()): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  return new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/** 日本時間の「今日」の始まり */
+export function startOfJstDay(value: string | Date = new Date()): Date {
+  return new Date(`${jstDateKey(value)}T00:00:00+09:00`);
+}
+
+/** 日本時間での今年 */
+export function jstYear(value: string | Date = new Date()): number {
+  return Number(jstDateKey(value).slice(0, 4));
+}
+
 /** 時刻を「14:30」形式で整形する */
 export function formatTime(value: string | Date | null | undefined): string {
   if (!value) return "";

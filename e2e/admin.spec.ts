@@ -112,3 +112,13 @@ test("利用停止にすると本人はログインしても専用画面へ送�
 
   await adminDb().from("users").update({ status: "active" }).eq("id", memberId);
 });
+
+test("ダッシュボードの推移は日本時間の日付で終わる", async ({ page }) => {
+  await login(page, ADMIN);
+  await page.goto("/admin");
+
+  // UTC の日付で束ねていると、日本の朝9時までは前日で止まって見える
+  const todayInJapan = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(5, 10);
+  const chart = page.locator("section", { hasText: "直近30日の推移" }).first();
+  await expect(chart).toContainText(todayInJapan);
+});

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { jstYear } from "@/lib/utils";
 
 const LINKS = [
   { href: "/terms", label: "利用規約" },
@@ -29,7 +30,7 @@ export function Footer() {
           ))}
         </ul>
         <p className="mt-6 text-xs text-muted-foreground">
-          © {new Date().getFullYear()} CycleX
+          © {jstYear()} CycleX
         </p>
       </div>
     </footer>

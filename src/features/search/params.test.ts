@@ -8,6 +8,7 @@ import {
   brandNamesForKeyword,
   categoriesForKeyword,
   partsSubcategoriesForKeyword,
+  keywordVariants,
 } from "@/features/search/params";
 
 describe("parseSearchParams", () => {
@@ -237,5 +238,34 @@ describe("brandNamesForKeyword", () => {
   it("関係ない語では何も出さない", () => {
     expect(brandNamesForKeyword("ロードバイク", names)).toEqual([]);
     expect(brandNamesForKeyword("", names)).toEqual([]);
+  });
+});
+
+describe("日本語入力のゆれ", () => {
+  const brands = [
+    { id: "b1", name: "Pinarello" },
+    { id: "b2", name: "Trek" },
+  ];
+
+  it("全角で打たれた英字でもブランドに当たる", () => {
+    expect(brandIdsForKeyword("ＴＲＥＫ", brands)).toEqual(["b2"]);
+    expect(brandNamesForKeyword("Ｐｉｎａ", ["Pinarello"])).toEqual(["Pinarello"]);
+  });
+
+  it("ひらがなで打たれても読み替えに当たる", () => {
+    expect(brandIdsForKeyword("ぴなれろ", brands)).toEqual(["b1"]);
+    expect(brandIdsForKeyword("とれっく", brands)).toEqual(["b2"]);
+  });
+
+  it("半角カナのカテゴリでも当たる", () => {
+    expect(categoriesForKeyword("ﾛｰﾄﾞ")).toEqual(["road"]);
+    expect(categoriesForKeyword("ろーど")).toEqual(["road"]);
+  });
+
+  it("本文検索は全角と半角の両方の綴りで探す", () => {
+    expect(keywordVariants("ＴＲＥＫ")).toEqual(["ＴＲＥＫ", "TREK"]);
+    // 変換して変わらない語は1通りだけ
+    expect(keywordVariants("TREK")).toEqual(["TREK"]);
+    expect(keywordVariants("ロード")).toEqual(["ロード"]);
   });
 });

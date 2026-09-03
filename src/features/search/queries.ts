@@ -6,6 +6,7 @@ import {
   SEARCH_PAGE_SIZE,
   brandIdsForKeyword,
   categoriesForKeyword,
+  keywordVariants,
   partsSubcategoriesForKeyword,
   splitKeywords,
   type SearchParams,
@@ -92,13 +93,18 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
   // キーワード: 語ごとに AND、各語はタイトル/説明/モデル名/自由入力ブランドの OR。
   // 「ロードバイク」のようにカテゴリの呼び名で探された場合は、そのカテゴリの商品も含める。
   for (const word of words) {
-    const pattern = `%${escapeLike(word)}%`;
-    const conditions = [
-      `title.ilike.${pattern}`,
-      `description.ilike.${pattern}`,
-      `model_name.ilike.${pattern}`,
-      `brand_other.ilike.${pattern}`,
-    ];
+    const conditions: string[] = [];
+
+    // 全角で打たれても半角で打たれても当たるよう、両方の綴りで探す
+    for (const variant of keywordVariants(word)) {
+      const pattern = `%${escapeLike(variant)}%`;
+      conditions.push(
+        `title.ilike.${pattern}`,
+        `description.ilike.${pattern}`,
+        `model_name.ilike.${pattern}`,
+        `brand_other.ilike.${pattern}`,
+      );
+    }
 
     const categories = categoriesForKeyword(word);
     if (categories.length > 0) conditions.push(`category.in.(${categories.join(",")})`);

@@ -3,6 +3,8 @@
  * DB の CHECK 制約 / Zod スキーマ / UI 表示ラベルはすべてここを参照する。
  */
 
+import { jstYear } from "@/lib/utils";
+
 export type Option<T extends string = string> = { value: T; label: string };
 
 /** Option 配列から value のユニオン型 tuple を取り出す(Zod enum 用) */
@@ -343,5 +345,5 @@ export const CHECKOUT_EXPIRES_MINUTES = 45;
 export const STALE_PAYMENT_CLEANUP_MINUTES = 90;
 
 export function modelYearMax(): number {
-  return new Date().getFullYear() + 1;
+  return jstYear() + 1;
 }
