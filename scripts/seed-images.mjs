@@ -10,7 +10,7 @@ import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { readFileSync } from "node:fs";
 
-const COUNT = Number(process.argv[2] ?? 120);
+const COUNT = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 120);
 
 const env = Object.fromEntries(
   readFileSync(new URL("../.env.local", import.meta.url), "utf8")
@@ -127,7 +127,10 @@ const CATEGORY_LABELS = {
   other: "OTHER",
 };
 
-// 画像を持たない公開中の商品を対象にする
+// --replace を付けると、既にある画像も貼り直す。
+// カテゴリを変えたあとは画像の見出しが食い違うため、そのときに使う。
+const REPLACE = process.argv.includes("--replace");
+
 const { data: listings } = await db
   .from("listings")
   .select("id, seller_id, category, listing_images(id)")
@@ -135,7 +138,16 @@ const { data: listings } = await db
   .order("published_at", { ascending: false })
   .limit(COUNT * 2);
 
-const targets = (listings ?? []).filter((l) => (l.listing_images ?? []).length === 0).slice(0, COUNT);
+const targets = (listings ?? [])
+  .filter((l) => REPLACE || (l.listing_images ?? []).length === 0)
+  .slice(0, COUNT);
+
+if (REPLACE && targets.length > 0) {
+  const ids = targets.map((l) => l.id);
+  for (let i = 0; i < ids.length; i += 100) {
+    await db.from("listing_images").delete().in("listing_id", ids.slice(i, i + 100));
+  }
+}
 
 if (targets.length === 0) {
   console.log("画像を付ける対象がありません。");

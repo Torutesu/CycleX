@@ -77,7 +77,7 @@ export function ListingCard({
         </div>
 
         <div className="mt-2 space-y-1">
-          <h3 className="line-clamp-2 text-sm leading-snug">{listing.title}</h3>
+          <h3 className="line-clamp-2 break-phrase text-sm leading-snug">{listing.title}</h3>
           <p className="font-bold tabular-nums">{formatPrice(listing.price)}</p>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
             {listing.brandName && <span className="truncate">{listing.brandName}</span>}

@@ -202,7 +202,7 @@ export default async function TransactionPage({
             />
           )}
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 text-sm font-medium">{transaction.listing.title}</p>
+            <p className="line-clamp-2 break-phrase text-sm font-medium">{transaction.listing.title}</p>
             <p className="mt-1 font-bold tabular-nums">{formatPrice(transaction.price)}</p>
           </div>
         </Link>

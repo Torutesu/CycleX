@@ -58,7 +58,7 @@ export default async function HomePage() {
             {totalListings > 0 && (
               <>
                 {" "}
-                いま<span className="font-medium text-foreground">{totalListings}台</span>
+                いま<span className="font-medium text-foreground">{totalListings}件</span>
                 が出品中です。
               </>
             )}

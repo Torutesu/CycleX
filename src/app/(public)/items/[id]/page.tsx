@@ -184,7 +184,7 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
 
         {/* 情報 */}
         <div className="mt-6 lg:mt-0">
-          <h1 className="text-lg font-bold leading-snug md:text-xl">{listing.title}</h1>
+          <h1 className="break-phrase text-lg font-bold leading-snug md:text-xl">{listing.title}</h1>
 
           <p className="mt-3 text-2xl font-bold tabular-nums">{formatPrice(listing.price)}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">

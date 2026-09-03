@@ -33,7 +33,7 @@ export function TransactionList({ transactions }: { transactions: TransactionLis
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 text-sm font-medium">{transaction.listing.title}</p>
+              <p className="line-clamp-2 break-phrase text-sm font-medium">{transaction.listing.title}</p>
               <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <span className="tabular-nums">{formatPrice(transaction.price)}</span>
                 <span>

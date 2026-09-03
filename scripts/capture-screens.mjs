@@ -29,16 +29,26 @@ const { data: item } = await db
   .limit(1)
   .single();
 const { data: seller } = await db.from("users").select("id").eq("email", "yamada@cyclex.test").single();
-const { data: thread } = await db.from("threads").select("id").limit(1).maybeSingle();
+
+// 会員向けの画面は sato で撮る。本人が当事者のものを選ばないと 404 になる
+const { data: buyer } = await db.from("users").select("id").eq("email", "sato@cyclex.test").single();
+const { data: thread } = await db
+  .from("threads")
+  .select("id")
+  .eq("buyer_id", buyer.id)
+  .limit(1)
+  .maybeSingle();
 const { data: txDone } = await db
   .from("transactions")
   .select("id")
+  .eq("buyer_id", buyer.id)
   .eq("status", "completed")
   .limit(1)
   .maybeSingle();
 const { data: txActive } = await db
   .from("transactions")
   .select("id")
+  .eq("buyer_id", buyer.id)
   .in("status", ["paid", "shipped", "received"])
   .limit(1)
   .maybeSingle();

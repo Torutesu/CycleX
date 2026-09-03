@@ -83,7 +83,7 @@ export default async function PurchasePage({
             />
           )}
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 text-sm font-medium">{listing.title}</p>
+            <p className="line-clamp-2 break-phrase text-sm font-medium">{listing.title}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               出品者: {listing.seller?.displayName ?? "—"}
             </p>
