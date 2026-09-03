@@ -1,26 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Clock, Heart, MapPin, Pencil } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Clock, Heart, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { RatingStars } from "@/components/rating-stars";
 import { ImageSlider } from "@/components/listing/image-slider";
 import { FavoriteButton } from "@/components/listing/favorite-button";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { getListingDetail } from "@/features/listing/queries";
-import { getListingsBySeller } from "@/features/search/queries";
-import { getRatingSummary } from "@/features/profile/queries";
+import { countListingsBySeller, getListingsBySeller } from "@/features/search/queries";
+import {
+  getPublishedReviews,
+  getRatingSummary,
+  type RatingSummary,
+} from "@/features/profile/queries";
+import { SellerCard } from "@/features/profile/components/seller-card";
 import { isFavorited } from "@/features/favorite/queries";
 import { findThreadByListing } from "@/features/message/queries";
 import { AskSellerButton } from "@/features/message/components/ask-seller-button";
 import { ReportDialog } from "@/features/report/components/report-dialog";
 import { canPurchase } from "@/features/listing/rules";
 import { getCurrentUser } from "@/lib/session";
-import { avatarImageUrl, listingImageUrl } from "@/lib/images";
+import { listingImageUrl } from "@/lib/images";
 import { formatPrice, formatDate, timeAgo } from "@/lib/utils";
 import {
   CATEGORIES,
@@ -90,11 +92,24 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
   if (!listing) notFound();
 
   const isOwner = user?.id === listing.sellerId;
-  const [favorited, ratingSummary, otherListings, existingThreadId] = await Promise.all([
+  const emptySummary: RatingSummary = {
+    average: null,
+    count: 0,
+    breakdown: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+  };
+
+  const [
+    favorited,
+    ratingSummary,
+    sellerReviews,
+    sellerListingCount,
+    otherListings,
+    existingThreadId,
+  ] = await Promise.all([
     isFavorited(user?.id ?? null, listing.id),
-    listing.seller
-      ? getRatingSummary(listing.seller.id)
-      : Promise.resolve({ average: null, count: 0 }),
+    listing.seller ? getRatingSummary(listing.seller.id) : Promise.resolve(emptySummary),
+    listing.seller ? getPublishedReviews(listing.seller.id, 3) : Promise.resolve([]),
+    countListingsBySeller(listing.sellerId),
     getListingsBySeller(listing.sellerId, { excludeId: listing.id, limit: 6 }),
     user && !isOwner ? findThreadByListing(listing.id, user.id) : Promise.resolve(null),
   ]);
@@ -102,7 +117,6 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
   const purchasable = canPurchase(listing.status);
   const posted = timeAgo(listing.publishedAt ?? listing.updatedAt);
   const showBikeSpecs = isBikeCategory(listing.category);
-  const avatarSrc = avatarImageUrl(listing.seller?.avatarUrl);
 
   const specs: { label: string; value: string | null }[] = [
     { label: "カテゴリ", value: labelOf(CATEGORIES, listing.category) },
@@ -227,45 +241,12 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
           {listing.seller && (
             <section>
               <h2 className="mb-3 text-sm font-semibold">出品者</h2>
-              <Link
-                href={`/users/${listing.seller.id}`}
-                className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/40"
-              >
-                {avatarSrc ? (
-                  <Image
-                    src={avatarSrc}
-                    alt=""
-                    width={48}
-                    height={48}
-                    className="size-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <Avatar className="size-12">
-                    <AvatarFallback>{listing.seller.displayName.slice(0, 1)}</AvatarFallback>
-                  </Avatar>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{listing.seller.displayName}</p>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <RatingStars value={ratingSummary.average} />
-                      {ratingSummary.count > 0 ? (
-                        <span className="tabular-nums">
-                          {ratingSummary.average?.toFixed(1)}({ratingSummary.count})
-                        </span>
-                      ) : (
-                        <span>評価なし</span>
-                      )}
-                    </span>
-                    {listing.seller.prefecture && (
-                      <span className="inline-flex items-center gap-0.5">
-                        <MapPin className="size-3" aria-hidden />
-                        {labelOf(PREFECTURES, listing.seller.prefecture)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </Link>
+              <SellerCard
+                seller={listing.seller}
+                summary={ratingSummary}
+                reviews={sellerReviews}
+                listingCount={sellerListingCount}
+              />
             </section>
           )}
         </div>

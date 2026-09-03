@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { RatingStars } from "@/components/rating-stars";
+import { RatingBreakdown } from "@/components/rating-breakdown";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { getListingsBySeller } from "@/features/search/queries";
 import { getFavoritedIds } from "@/features/favorite/queries";
@@ -126,6 +127,8 @@ export default async function PublicProfilePage({
           受け取った評価
           {summary.count > 0 && <span className="ml-1 text-muted-foreground">({summary.count})</span>}
         </h2>
+        <RatingBreakdown summary={summary} className="mt-3 max-w-xs" />
+
         {reviews.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">まだ評価はありません。</p>
         ) : (

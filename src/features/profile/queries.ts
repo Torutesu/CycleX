@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { summarizeRatings, type RatingSummary } from "@/features/profile/rating";
 
 export type PublicProfile = {
   id: string;
@@ -10,11 +11,6 @@ export type PublicProfile = {
   prefecture: string | null;
   status: "active" | "suspended" | "withdrawn";
   createdAt: string;
-};
-
-export type RatingSummary = {
-  average: number | null;
-  count: number;
 };
 
 /**
@@ -52,14 +48,10 @@ export async function getRatingSummary(userId: string): Promise<RatingSummary> {
     .eq("is_published", true)
     .eq("is_hidden", false);
 
-  if (!data || data.length === 0) return { average: null, count: 0 };
-
-  const total = data.reduce((sum, review) => sum + review.rating, 0);
-  return {
-    average: Math.round((total / data.length) * 10) / 10,
-    count: data.length,
-  };
+  const ratings = (data ?? []).map((review) => review.rating);
+  return summarizeRatings(ratings);
 }
+
 
 export type PublicReview = {
   id: string;
@@ -100,3 +92,5 @@ export async function getPublishedReviews(
       : null,
   }));
 }
+
+export { summarizeRatings, type RatingSummary };

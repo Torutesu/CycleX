@@ -260,3 +260,14 @@ export const getCategoryCounts = cache(async function getCategoryCounts(): Promi
   );
   return new Map(results);
 });
+
+/** 出品者が公開している商品の件数(商品ページの導線に出す) */
+export async function countListingsBySeller(sellerId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("listings")
+    .select("*", { count: "exact", head: true })
+    .eq("seller_id", sellerId)
+    .in("status", ["published", "trading"]);
+  return count ?? 0;
+}

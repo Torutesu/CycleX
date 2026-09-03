@@ -37,6 +37,7 @@ export type ListingDetail = {
     avatarUrl: string | null;
     prefecture: string | null;
     status: string;
+    createdAt: string;
   } | null;
 };
 
@@ -59,7 +60,7 @@ export const getListingDetail = cache(async function getListingDetail(
        updated_at, brand_other,
        brands(name),
        listing_images(path, position),
-       seller:users!listings_seller_id_fkey(id, display_name, avatar_url, prefecture, status)`,
+       seller:users!listings_seller_id_fkey(id, display_name, avatar_url, prefecture, status, created_at)`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -102,6 +103,7 @@ export const getListingDetail = cache(async function getListingDetail(
           displayName: data.seller.display_name,
           avatarUrl: data.seller.avatar_url,
           prefecture: data.seller.prefecture,
+          createdAt: data.seller.created_at,
           status: data.seller.status,
         }
       : null,
