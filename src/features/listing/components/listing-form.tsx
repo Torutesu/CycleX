@@ -17,7 +17,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Field } from "@/components/form/field";
 import { ImageUploader } from "@/features/listing/components/image-uploader";
-import { useFormBackup } from "@/features/listing/components/use-form-backup";
+import {
+  backupKey,
+  shouldBackup,
+  useFormBackup,
+} from "@/features/listing/components/use-form-backup";
 import { saveDraft, publishListing } from "@/features/listing/actions";
 import { calcFee } from "@/features/listing/rules";
 import {
@@ -117,9 +121,9 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
   const [formError, setFormError] = useState<string | null>(null);
 
   // 新規作成のときだけ、入力途中の控えを端末に持つ。
-  // 編集はサーバー側に正が残っているので対象外
-  const backupEnabled = !defaults.id;
-  const { backup, dismiss, clear } = useFormBackup("new", values, backupEnabled);
+  // 編集はサーバー側に正が残っているので対象外。下書き保存で id が付いた後も止める
+  const backupEnabled = shouldBackup(defaults.id, values.id);
+  const { backup, dismiss, clear } = useFormBackup(backupKey("new", userId), values, backupEnabled);
   const hasBackup = Boolean(backup && backup.title !== defaults.title);
 
   const isParts = values.category === "parts";

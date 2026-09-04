@@ -1,6 +1,16 @@
 import "server-only";
 
+/**
+ * 管理画面の読み取りクエリ。
+ *
+ * すべて service role で読むため、各関数の入口で管理者であることを確かめる(A-6)。
+ * レイアウトや proxy のチェックだけに頼らない — Next.js のレイアウトは
+ * ナビゲーション時に再実行されないため、データ取得側で検証するのが公式の推奨。
+ * `findStateMismatches` だけは日次バッチ(ユーザー無し)からも呼ぶので例外。
+ */
+
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAdmin } from "@/lib/session";
 import { ADMIN_PAGE_SIZE, type ListingStatus, type TransactionStatus } from "@/lib/constants";
 import { detectStateMismatch } from "@/features/admin/rules";
 import { jstDateKey, startOfJstDay } from "@/lib/utils";
@@ -52,6 +62,7 @@ export async function listUsers(options: {
   status?: string;
   page: number;
 }): Promise<Paged<AdminUserRow>> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const [from, to] = range(options.page);
 
@@ -101,6 +112,7 @@ export async function listUsers(options: {
 }
 
 export async function getUserDetail(userId: string) {
+  await requireAdmin();
   const supabase = createAdminClient();
 
   const [
@@ -171,6 +183,7 @@ export async function listListings(options: {
   category?: string;
   page: number;
 }): Promise<Paged<AdminListingRow>> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const [from, to] = range(options.page);
 
@@ -248,6 +261,7 @@ export async function listTransactions(options: {
   to?: string;
   page: number;
 }): Promise<Paged<AdminTransactionRow>> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const [rangeFrom, rangeTo] = range(options.page);
 
@@ -296,6 +310,7 @@ export async function listTransactions(options: {
  * 管理画面の導線に出し、手動返金の取りこぼしを防ぐ。
  */
 export async function countRefundPending(): Promise<number> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const { count } = await supabase
     .from("transactions")
@@ -328,6 +343,7 @@ export async function listReports(options: {
   targetType?: string;
   page: number;
 }): Promise<Paged<AdminReportRow>> {
+  await requireAdmin();
   const supabase = createAdminClient();
   const [from, to] = range(options.page);
 
@@ -385,6 +401,7 @@ export async function listReports(options: {
 // ============================================================
 
 export async function listBrands() {
+  await requireAdmin();
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("brands")
@@ -484,6 +501,7 @@ export type DashboardStats = {
 };
 
 export async function getDashboardStats(days = 30): Promise<DashboardStats> {
+  await requireAdmin();
   const supabase = createAdminClient();
   // 日本時間の日付で数える。UTC の日付で束ねると、朝9時までの分が前日に積まれる
   const today = startOfJstDay();
@@ -543,6 +561,7 @@ export async function getDashboardStats(days = 30): Promise<DashboardStats> {
 
 /** ダッシュボードの「最近の通報 / 取引」 */
 export async function getRecentActivity() {
+  await requireAdmin();
   const [reports, transactions] = await Promise.all([
     listReports({ page: 1 }),
     listTransactions({ page: 1 }),

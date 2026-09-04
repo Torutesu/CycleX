@@ -14,6 +14,50 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "r
  */
 const PREFIX = "cyclex:listing-draft:";
 
+/**
+ * 控えの保存キー。利用者ごとに分ける。
+ * 共有端末で別の人の入力内容が「前回の内容」として出ないようにするため。
+ */
+export function backupKey(scope: string, userId: string): string {
+  return `${scope}:${userId}`;
+}
+
+/**
+ * 控えを取ってよいか。
+ *
+ * 編集(id あり)はサーバー側に正が残っているので対象外。
+ * 新規作成でも、下書き保存で id が付いた後は保存しない — 以前は控えに id が混じり、
+ * 後日その控えを復元して公開すると、別の商品として入力した内容で
+ * 保存済みの商品を上書きしていた。
+ */
+export function shouldBackup(
+  defaultsId: string | null | undefined,
+  currentId: string | null | undefined,
+): boolean {
+  return !defaultsId && !currentId;
+}
+
+/** 復元する内容から、商品を特定する情報を取り除く(古い控えに id が残っていても無視する) */
+export function sanitizeBackup<T extends { id?: string | null }>(backup: T): T {
+  return { ...backup, id: undefined };
+}
+
+/** この端末に残っている控えをすべて消す(ログアウト時) */
+export function clearAllFormBackups(): void {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (key && key.startsWith(PREFIX)) keys.push(key);
+    }
+    for (const key of keys) window.localStorage.removeItem(key);
+    candidates.clear();
+    notify();
+  } catch {
+    // 消せなくても実害はない
+  }
+}
+
 const listeners = new Set<() => void>();
 
 /**
@@ -49,7 +93,11 @@ function candidateOf(storageKey: string): string | null {
   return candidates.get(storageKey) ?? null;
 }
 
-export function useFormBackup<T>(key: string, values: T, enabled: boolean) {
+export function useFormBackup<T extends { id?: string | null }>(
+  key: string,
+  values: T,
+  enabled: boolean,
+) {
   const storageKey = `${PREFIX}${key}`;
 
   // サーバーでは常に null。クライアントで読み直すため、
@@ -63,7 +111,7 @@ export function useFormBackup<T>(key: string, values: T, enabled: boolean) {
   const backup = useMemo<T | null>(() => {
     if (!stored) return null;
     try {
-      return JSON.parse(stored) as T;
+      return sanitizeBackup(JSON.parse(stored) as T);
     } catch {
       return null;
     }
@@ -79,7 +127,7 @@ export function useFormBackup<T>(key: string, values: T, enabled: boolean) {
     }
     const timer = window.setTimeout(() => {
       try {
-        window.localStorage.setItem(storageKey, JSON.stringify(values));
+        window.localStorage.setItem(storageKey, JSON.stringify(sanitizeBackup(values)));
       } catch {
         // 容量超過などは黙って諦める
       }

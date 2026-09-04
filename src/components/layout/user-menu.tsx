@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { logout } from "@/features/auth/actions";
+import { clearAllFormBackups } from "@/features/listing/components/use-form-backup";
 import { avatarImageUrl } from "@/lib/images";
 import type { SessionUser } from "@/lib/session";
 
@@ -88,7 +89,7 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <form action={logout} className="w-full">
+          <form action={logout} onSubmit={() => clearAllFormBackups()} className="w-full">
             <button type="submit" className="flex w-full items-center gap-2">
               <LogOut className="size-4" aria-hidden />
               ログアウト
