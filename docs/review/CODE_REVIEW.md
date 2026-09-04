@@ -208,11 +208,11 @@ create index idx_listings_desc_trgm  on public.listings using gin (description g
 
 3か所で参照の外れたオブジェクトが残る。
 
-| 箇所 | 内容 |
-|---|---|
-| `src/features/listing/actions.ts:29` `replaceImages` | `listing_images` の行を全削除して入れ直すだけ。外れたパスの実体を消していない |
-| 出品フォームの離脱 | 画像は選択と同時に Storage へ上がる。保存せず離脱した分は永久に残る |
-| `src/features/auth/actions.ts:284` 退会処理 | `avatar_url` を null にするだけ。**退会後もアバター画像は公開 URL でアクセスできる** |
+| 箇所                                                 | 内容                                                                                 |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `src/features/listing/actions.ts:29` `replaceImages` | `listing_images` の行を全削除して入れ直すだけ。外れたパスの実体を消していない        |
+| 出品フォームの離脱                                   | 画像は選択と同時に Storage へ上がる。保存せず離脱した分は永久に残る                  |
+| `src/features/auth/actions.ts:284` 退会処理          | `avatar_url` を null にするだけ。**退会後もアバター画像は公開 URL でアクセスできる** |
 
 先方には「Supabase の有料化トリガーは出品300〜500件」と説明済み。ゴミが溜まると
 その手前で 1GB に到達する。退会者の画像が残る件は個人情報の観点でも整理が必要。
@@ -242,7 +242,7 @@ DB は削除済みのパスを参照したままになり、商品ページの�
 `src/features/listing/schema.ts:98`
 
 ```ts
-imagePaths: z.array(z.string().min(1)).max(MAX_IMAGES)
+imagePaths: z.array(z.string().min(1)).max(MAX_IMAGES);
 ```
 
 任意の文字列をそのまま `listing_images.path` に保存できる。アバターの
@@ -257,11 +257,11 @@ imagePaths: z.array(z.string().min(1)).max(MAX_IMAGES)
 
 ### 2-5. 1リクエストあたり Supabase へ 6 往復している
 
-| 箇所 | 内容 |
-|---|---|
+| 箇所                           | 内容                                                         |
+| ------------------------------ | ------------------------------------------------------------ |
 | `src/lib/supabase/proxy.ts:72` | `auth.getUser()` + `users` の SELECT。**全リクエスト**で実行 |
-| `src/app/layout.tsx:37` | `getCurrentUser()` = `auth.getUser()` + `users` の SELECT |
-| 各ページ | `getCurrentUser()` / `requireUser()` でもう1回 |
+| `src/app/layout.tsx:37`        | `getCurrentUser()` = `auth.getUser()` + `users` の SELECT    |
+| 各ページ                       | `getCurrentUser()` / `requireUser()` でもう1回               |
 
 `getCurrentUser` は `react.cache()` で包まれていないため、同一レンダー内で毎回実行される。
 Vercel と Supabase のリージョンが離れると、コンテンツを引き始める前に 300〜600ms 乗る。
@@ -281,11 +281,11 @@ Vercel と Supabase のリージョンが離れると、コンテンツを引き
 
 `src/features/admin/actions.ts`
 
-| 症状 | 内容 |
-|---|---|
-| 進行中取引が止まる | `suspendUser` は出品を非表示にするが取引には何もしない。`paid` の取引を持つ出品者を停止すると、本人はログインできず発送操作ができないため取引が永久に止まる |
+| 症状                       | 内容                                                                                                                                                                   |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 進行中取引が止まる         | `suspendUser` は出品を非表示にするが取引には何もしない。`paid` の取引を持つ出品者を停止すると、本人はログインできず発送操作ができないため取引が永久に止まる            |
 | 出品者が自力で復帰できない | `unsuspendUser` は出品を戻さない。かつ `canEditListing` が `suspended` を編集不可としているため、解除後も出品者は自分の商品を触れない。管理者が1件ずつ解除するしかない |
-| 元の状態が失われる | `unsuspendListing`(`:160`)は元が下書き・取下げ中でも一律 `published` にする。非公開だったはずの商品が公開される |
+| 元の状態が失われる         | `unsuspendListing`(`:160`)は元が下書き・取下げ中でも一律 `published` にする。非公開だったはずの商品が公開される                                                        |
 
 先に運用ルール(下記「決めるべきこと」)を決めてから実装する。
 
@@ -336,21 +336,21 @@ CSP / X-Frame-Options / Referrer-Policy / X-Content-Type-Options / Permissions-P
 
 ## S3 改善したいもの
 
-| # | 内容 | 場所 |
-|---|---|---|
-| 3-1 | 商品詳細に `generateMetadata` が無く、全商品が同じ title / description。OGP 画像も無いため SNS シェアで見栄えがしない。`sitemap.ts` / `robots.ts` も無い。別紙1に記載が無いため対象外扱いだが、C2C は検索流入が主な集客経路なので判断を仰ぐべき | `src/app/(public)/items/[id]/page.tsx` |
-| 3-2 | 購入完了画面の `meta refresh` が無限。Webhook が来ないと5秒ごとにリロードし続ける。回数か経過時間で打ち切る | `src/app/(member)/purchase/complete/page.tsx:31` |
-| 3-3 | `escapeLike` が `*` と `"` を処理していない。PostgREST の ilike は `*` をワイルドカードとして解釈する | `src/features/search/queries.ts` |
-| 3-4 | cron の認証が単純な文字列比較。`timingSafeEqual` にする | `src/app/api/cron/daily/route.ts` |
-| 3-5 | `touch_updated_at` に `set search_path` が無い(他のトリガー関数には付いている) | `schema.sql` |
-| 3-6 | 管理操作(停止・解除・ブランド変更)の監査ログが無い。`transaction_events` は取引のみ | `src/features/admin/actions.ts` |
-| 3-7 | `shadcn`(CLI)が dependencies に入っている。devDependencies へ | `package.json` |
-| 3-8 | `reports` の UNIQUE が (reporter, target) なので、一度通報した対象は状況が変わっても二度と通報できない | `schema.sql` |
-| 3-9 | favorites の RLS が listing 側を見ていないため、下書き・非公開商品の `favorites_count` を直接操作できる | `rls.sql` |
-| 3-10 | `withdraw()` が `getCurrentUser()` を使っており、利用停止中でも退会できる | `src/features/auth/actions.ts` |
-| 3-11 | `proxy.ts` の matcher が画像拡張子で終わるパスを除外しているため、`/mypage/x.png` のようなパスがガードを迂回する(実在ルートは無いので実害なし) | `src/proxy.ts` |
-| 3-12 | 管理画面の権限不足時に `/404` へ rewrite しているが、App Router に `/404` ルートは無く、ステータスは 200 で返る(表示は not-found) | `src/lib/supabase/proxy.ts` |
-| 3-13 | `listings.suspended_reason`(運営の非表示理由)が anon から読める。列単位 GRANT に絞るには、先に `select("*")` を使っている 2 画面を明示列指定へ直す必要がある | `mypage/listings/page.tsx` / `sell/[id]/edit/page.tsx` |
+| #    | 内容                                                                                                                                                                                                                                            | 場所                                                   |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| 3-1  | 商品詳細に `generateMetadata` が無く、全商品が同じ title / description。OGP 画像も無いため SNS シェアで見栄えがしない。`sitemap.ts` / `robots.ts` も無い。別紙1に記載が無いため対象外扱いだが、C2C は検索流入が主な集客経路なので判断を仰ぐべき | `src/app/(public)/items/[id]/page.tsx`                 |
+| 3-2  | 購入完了画面の `meta refresh` が無限。Webhook が来ないと5秒ごとにリロードし続ける。回数か経過時間で打ち切る                                                                                                                                     | `src/app/(member)/purchase/complete/page.tsx:31`       |
+| 3-3  | `escapeLike` が `*` と `"` を処理していない。PostgREST の ilike は `*` をワイルドカードとして解釈する                                                                                                                                           | `src/features/search/queries.ts`                       |
+| 3-4  | cron の認証が単純な文字列比較。`timingSafeEqual` にする                                                                                                                                                                                         | `src/app/api/cron/daily/route.ts`                      |
+| 3-5  | `touch_updated_at` に `set search_path` が無い(他のトリガー関数には付いている)                                                                                                                                                                  | `schema.sql`                                           |
+| 3-6  | 管理操作(停止・解除・ブランド変更)の監査ログが無い。`transaction_events` は取引のみ                                                                                                                                                             | `src/features/admin/actions.ts`                        |
+| 3-7  | `shadcn`(CLI)が dependencies に入っている。devDependencies へ                                                                                                                                                                                   | `package.json`                                         |
+| 3-8  | `reports` の UNIQUE が (reporter, target) なので、一度通報した対象は状況が変わっても二度と通報できない                                                                                                                                          | `schema.sql`                                           |
+| 3-9  | favorites の RLS が listing 側を見ていないため、下書き・非公開商品の `favorites_count` を直接操作できる                                                                                                                                         | `rls.sql`                                              |
+| 3-10 | `withdraw()` が `getCurrentUser()` を使っており、利用停止中でも退会できる                                                                                                                                                                       | `src/features/auth/actions.ts`                         |
+| 3-11 | `proxy.ts` の matcher が画像拡張子で終わるパスを除外しているため、`/mypage/x.png` のようなパスがガードを迂回する(実在ルートは無いので実害なし)                                                                                                  | `src/proxy.ts`                                         |
+| 3-12 | 管理画面の権限不足時に `/404` へ rewrite しているが、App Router に `/404` ルートは無く、ステータスは 200 で返る(表示は not-found)                                                                                                               | `src/lib/supabase/proxy.ts`                            |
+| 3-13 | `listings.suspended_reason`(運営の非表示理由)が anon から読める。列単位 GRANT に絞るには、先に `select("*")` を使っている 2 画面を明示列指定へ直す必要がある                                                                                    | `mypage/listings/page.tsx` / `sell/[id]/edit/page.tsx` |
 
 ---
 
@@ -397,32 +397,32 @@ CSP / X-Frame-Options / Referrer-Policy / X-Content-Type-Options / Permissions-P
 
 ### そのほか
 
-| 項目 | 状態 |
-|---|---|
-| Stripe 本番アカウント審査 | 未着手。審査に日数がかかる |
-| Stripe Webhook エンドポイント登録・購読イベント選択 | 未着手 |
-| テストカードでの決済通し確認 | 未実施(ACCEPTANCE_RESULT.md に記載済み) |
-| Google ログインの実認証 | 未実施(同上) |
-| Resend のドメイン認証(SPF / DKIM) | 未実施(同上) |
-| Vercel の環境変数設定 | 未着手 |
-| Vercel Cron の動作確認 | 未着手。Hobby プランは日1回・実行時刻はおよそ |
-| 大量データでの性能確認 | 未実施。S2-1 のインデックス問題が効いてくる |
-| バックアップ・復旧手順 | 未定義。Supabase 無料プランは自動バックアップの保持期間が短い |
+| 項目                                                | 状態                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------- |
+| Stripe 本番アカウント審査                           | 未着手。審査に日数がかかる                                    |
+| Stripe Webhook エンドポイント登録・購読イベント選択 | 未着手                                                        |
+| テストカードでの決済通し確認                        | 未実施(ACCEPTANCE_RESULT.md に記載済み)                       |
+| Google ログインの実認証                             | 未実施(同上)                                                  |
+| Resend のドメイン認証(SPF / DKIM)                   | 未実施(同上)                                                  |
+| Vercel の環境変数設定                               | 未着手                                                        |
+| Vercel Cron の動作確認                              | 未着手。Hobby プランは日1回・実行時刻はおよそ                 |
+| 大量データでの性能確認                              | 未実施。S2-1 のインデックス問題が効いてくる                   |
+| バックアップ・復旧手順                              | 未定義。Supabase 無料プランは自動バックアップの保持期間が短い |
 
 ---
 
 ## 対応順の提案
 
-| 順 | 内容 | 目安 |
-|---|---|---|
-| — | ~~S1-0 〜 S1-5~~ | **対応済み** |
-| 1 | S2-8(評価の競合)、S2-9(セキュリティヘッダ)、S2-4(画像パス検証) | 2h |
-| 2 | S2-1(検索インデックス) | 1h |
-| 3 | S2-2 / S2-3(Storage の後始末) | 4h |
-| 4 | 本番環境の設定と実機確認(Supabase Auth / Stripe / Resend / Vercel) | 8h |
-| 5 | S2-6(利用停止の運用)— 運用ルール確定後 | 4h |
-| 6 | S2-7(遷移の原子化) | 4h |
-| 7 | S3 各種 | 6h |
+| 順  | 内容                                                               | 目安         |
+| --- | ------------------------------------------------------------------ | ------------ |
+| —   | ~~S1-0 〜 S1-5~~                                                   | **対応済み** |
+| 1   | S2-8(評価の競合)、S2-9(セキュリティヘッダ)、S2-4(画像パス検証)     | 2h           |
+| 2   | S2-1(検索インデックス)                                             | 1h           |
+| 3   | S2-2 / S2-3(Storage の後始末)                                      | 4h           |
+| 4   | 本番環境の設定と実機確認(Supabase Auth / Stripe / Resend / Vercel) | 8h           |
+| 5   | S2-6(利用停止の運用)— 運用ルール確定後                             | 4h           |
+| 6   | S2-7(遷移の原子化)                                                 | 4h           |
+| 7   | S3 各種                                                            | 6h           |
 
 残 **約 29h**。うちリリース前に必要なのは 1〜4 の **約 15h**。
 
@@ -445,28 +445,27 @@ CSP / X-Frame-Options / Referrer-Policy / X-Content-Type-Options / Permissions-P
 あわせて、**本番 DB の `lc_ctype` を `C` にすると日本語の索引がまったく効かなくなる**ことが
 分かったため、デプロイ時の注意点として記録した。
 
-
 ## S2 / S3 の対応内容
 
 すべて推奨案どおりに実装した。lint / typecheck / Vitest 154件 / build 通過。
 
 ### 実装で直したもの
 
-| # | 内容 | 採った案 |
-|---|---|---|
-| 2-1 | 検索インデックス | 列ごとに GIN trgm を張り直し(`20260101000005`)。連結式の旧インデックスは削除 |
-| 2-2 | Storage の後始末 | 「その場で消す」。画像差し替え時に差分削除、アイコン差し替え時に旧ファイル削除、退会時に `{userId}/` 配下を一括削除。孤児回収バッチは入れていない(出品1000件超で再検討) |
-| 2-3 | 画像削除のタイミング | ✕ では Storage を触らず、保存の成功後にまとめて削除。保存せず離脱しても DB と実体が食い違わない |
-| 2-4 | 画像パスの検証 | `isOwnedImagePath()` を追加し、出品・アイコンの両方で検証。拡張子はファイル名ではなく検証済み MIME から決める |
-| 2-6 | 利用停止の運用 | 下記「運用ルールの決定」を参照 |
-| 2-7 | 状態のズレ | 「まず検知する」。`detectStateMismatch()` + `findStateMismatches()` を追加し、管理ダッシュボードに警告、日次バッチでログ出力。原子化(RPC 化)は見送り |
-| 2-9 | セキュリティヘッダ | 基本の5種のみ。CSP は本番稼働後に Report-Only から導入する |
-| 3-1 | SEO | **訂正**: `generateMetadata` は商品詳細・公開プロフィール・検索に実装済みだった。実際に不足していた `sitemap.ts` / `robots.ts` / `metadataBase` を追加し、商品タイトルにブランド+モデル名を含め、非公開商品を `noindex` に |
-| 3-2 | 購入完了の自動更新 | 24回(約2分)で打ち切り、以降は問い合わせ導線を出す |
-| 3-3 | 検索キーワード | `*` `,` `(` `)` `"` を無害化 |
-| 3-6 | 管理操作の記録 | `admin_audit_logs` テーブルを追加し、全9種の管理操作を記録 |
-| 3-8 | 通報の重複制限 | 永久 UNIQUE をやめ、**未対応(open)の通報がある間だけ**塞ぐ部分ユニークインデックスに |
-| 3-10 | 退会の制限 | 利用停止中・退会済みは退会手続き不可に |
+| #    | 内容                 | 採った案                                                                                                                                                                                                                   |
+| ---- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2-1  | 検索インデックス     | 列ごとに GIN trgm を張り直し(`20260101000005`)。連結式の旧インデックスは削除                                                                                                                                               |
+| 2-2  | Storage の後始末     | 「その場で消す」。画像差し替え時に差分削除、アイコン差し替え時に旧ファイル削除、退会時に `{userId}/` 配下を一括削除。孤児回収バッチは入れていない(出品1000件超で再検討)                                                    |
+| 2-3  | 画像削除のタイミング | ✕ では Storage を触らず、保存の成功後にまとめて削除。保存せず離脱しても DB と実体が食い違わない                                                                                                                            |
+| 2-4  | 画像パスの検証       | `isOwnedImagePath()` を追加し、出品・アイコンの両方で検証。拡張子はファイル名ではなく検証済み MIME から決める                                                                                                              |
+| 2-6  | 利用停止の運用       | 下記「運用ルールの決定」を参照                                                                                                                                                                                             |
+| 2-7  | 状態のズレ           | 「まず検知する」。`detectStateMismatch()` + `findStateMismatches()` を追加し、管理ダッシュボードに警告、日次バッチでログ出力。原子化(RPC 化)は見送り                                                                       |
+| 2-9  | セキュリティヘッダ   | 基本の5種のみ。CSP は本番稼働後に Report-Only から導入する                                                                                                                                                                 |
+| 3-1  | SEO                  | **訂正**: `generateMetadata` は商品詳細・公開プロフィール・検索に実装済みだった。実際に不足していた `sitemap.ts` / `robots.ts` / `metadataBase` を追加し、商品タイトルにブランド+モデル名を含め、非公開商品を `noindex` に |
+| 3-2  | 購入完了の自動更新   | 24回(約2分)で打ち切り、以降は問い合わせ導線を出す                                                                                                                                                                          |
+| 3-3  | 検索キーワード       | `*` `,` `(` `)` `"` を無害化                                                                                                                                                                                               |
+| 3-6  | 管理操作の記録       | `admin_audit_logs` テーブルを追加し、全9種の管理操作を記録                                                                                                                                                                 |
+| 3-8  | 通報の重複制限       | 永久 UNIQUE をやめ、**未対応(open)の通報がある間だけ**塞ぐ部分ユニークインデックスに                                                                                                                                       |
+| 3-10 | 退会の制限           | 利用停止中・退会済みは退会手続き不可に                                                                                                                                                                                     |
 
 未対応で残したもの: 3-4(cron 認証の定数時間比較)、3-5(`touch_updated_at` の search_path)、
 3-11(proxy の matcher)、3-12(`/404` rewrite の応答コード)、3-13(`listings.suspended_reason`)。
@@ -490,11 +489,11 @@ CSP / X-Frame-Options / Referrer-Policy / X-Content-Type-Options / Permissions-P
 
 ### 追加したマイグレーション
 
-| ファイル | 内容 |
-|---|---|
-| `20260101000004_harden_grants.sql` | users の列単位 GRANT、書き込み権限の剥奪、favorites のポリシー強化 |
-| `20260101000005_search_index_and_suspension.sql` | 検索インデックスの張り直し、`status_before_suspend` の追加 |
-| `20260101000006_reports_and_audit.sql` | 通報の部分ユニーク化、`admin_audit_logs` の追加 |
+| ファイル                                         | 内容                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------ |
+| `20260101000004_harden_grants.sql`               | users の列単位 GRANT、書き込み権限の剥奪、favorites のポリシー強化 |
+| `20260101000005_search_index_and_suspension.sql` | 検索インデックスの張り直し、`status_before_suspend` の追加         |
+| `20260101000006_reports_and_audit.sql`           | 通報の部分ユニーク化、`admin_audit_logs` の追加                    |
 
 `src/types/database.ts` は Docker が無く `pnpm db:types` を実行できなかったため手で更新した。
 ローカル環境ができたら `pnpm db:reset && pnpm db:types` で再生成し、差分が出ないことを確認すること。
@@ -503,15 +502,15 @@ CSP / X-Frame-Options / Referrer-Policy / X-Content-Type-Options / Permissions-P
 
 環境が揃わないと進められないものだけ。
 
-| 項目 | リードタイム |
-|---|---|
-| 本番 Supabase の Auth 設定と、確認メール・パスワード再設定の実機確認 | 半日 |
-| Stripe 本番アカウントの審査 | 数日〜2週間 |
-| Webhook エンドポイントの登録(`charge.dispute.created` と `checkout.session.async_payment_*` を購読対象に含める) | 半日 |
-| テストカードでの決済通し確認 | 半日 |
-| Resend のドメイン認証 | 1日 |
-| Google ログインの実認証 | 半日 |
-| バックアップ・復旧手順の策定 | 半日 |
+| 項目                                                                                                            | リードタイム |
+| --------------------------------------------------------------------------------------------------------------- | ------------ |
+| 本番 Supabase の Auth 設定と、確認メール・パスワード再設定の実機確認                                            | 半日         |
+| Stripe 本番アカウントの審査                                                                                     | 数日〜2週間  |
+| Webhook エンドポイントの登録(`charge.dispute.created` と `checkout.session.async_payment_*` を購読対象に含める) | 半日         |
+| テストカードでの決済通し確認                                                                                    | 半日         |
+| Resend のドメイン認証                                                                                           | 1日          |
+| Google ログインの実認証                                                                                         | 半日         |
+| バックアップ・復旧手順の策定                                                                                    | 半日         |
 
 甲の支給待ち: 特商法表記・利用規約・プライバシーポリシー・問い合わせ窓口・
 送信元アドレス・ブランドマスタの確認・管理者アカウント。

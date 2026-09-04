@@ -35,9 +35,7 @@ export const viewport: Viewport = {
   themeColor: "#0E7C6B",
 };
 
-export default async function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser();
   const unreadCount = user ? await getUnreadCount(user.id) : 0;
 

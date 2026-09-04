@@ -15,11 +15,7 @@ import { SearchPagination } from "@/features/search/components/pagination";
 import { SearchResults, SearchTransition } from "@/features/search/components/search-transition";
 import { getBrandOptions, searchListings } from "@/features/search/queries";
 import { getFavoritedIds } from "@/features/favorite/queries";
-import {
-  parseSearchParams,
-  hasActiveFilters,
-  SEARCH_PAGE_SIZE,
-} from "@/features/search/params";
+import { parseSearchParams, hasActiveFilters, SEARCH_PAGE_SIZE } from "@/features/search/params";
 import { getCurrentUser } from "@/lib/session";
 import { CATEGORIES, labelOf } from "@/lib/constants";
 

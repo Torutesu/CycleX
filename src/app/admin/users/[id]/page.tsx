@@ -24,11 +24,7 @@ import {
 
 export const metadata: Metadata = { title: "利用者の詳細" };
 
-export default async function AdminUserDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const detail = await getUserDetail(id);
   if (!detail) notFound();
@@ -128,7 +124,10 @@ export default async function AdminUserDetailPage({
           <ul className="divide-y">
             {listings.map((listing) => (
               <li key={listing.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                <Link href={`/items/${listing.id}`} className="min-w-0 flex-1 truncate hover:underline">
+                <Link
+                  href={`/items/${listing.id}`}
+                  className="min-w-0 flex-1 truncate hover:underline"
+                >
                   {listing.title || "(無題)"}
                 </Link>
                 <span className="shrink-0 tabular-nums text-muted-foreground">

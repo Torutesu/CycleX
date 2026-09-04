@@ -31,11 +31,7 @@ export async function generateMetadata({
   return { title: `${profile.displayName} さんのプロフィール` };
 }
 
-export default async function PublicProfilePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [profile, viewer] = await Promise.all([getPublicProfile(id), getCurrentUser()]);
 
@@ -125,7 +121,9 @@ export default async function PublicProfilePage({
       <section className="mt-8">
         <h2 className="text-sm font-medium">
           受け取った評価
-          {summary.count > 0 && <span className="ml-1 text-muted-foreground">({summary.count})</span>}
+          {summary.count > 0 && (
+            <span className="ml-1 text-muted-foreground">({summary.count})</span>
+          )}
         </h2>
         <RatingBreakdown summary={summary} className="mt-3 max-w-xs" />
 

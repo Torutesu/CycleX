@@ -582,10 +582,7 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
           required
           errors={fieldErrors.shippingFromPref}
         >
-          <Select
-            value={values.shippingFromPref}
-            onValueChange={(v) => set("shippingFromPref", v)}
-          >
+          <Select value={values.shippingFromPref} onValueChange={(v) => set("shippingFromPref", v)}>
             <SelectTrigger id="shippingFromPref" className="h-11 w-full">
               <SelectValue placeholder="選択してください" />
             </SelectTrigger>

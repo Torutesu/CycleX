@@ -91,9 +91,11 @@ test("購入 → 支払い → 発送 → 受取確認 → 相互評価", async 
   await expect(page.getByRole("heading", { name: "商品を発送してください" })).toBeVisible();
   await page.fill("#shipping-note", "ヤマト運輸 1234-5678-9012 で発送しました");
   await page.getByRole("button", { name: "発送を連絡する" }).click();
-  await expect(page.getByRole("heading", { name: "購入者の受取確認をお待ちください" })).toBeVisible({
-    timeout: 20_000,
-  });
+  await expect(page.getByRole("heading", { name: "購入者の受取確認をお待ちください" })).toBeVisible(
+    {
+      timeout: 20_000,
+    },
+  );
 
   // --- 購入者が受取確認する ---
   await login(page, BUYER);
@@ -144,11 +146,7 @@ test("購入 → 支払い → 発送 → 受取確認 → 相互評価", async 
 
   // --- 商品が売却済みになり、評価が公開される ---
   {
-    const { data } = await adminDb()
-      .from("listings")
-      .select("status")
-      .eq("id", listingId)
-      .single();
+    const { data } = await adminDb().from("listings").select("status").eq("id", listingId).single();
     expect(data?.status).toBe("sold");
   }
   // 出品者には所有者向けの操作が出るため、来訪者としての見え方で確かめる

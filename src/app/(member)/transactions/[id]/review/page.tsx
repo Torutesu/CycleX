@@ -10,11 +10,7 @@ import { ReviewForm } from "@/features/review/components/review-form";
 
 export const metadata: Metadata = { title: "取引相手の評価" };
 
-export default async function ReviewPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser(`/transactions/${id}/review`);
 

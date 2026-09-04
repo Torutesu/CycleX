@@ -20,7 +20,10 @@ export function canSendMessage(viewerId: string, thread: ThreadContext): SendChe
     return { allowed: false, reason: "相手が退会済みのため、メッセージを送信できません。" };
   }
   if (thread.counterpartyStatus === "suspended") {
-    return { allowed: false, reason: "相手のアカウントが利用停止中のため、メッセージを送信できません。" };
+    return {
+      allowed: false,
+      reason: "相手のアカウントが利用停止中のため、メッセージを送信できません。",
+    };
   }
   return { allowed: true };
 }

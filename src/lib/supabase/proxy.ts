@@ -4,13 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database";
 
 /** ログイン必須のパス(前方一致) */
-const PROTECTED_PREFIXES = [
-  "/sell",
-  "/mypage",
-  "/messages",
-  "/transactions",
-  "/purchase",
-] as const;
+const PROTECTED_PREFIXES = ["/sell", "/mypage", "/messages", "/transactions", "/purchase"] as const;
 
 /** 管理者のみアクセス可能なパス */
 const ADMIN_PREFIX = "/admin";

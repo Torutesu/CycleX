@@ -103,38 +103,49 @@ export async function listUsers(options: {
 export async function getUserDetail(userId: string) {
   const supabase = createAdminClient();
 
-  const [{ data: user }, { data: listings }, { data: transactions }, { data: reviews }, { data: reports }] =
-    await Promise.all([
-      supabase.from("users").select("*").eq("id", userId).maybeSingle(),
-      supabase
-        .from("listings")
-        .select("id, title, status, price, created_at")
-        .eq("seller_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("transactions")
-        .select("id, status, price, created_at, buyer_id, seller_id, listings(title)")
-        .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("reviews")
-        .select("id, rating, comment, is_published, is_hidden, created_at")
-        .eq("reviewee_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50),
-      supabase
-        .from("reports")
-        .select("id, reason, detail, status, created_at")
-        .eq("target_type", "user")
-        .eq("target_id", userId)
-        .order("created_at", { ascending: false }),
-    ]);
+  const [
+    { data: user },
+    { data: listings },
+    { data: transactions },
+    { data: reviews },
+    { data: reports },
+  ] = await Promise.all([
+    supabase.from("users").select("*").eq("id", userId).maybeSingle(),
+    supabase
+      .from("listings")
+      .select("id, title, status, price, created_at")
+      .eq("seller_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("transactions")
+      .select("id, status, price, created_at, buyer_id, seller_id, listings(title)")
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("reviews")
+      .select("id, rating, comment, is_published, is_hidden, created_at")
+      .eq("reviewee_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("reports")
+      .select("id, reason, detail, status, created_at")
+      .eq("target_type", "user")
+      .eq("target_id", userId)
+      .order("created_at", { ascending: false }),
+  ]);
 
   if (!user) return null;
 
-  return { user, listings: listings ?? [], transactions: transactions ?? [], reviews: reviews ?? [], reports: reports ?? [] };
+  return {
+    user,
+    listings: listings ?? [],
+    transactions: transactions ?? [],
+    reviews: reviews ?? [],
+    reports: reports ?? [],
+  };
 }
 
 // ============================================================
@@ -363,9 +374,7 @@ export async function listReports(options: {
     status: row.status,
     createdAt: row.created_at,
     resolvedNote: row.resolved_note,
-    reporter: row.reporter
-      ? { id: row.reporter.id, displayName: row.reporter.display_name }
-      : null,
+    reporter: row.reporter ? { id: row.reporter.id, displayName: row.reporter.display_name } : null,
   }));
 
   return paged(items, count ?? 0, options.page);
@@ -436,11 +445,7 @@ export async function findStateMismatches(): Promise<StateMismatch[]> {
       .limit(MISMATCH_LIMIT),
   ]);
 
-  const rows = [
-    ...(inProgress.data ?? []),
-    ...(completed.data ?? []),
-    ...(canceled.data ?? []),
-  ];
+  const rows = [...(inProgress.data ?? []), ...(completed.data ?? []), ...(canceled.data ?? [])];
 
   const mismatches: StateMismatch[] = [];
 

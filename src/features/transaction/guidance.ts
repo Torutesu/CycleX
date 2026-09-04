@@ -38,7 +38,8 @@ export function waitingNotice(
     return deliveryMethod === "in_person"
       ? {
           title: "受渡の日時と場所をご相談ください",
-          detail: "メッセージで待ち合わせのご相談をしてください。決まりましたら出品者から連絡があります。",
+          detail:
+            "メッセージで待ち合わせのご相談をしてください。決まりましたら出品者から連絡があります。",
           showMessageLink: true,
         }
       : {

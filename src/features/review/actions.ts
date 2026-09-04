@@ -51,10 +51,8 @@ export async function submitReview(
     const transaction = await getTransaction(transactionId);
     if (!transaction) throw new AppError("取引が見つかりません。");
 
-    const isParticipant =
-      transaction.buyerId === user.id || transaction.sellerId === user.id;
-    const revieweeId =
-      transaction.buyerId === user.id ? transaction.sellerId : transaction.buyerId;
+    const isParticipant = transaction.buyerId === user.id || transaction.sellerId === user.id;
+    const revieweeId = transaction.buyerId === user.id ? transaction.sellerId : transaction.buyerId;
 
     const supabase = createAdminClient();
     const { data: existingReviews } = await supabase

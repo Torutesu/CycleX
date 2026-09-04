@@ -63,12 +63,7 @@ export default async function FavoritesPage() {
           }
         />
       ) : (
-        <ListingGrid
-          listings={listings}
-          favoritedIds={favoritedIds}
-          isLoggedIn
-          className="mt-5"
-        />
+        <ListingGrid listings={listings} favoritedIds={favoritedIds} isLoggedIn className="mt-5" />
       )}
     </div>
   );

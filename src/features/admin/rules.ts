@@ -75,9 +75,7 @@ export function canSuspendListing(status: ListingStatus): AdminCheck {
 }
 
 /** 取引キャンセル時に商品がどう戻るか(管理画面の警告表示に使う) */
-export function listingAfterCancel(
-  currentListingStatus: ListingStatus,
-): ListingStatus | null {
+export function listingAfterCancel(currentListingStatus: ListingStatus): ListingStatus | null {
   return listingStatusFor("canceled", currentListingStatus);
 }
 
@@ -93,10 +91,7 @@ export function isCancellable(status: TransactionStatus): boolean {
  * 残っている状態になる。返金 API の実装は対象外のため、この判定で対象を洗い出し、
  * 運営が Stripe ダッシュボードから手動で返金する。
  */
-export function needsRefund(
-  status: TransactionStatus,
-  paidAt: string | null | undefined,
-): boolean {
+export function needsRefund(status: TransactionStatus, paidAt: string | null | undefined): boolean {
   return status === "canceled" && Boolean(paidAt);
 }
 

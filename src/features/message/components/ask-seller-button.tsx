@@ -98,7 +98,12 @@ export function AskSellerButton({
               aria-label="質問の内容"
             />
             <DialogFooter className="gap-2 sm:gap-2">
-              <Button type="button" variant="outline" className="h-11" onClick={() => setOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11"
+                onClick={() => setOpen(false)}
+              >
                 キャンセル
               </Button>
               <SubmitButton className="h-11" pendingLabel="送信中...">

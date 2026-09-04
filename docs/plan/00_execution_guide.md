@@ -4,16 +4,16 @@
 
 ## 1. 実行順序
 
-| Phase | ファイル | 内容 | 目安 |
-|---|---|---|---|
-| 1 | [01_bootstrap.md](01_bootstrap.md) | プロジェクト雛形・DB スキーマ・RLS・シード・CI | 20h |
-| 2 | [02_auth_profile.md](02_auth_profile.md) | 認証(FR-01)・プロフィール(FR-02)・共通レイアウト | 20h |
-| 3 | [03_listings.md](03_listings.md) | 出品(FR-03)・画像アップロード | 22h |
-| 4 | [04_search_favorites.md](04_search_favorites.md) | 検索・一覧(FR-04)・商品詳細(FR-05)・お気に入り(FR-06) | 26h |
-| 5 | [05_messages.md](05_messages.md) | メッセージ(FR-07) | 12h |
-| 6 | [06_transactions.md](06_transactions.md) | 取引(FR-08)・決済(FR-09)・評価(FR-10) | 30h |
-| 7 | [07_admin.md](07_admin.md) | 通報(FR-11)・管理画面(FR-12) | 18h |
-| 8 | [08_notifications_polish.md](08_notifications_polish.md) | メール通知(FR-13)・レスポンシブ仕上げ・E2E・デプロイ | 12h |
+| Phase | ファイル                                                 | 内容                                                  | 目安 |
+| ----- | -------------------------------------------------------- | ----------------------------------------------------- | ---- |
+| 1     | [01_bootstrap.md](01_bootstrap.md)                       | プロジェクト雛形・DB スキーマ・RLS・シード・CI        | 20h  |
+| 2     | [02_auth_profile.md](02_auth_profile.md)                 | 認証(FR-01)・プロフィール(FR-02)・共通レイアウト      | 20h  |
+| 3     | [03_listings.md](03_listings.md)                         | 出品(FR-03)・画像アップロード                         | 22h  |
+| 4     | [04_search_favorites.md](04_search_favorites.md)         | 検索・一覧(FR-04)・商品詳細(FR-05)・お気に入り(FR-06) | 26h  |
+| 5     | [05_messages.md](05_messages.md)                         | メッセージ(FR-07)                                     | 12h  |
+| 6     | [06_transactions.md](06_transactions.md)                 | 取引(FR-08)・決済(FR-09)・評価(FR-10)                 | 30h  |
+| 7     | [07_admin.md](07_admin.md)                               | 通報(FR-11)・管理画面(FR-12)                          | 18h  |
+| 8     | [08_notifications_polish.md](08_notifications_polish.md) | メール通知(FR-13)・レスポンシブ仕上げ・E2E・デプロイ  | 12h  |
 
 - フェーズは順番に実施する。フェーズ内タスク(T-x.y)も原則記載順
 - 各フェーズ末尾の「フェーズ完了条件」をすべて満たしてから次へ進む
@@ -55,18 +55,18 @@ pnpm build         # next build
 
 ## 3. アーキテクチャ決定(ADR 要約)
 
-| # | 決定 | 理由 |
-|---|---|---|
-| 1 | Next.js 15 App Router + Server Actions、API Route は Webhook 等の外部起点のみ | 実装量最小化 |
-| 2 | 認証は Supabase Auth(`@supabase/ssr` の Cookie セッション)。`public.users` プロフィールは auth.users への INSERT トリガーで自動作成 | FR-01 の大半を委譲 |
-| 3 | 認可は「RLS + Server Action 内ガード」の二重化。RLS は閲覧制御中心、状態遷移の正しさはサーバーコードで担保 | 単純化 |
-| 4 | 商品検索は pg_trgm(ILIKE + GIN index)。tsvector は使わない | 日本語形態素解析を避ける |
-| 5 | 画像は Supabase Storage に原本保存し、配信サイズの調整は `next/image` に任せる(各所で `sizes` を指定)。オフライン変換処理は持たない | 実装ゼロでリサイズ要件を満たす。当初は Storage の画像変換(`render/image`)を想定したが、**Supabase の有料プラン限定機能**でありローカルでも使えないため方針変更 |
-| 6 | 決済確定は Stripe Webhook のみを正とする。`checkout.session.expired` で取引を自動キャンセルし商品を公開中へ戻す | 二重購入・宙吊り防止 |
-| 7 | 「1商品につき有効取引1件」は部分ユニークインデックスで DB 保証 | 排他制御 |
-| 8 | 評価の 14 日自動公開・取引完了は Vercel Cron(日次)+冪等な SQL で処理 | ジョブ基盤を持たない |
-| 9 | メールは Resend。送信は `sendMail()` ラッパー経由に統一し、通知設定チェックと email_logs 記録を内包。**送信失敗は業務処理を失敗させない**(ログのみ) | FR-13 |
-| 10 | レート制限は DB カウント方式(直近 N 分の行数チェック)。対象: メッセージ送信(10件/分)・通報(5件/時)・出品作成(10件/時) | 外部サービス追加を避ける |
+| #   | 決定                                                                                                                                                | 理由                                                                                                                                                           |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Next.js 15 App Router + Server Actions、API Route は Webhook 等の外部起点のみ                                                                       | 実装量最小化                                                                                                                                                   |
+| 2   | 認証は Supabase Auth(`@supabase/ssr` の Cookie セッション)。`public.users` プロフィールは auth.users への INSERT トリガーで自動作成                 | FR-01 の大半を委譲                                                                                                                                             |
+| 3   | 認可は「RLS + Server Action 内ガード」の二重化。RLS は閲覧制御中心、状態遷移の正しさはサーバーコードで担保                                          | 単純化                                                                                                                                                         |
+| 4   | 商品検索は pg_trgm(ILIKE + GIN index)。tsvector は使わない                                                                                          | 日本語形態素解析を避ける                                                                                                                                       |
+| 5   | 画像は Supabase Storage に原本保存し、配信サイズの調整は `next/image` に任せる(各所で `sizes` を指定)。オフライン変換処理は持たない                 | 実装ゼロでリサイズ要件を満たす。当初は Storage の画像変換(`render/image`)を想定したが、**Supabase の有料プラン限定機能**でありローカルでも使えないため方針変更 |
+| 6   | 決済確定は Stripe Webhook のみを正とする。`checkout.session.expired` で取引を自動キャンセルし商品を公開中へ戻す                                     | 二重購入・宙吊り防止                                                                                                                                           |
+| 7   | 「1商品につき有効取引1件」は部分ユニークインデックスで DB 保証                                                                                      | 排他制御                                                                                                                                                       |
+| 8   | 評価の 14 日自動公開・取引完了は Vercel Cron(日次)+冪等な SQL で処理                                                                                | ジョブ基盤を持たない                                                                                                                                           |
+| 9   | メールは Resend。送信は `sendMail()` ラッパー経由に統一し、通知設定チェックと email_logs 記録を内包。**送信失敗は業務処理を失敗させない**(ログのみ) | FR-13                                                                                                                                                          |
+| 10  | レート制限は DB カウント方式(直近 N 分の行数チェック)。対象: メッセージ送信(10件/分)・通報(5件/時)・出品作成(10件/時)                               | 外部サービス追加を避ける                                                                                                                                       |
 
 ## 4. 環境変数(完全リスト)
 

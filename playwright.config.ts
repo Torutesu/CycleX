@@ -11,7 +11,10 @@ try {
     if (separator < 0) continue;
     const key = trimmed.slice(0, separator).trim();
     if (process.env[key]) continue;
-    process.env[key] = trimmed.slice(separator + 1).trim().replace(/^"|"$/g, "");
+    process.env[key] = trimmed
+      .slice(separator + 1)
+      .trim()
+      .replace(/^"|"$/g, "");
   }
 } catch {
   // .env.local が無い環境(CI など)ではそのまま進む

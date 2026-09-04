@@ -104,7 +104,9 @@ test("利用停止にすると本人はログインしても専用画面へ送�
 
   await login(page, MEMBER);
   await expect(page).toHaveURL(/\/suspended/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("アカウントの利用を停止しています");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "アカウントの利用を停止しています",
+  );
 
   // 会員向けの画面には入れない
   await page.goto("/sell");

@@ -44,7 +44,10 @@ export default async function LoginPage({
       footer={
         <p className="text-muted-foreground">
           アカウントをお持ちでない方は{" "}
-          <Link href="/signup" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link
+            href="/signup"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
             会員登録
           </Link>
         </p>

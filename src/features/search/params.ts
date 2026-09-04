@@ -147,7 +147,9 @@ function toKatakana(value: string): string {
  * NFKC で半角英数・全角カナへ寄せてから比べる。
  */
 function normalize(value: string): string {
-  return toKatakana(value.normalize("NFKC")).toLowerCase().replace(/[\s　・]/g, "");
+  return toKatakana(value.normalize("NFKC"))
+    .toLowerCase()
+    .replace(/[\s　・]/g, "");
 }
 
 /**
@@ -297,13 +299,13 @@ export function toQueryString(params: SearchParams, overrides: Partial<SearchPar
 export function hasActiveFilters(params: SearchParams): boolean {
   return Boolean(
     params.category ||
-      params.brand.length ||
-      params.priceMin !== null ||
-      params.priceMax !== null ||
-      params.size.length ||
-      params.pref.length ||
-      params.condition.length ||
-      params.includeSold,
+    params.brand.length ||
+    params.priceMin !== null ||
+    params.priceMax !== null ||
+    params.size.length ||
+    params.pref.length ||
+    params.condition.length ||
+    params.includeSold,
   );
 }
 

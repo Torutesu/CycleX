@@ -4,38 +4,38 @@
 検証幅: 320 / 375 / 768 / 1280 / 1920px  
 対象画面: 30 画面
 
-| 画面 | パス | 横スクロール | 44px未満のタップ領域 |
-|---|---|---|---|
-| ホーム | `/` | なし | なし |
-| 検索一覧 | `/search` | なし | なし |
-| 検索(条件付き) | `/search` | なし | なし |
-| 商品詳細 | `/items/c1f3479c-2227-463d-9fe9-427726968cf8` | なし | なし |
-| 公開プロフィール | `/users/0de61e29-1ccd-4c6f-add0-b26cc5132ee6` | なし | なし |
-| 利用規約 | `/terms` | なし | なし |
-| ログイン | `/login` | なし | なし |
-| 会員登録 | `/signup` | なし | なし |
-| パスワード再設定 | `/reset-password` | なし | なし |
-| メール確認 | `/verify-email` | なし | なし |
-| マイページ | `/mypage` | なし | なし |
-| プロフィール編集 | `/mypage/profile` | なし | なし |
-| 設定 | `/mypage/settings` | なし | なし |
-| 出品した商品 | `/mypage/listings` | なし | なし |
-| 購入した取引 | `/mypage/purchases` | なし | なし |
-| 販売した取引 | `/mypage/sales` | なし | なし |
-| お気に入り | `/mypage/favorites` | なし | なし |
-| 出品フォーム | `/sell` | なし | なし |
-| 購入確認 | `/items/c1f3479c-2227-463d-9fe9-427726968cf8/purchase` | なし | なし |
-| メッセージ一覧 | `/messages` | なし | なし |
-| メッセージスレッド | `/messages/90289b95-5ce0-449a-8d80-50be196035cd` | なし | なし |
-| 取引画面 | `/transactions/d3a1fa31-1ab1-49d6-be48-fcd93cfc2858` | なし | なし |
-| 評価入力 | `/transactions/d3a1fa31-1ab1-49d6-be48-fcd93cfc2858/review` | なし | なし |
-| 404 | `/this-page-does-not-exist` | なし | なし |
-| 管理ダッシュボード | `/admin` | なし | なし |
-| 管理: 利用者 | `/admin/users` | なし | なし |
-| 管理: 出品 | `/admin/listings` | なし | なし |
-| 管理: 取引 | `/admin/transactions` | なし | なし |
-| 管理: 通報 | `/admin/reports` | なし | なし |
-| 管理: ブランド | `/admin/brands` | なし | なし |
+| 画面               | パス                                                        | 横スクロール | 44px未満のタップ領域 |
+| ------------------ | ----------------------------------------------------------- | ------------ | -------------------- |
+| ホーム             | `/`                                                         | なし         | なし                 |
+| 検索一覧           | `/search`                                                   | なし         | なし                 |
+| 検索(条件付き)     | `/search`                                                   | なし         | なし                 |
+| 商品詳細           | `/items/c1f3479c-2227-463d-9fe9-427726968cf8`               | なし         | なし                 |
+| 公開プロフィール   | `/users/0de61e29-1ccd-4c6f-add0-b26cc5132ee6`               | なし         | なし                 |
+| 利用規約           | `/terms`                                                    | なし         | なし                 |
+| ログイン           | `/login`                                                    | なし         | なし                 |
+| 会員登録           | `/signup`                                                   | なし         | なし                 |
+| パスワード再設定   | `/reset-password`                                           | なし         | なし                 |
+| メール確認         | `/verify-email`                                             | なし         | なし                 |
+| マイページ         | `/mypage`                                                   | なし         | なし                 |
+| プロフィール編集   | `/mypage/profile`                                           | なし         | なし                 |
+| 設定               | `/mypage/settings`                                          | なし         | なし                 |
+| 出品した商品       | `/mypage/listings`                                          | なし         | なし                 |
+| 購入した取引       | `/mypage/purchases`                                         | なし         | なし                 |
+| 販売した取引       | `/mypage/sales`                                             | なし         | なし                 |
+| お気に入り         | `/mypage/favorites`                                         | なし         | なし                 |
+| 出品フォーム       | `/sell`                                                     | なし         | なし                 |
+| 購入確認           | `/items/c1f3479c-2227-463d-9fe9-427726968cf8/purchase`      | なし         | なし                 |
+| メッセージ一覧     | `/messages`                                                 | なし         | なし                 |
+| メッセージスレッド | `/messages/90289b95-5ce0-449a-8d80-50be196035cd`            | なし         | なし                 |
+| 取引画面           | `/transactions/d3a1fa31-1ab1-49d6-be48-fcd93cfc2858`        | なし         | なし                 |
+| 評価入力           | `/transactions/d3a1fa31-1ab1-49d6-be48-fcd93cfc2858/review` | なし         | なし                 |
+| 404                | `/this-page-does-not-exist`                                 | なし         | なし                 |
+| 管理ダッシュボード | `/admin`                                                    | なし         | なし                 |
+| 管理: 利用者       | `/admin/users`                                              | なし         | なし                 |
+| 管理: 出品         | `/admin/listings`                                           | なし         | なし                 |
+| 管理: 取引         | `/admin/transactions`                                       | なし         | なし                 |
+| 管理: 通報         | `/admin/reports`                                            | なし         | なし                 |
+| 管理: ブランド     | `/admin/brands`                                             | なし         | なし                 |
 
 ## 集計
 

@@ -147,9 +147,7 @@ export default async function TransactionPage({
         {action === "wait" && (
           <>
             <h2 className="text-base font-semibold">{notice.title}</h2>
-            {notice.detail && (
-              <p className="mt-1 text-sm text-muted-foreground">{notice.detail}</p>
-            )}
+            {notice.detail && <p className="mt-1 text-sm text-muted-foreground">{notice.detail}</p>}
             {notice.showMessageLink && threadId && (
               <Button asChild className="mt-4 h-12 w-full">
                 <Link href={`/messages/${threadId}`}>
@@ -169,7 +167,9 @@ export default async function TransactionPage({
         {action === null && (
           <>
             <h2 className="text-base font-semibold">
-              {transaction.status === "completed" ? "取引が完了しました" : "取引はキャンセルされました"}
+              {transaction.status === "completed"
+                ? "取引が完了しました"
+                : "取引はキャンセルされました"}
             </h2>
             {transaction.status === "canceled" && transaction.canceledReason && (
               <p className="mt-2 text-sm text-muted-foreground">
@@ -202,7 +202,9 @@ export default async function TransactionPage({
             />
           )}
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 break-phrase text-sm font-medium">{transaction.listing.title}</p>
+            <p className="line-clamp-2 break-phrase text-sm font-medium">
+              {transaction.listing.title}
+            </p>
             <p className="mt-1 font-bold tabular-nums">{formatPrice(transaction.price)}</p>
           </div>
         </Link>
@@ -210,9 +212,7 @@ export default async function TransactionPage({
 
       {/* 相手 */}
       <section className="mt-6">
-        <h2 className="mb-3 text-sm font-semibold">
-          {role === "buyer" ? "出品者" : "購入者"}
-        </h2>
+        <h2 className="mb-3 text-sm font-semibold">{role === "buyer" ? "出品者" : "購入者"}</h2>
         <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
           <Link href={`/users/${transaction.counterparty.id}`} className="shrink-0">
             {avatarSrc ? (
@@ -225,9 +225,7 @@ export default async function TransactionPage({
               />
             ) : (
               <Avatar className="size-11">
-                <AvatarFallback>
-                  {transaction.counterparty.displayName.slice(0, 1)}
-                </AvatarFallback>
+                <AvatarFallback>{transaction.counterparty.displayName.slice(0, 1)}</AvatarFallback>
               </Avatar>
             )}
           </Link>
@@ -257,9 +255,7 @@ export default async function TransactionPage({
           <HistoryRow label="購入手続き" value={transaction.createdAt} />
           <HistoryRow label="支払い完了" value={transaction.paidAt} />
           <HistoryRow
-            label={
-              transaction.listing.deliveryMethod === "in_person" ? "受渡連絡" : "発送連絡"
-            }
+            label={transaction.listing.deliveryMethod === "in_person" ? "受渡連絡" : "発送連絡"}
             value={transaction.shippedAt}
           />
           <HistoryRow label="受取確認" value={transaction.receivedAt} />
@@ -280,4 +276,3 @@ function HistoryRow({ label, value }: { label: string; value: string | null }) {
     </div>
   );
 }
-

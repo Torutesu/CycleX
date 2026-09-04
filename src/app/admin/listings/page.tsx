@@ -43,7 +43,12 @@ export default async function AdminListingsPage({
         searchValue={params.q ?? ""}
         filters={[
           { name: "status", label: "状態", options: LISTING_STATUSES, value: params.status ?? "" },
-          { name: "category", label: "カテゴリ", options: CATEGORIES, value: params.category ?? "" },
+          {
+            name: "category",
+            label: "カテゴリ",
+            options: CATEGORIES,
+            value: params.category ?? "",
+          },
         ]}
       />
 

@@ -52,7 +52,6 @@ export async function getRatingSummary(userId: string): Promise<RatingSummary> {
   return summarizeRatings(ratings);
 }
 
-
 export type PublicReview = {
   id: string;
   rating: number;
@@ -62,14 +61,13 @@ export type PublicReview = {
 };
 
 /** プロフィールに表示する受け取った評価の一覧 */
-export async function getPublishedReviews(
-  userId: string,
-  limit = 20,
-): Promise<PublicReview[]> {
+export async function getPublishedReviews(userId: string, limit = 20): Promise<PublicReview[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("reviews")
-    .select("id, rating, comment, created_at, reviewer:users!reviews_reviewer_id_fkey(id, display_name, avatar_url)")
+    .select(
+      "id, rating, comment, created_at, reviewer:users!reviews_reviewer_id_fkey(id, display_name, avatar_url)",
+    )
     .eq("reviewee_id", userId)
     .eq("is_published", true)
     .eq("is_hidden", false)

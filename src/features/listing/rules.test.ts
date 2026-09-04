@@ -10,14 +10,7 @@ import {
 } from "@/features/listing/rules";
 import type { ListingStatus } from "@/lib/constants";
 
-const ALL: ListingStatus[] = [
-  "draft",
-  "published",
-  "trading",
-  "sold",
-  "withdrawn",
-  "suspended",
-];
+const ALL: ListingStatus[] = ["draft", "published", "trading", "sold", "withdrawn", "suspended"];
 
 describe("canEditListing", () => {
   it("下書き・公開中・取下げのみ編集できる", () => {

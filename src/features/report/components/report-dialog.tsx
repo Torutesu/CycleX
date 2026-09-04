@@ -73,9 +73,7 @@ export function ReportDialog({ targetType, targetId, isLoggedIn, returnTo, class
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {targetType === "listing" ? "商品の通報" : "利用者の通報"}
-            </DialogTitle>
+            <DialogTitle>{targetType === "listing" ? "商品の通報" : "利用者の通報"}</DialogTitle>
             <DialogDescription>
               運営で内容を確認します。通報したことが相手に伝わることはありません。
             </DialogDescription>
@@ -130,10 +128,20 @@ export function ReportDialog({ targetType, targetId, isLoggedIn, returnTo, class
             </div>
 
             <DialogFooter className="gap-2 sm:gap-2">
-              <Button type="button" variant="outline" className="h-11" onClick={() => setOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11"
+                onClick={() => setOpen(false)}
+              >
                 キャンセル
               </Button>
-              <SubmitButton variant="destructive" className="h-11" disabled={!reason} pendingLabel="送信中...">
+              <SubmitButton
+                variant="destructive"
+                className="h-11"
+                disabled={!reason}
+                pendingLabel="送信中..."
+              >
                 通報する
               </SubmitButton>
             </DialogFooter>

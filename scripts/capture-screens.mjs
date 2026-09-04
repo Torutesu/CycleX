@@ -10,7 +10,13 @@ const env = Object.fromEntries(
     .filter((l) => l.includes("=") && !l.trim().startsWith("#"))
     .map((l) => {
       const i = l.indexOf("=");
-      return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")];
+      return [
+        l.slice(0, i).trim(),
+        l
+          .slice(i + 1)
+          .trim()
+          .replace(/^"|"$/g, ""),
+      ];
     }),
 );
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -28,10 +34,18 @@ const { data: item } = await db
   .eq("status", "published")
   .limit(1)
   .single();
-const { data: seller } = await db.from("users").select("id").eq("email", "yamada@cyclex.test").single();
+const { data: seller } = await db
+  .from("users")
+  .select("id")
+  .eq("email", "yamada@cyclex.test")
+  .single();
 
 // 会員向けの画面は sato で撮る。本人が当事者のものを選ばないと 404 になる
-const { data: buyer } = await db.from("users").select("id").eq("email", "sato@cyclex.test").single();
+const { data: buyer } = await db
+  .from("users")
+  .select("id")
+  .eq("email", "sato@cyclex.test")
+  .single();
 const { data: thread } = await db
   .from("threads")
   .select("id")
@@ -79,7 +93,12 @@ async function shot(page, name, path, opts = {}) {
   await page.screenshot({ path: `${OUT}/${name}--card.jpg`, type: "jpeg", quality: 78 });
   // 拡大表示用: ページ全体
   if (opts.full) {
-    await page.screenshot({ path: `${OUT}/${name}.jpg`, type: "jpeg", quality: 78, fullPage: true });
+    await page.screenshot({
+      path: `${OUT}/${name}.jpg`,
+      type: "jpeg",
+      quality: 78,
+      fullPage: true,
+    });
   } else {
     await page.screenshot({ path: `${OUT}/${name}.jpg`, type: "jpeg", quality: 78 });
   }
@@ -96,9 +115,9 @@ await shot(guest, "m-search-filter", "/search", {
     await p.waitForTimeout(1200);
     // シート内部が途中までスクロールされることがあるため先頭に戻す
     await p.evaluate(() => {
-      document
-        .querySelectorAll('[role="dialog"] .overflow-y-auto')
-        .forEach((el) => { el.scrollTop = 0; });
+      document.querySelectorAll('[role="dialog"] .overflow-y-auto').forEach((el) => {
+        el.scrollTop = 0;
+      });
       window.scrollTo(0, 0);
     });
     await p.waitForTimeout(400);

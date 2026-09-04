@@ -108,7 +108,9 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
                   }
                   className={cn(
                     "flex min-h-11 w-full items-center rounded-md px-2 text-sm",
-                    draft.category === option.value ? "bg-accent font-medium" : "hover:bg-accent/50",
+                    draft.category === option.value
+                      ? "bg-accent font-medium"
+                      : "hover:bg-accent/50",
                   )}
                 >
                   {option.label}
@@ -173,7 +175,9 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
                     }
                     className={cn(
                       "inline-flex min-h-11 items-center rounded-full border px-3 text-sm",
-                      active ? "border-primary bg-primary text-primary-foreground" : "hover:bg-accent",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "hover:bg-accent",
                     )}
                   >
                     {preset.label}
@@ -226,7 +230,10 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
                   checked={draft.brand.includes(brand.id)}
                   onCheckedChange={() => toggle("brand", brand.id)}
                 />
-                <Label htmlFor={`brand-${brand.id}`} className="flex-1 cursor-pointer text-sm font-normal">
+                <Label
+                  htmlFor={`brand-${brand.id}`}
+                  className="flex-1 cursor-pointer text-sm font-normal"
+                >
                   {brand.name}
                 </Label>
               </li>
@@ -300,7 +307,10 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
                   checked={draft.pref.includes(pref.value)}
                   onCheckedChange={() => toggle("pref", pref.value)}
                 />
-                <Label htmlFor={`pref-${pref.value}`} className="flex-1 cursor-pointer text-sm font-normal">
+                <Label
+                  htmlFor={`pref-${pref.value}`}
+                  className="flex-1 cursor-pointer text-sm font-normal"
+                >
                   {pref.label}
                 </Label>
               </li>

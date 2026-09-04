@@ -5,21 +5,24 @@
 ## T-6.1 状態遷移ガード `src/features/transaction/state.ts`(純関数・最重要)
 
 ```ts
-type TxStatus = 'pending_payment'|'paid'|'shipped'|'received'|'completed'|'canceled';
-type Role = 'buyer'|'seller'|'admin'|'system';
+type TxStatus = "pending_payment" | "paid" | "shipped" | "received" | "completed" | "canceled";
+type Role = "buyer" | "seller" | "admin" | "system";
 
 // 遷移表: from → { to, allowedRoles }
 const TRANSITIONS = {
-  pending_payment: { paid: ['system'], canceled: ['system','admin'] },
-  paid:            { shipped: ['seller'], canceled: ['admin'] },
-  shipped:         { received: ['buyer'], canceled: ['admin'] },
-  received:        { completed: ['system'], canceled: ['admin'] },
-  completed:       {},
-  canceled:        {},
+  pending_payment: { paid: ["system"], canceled: ["system", "admin"] },
+  paid: { shipped: ["seller"], canceled: ["admin"] },
+  shipped: { received: ["buyer"], canceled: ["admin"] },
+  received: { completed: ["system"], canceled: ["admin"] },
+  completed: {},
+  canceled: {},
 } as const;
 
-export function canTransition(from: TxStatus, to: TxStatus, role: Role): boolean
-export function nextActionFor(status: TxStatus, role: 'buyer'|'seller'): 'pay'|'ship'|'receive'|'review'|'wait'|null
+export function canTransition(from: TxStatus, to: TxStatus, role: Role): boolean;
+export function nextActionFor(
+  status: TxStatus,
+  role: "buyer" | "seller",
+): "pay" | "ship" | "receive" | "review" | "wait" | null;
 ```
 
 全 Server Action・Webhook・cron はこの関数を必ず通す。listing 側の連動も表で固定:
@@ -34,6 +37,7 @@ export function nextActionFor(status: TxStatus, role: 'buyer'|'seller'): 'pay'|'
    - `expires_at: now + 30min`, `metadata: { transaction_id, listing_id, buyer_id }`, `client_reference_id: transaction_id`
    - `success_url: APP_URL + '/purchase/complete?tx={transaction_id}'`, `cancel_url: APP_URL + '/items/{listing_id}?canceled=1'`
 4. `stripe_session_id` を transaction に保存 → `transaction_events('created')` 記録 → `redirect(session.url)`
+
 - `/(member)/items/[id]/purchase/page.tsx`: 確認画面(画像・タイトル・価格・受渡方法・注意書き)→「支払いへ進む」で上記 action
 
 ## T-6.3 Stripe Webhook `src/app/api/webhooks/stripe/route.ts`

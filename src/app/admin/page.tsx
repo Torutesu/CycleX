@@ -23,8 +23,16 @@ export default async function AdminDashboardPage() {
   const cards = [
     { label: "会員数", value: stats.userCount.toLocaleString(), href: "/admin/users" },
     { label: "公開中の出品", value: stats.listingCount.toLocaleString(), href: "/admin/listings" },
-    { label: "成立した取引", value: stats.transactionCount.toLocaleString(), href: "/admin/transactions" },
-    { label: "流通総額(GMV)", value: formatPrice(stats.gmv), href: "/admin/transactions?status=completed" },
+    {
+      label: "成立した取引",
+      value: stats.transactionCount.toLocaleString(),
+      href: "/admin/transactions",
+    },
+    {
+      label: "流通総額(GMV)",
+      value: formatPrice(stats.gmv),
+      href: "/admin/transactions?status=completed",
+    },
   ];
 
   return (
@@ -36,7 +44,8 @@ export default async function AdminDashboardPage() {
           href="/admin/reports?status=open"
           className="mb-5 flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive hover:bg-destructive/10"
         >
-          未対応の通報が <strong className="tabular-nums">{stats.openReportCount}</strong> 件あります
+          未対応の通報が <strong className="tabular-nums">{stats.openReportCount}</strong>{" "}
+          件あります
         </Link>
       )}
 
@@ -109,17 +118,25 @@ export default async function AdminDashboardPage() {
         <section className="overflow-hidden rounded-xl border bg-background">
           <h2 className="flex items-center justify-between border-b bg-muted/40 px-4 py-2.5 text-sm font-semibold">
             最近の通報
-            <Link href="/admin/reports" className="text-xs font-normal text-primary hover:underline">
+            <Link
+              href="/admin/reports"
+              className="text-xs font-normal text-primary hover:underline"
+            >
               すべて見る
             </Link>
           </h2>
           {activity.reports.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">通報はありません。</p>
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+              通報はありません。
+            </p>
           ) : (
             <ul className="divide-y">
               {activity.reports.map((report) => (
                 <li key={report.id} className="flex items-center gap-2 px-4 py-2.5 text-sm">
-                  <Badge variant={report.status === "open" ? "destructive" : "secondary"} className="shrink-0">
+                  <Badge
+                    variant={report.status === "open" ? "destructive" : "secondary"}
+                    className="shrink-0"
+                  >
                     {report.status === "open" ? "未対応" : "対応済"}
                   </Badge>
                   <span className="min-w-0 flex-1 truncate">{report.targetLabel}</span>
@@ -143,7 +160,9 @@ export default async function AdminDashboardPage() {
             </Link>
           </h2>
           {activity.transactions.length === 0 ? (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">取引はありません。</p>
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+              取引はありません。
+            </p>
           ) : (
             <ul className="divide-y">
               {activity.transactions.map((tx) => (

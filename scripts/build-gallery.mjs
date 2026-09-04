@@ -3,7 +3,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 const DIR = "/tmp/shots-web";
-const img = (name) => `data:image/jpeg;base64,${readFileSync(`${DIR}/${name}.jpg`).toString("base64")}`;
+const img = (name) =>
+  `data:image/jpeg;base64,${readFileSync(`${DIR}/${name}.jpg`).toString("base64")}`;
 
 const GROUPS = [
   {
@@ -14,7 +15,11 @@ const GROUPS = [
     screens: [
       ["m-home", "ホーム", "カテゴリ導線・新着・注目。下部タブバーで主要導線に届く"],
       ["m-search", "検索結果", "2列グリッド。取引中/SOLD はサムネイル左上にバッジ"],
-      ["m-search-filter", "絞り込み", "スマホはボトムシート。カテゴリ・価格帯・サイズ・地域を重ねて指定"],
+      [
+        "m-search-filter",
+        "絞り込み",
+        "スマホはボトムシート。カテゴリ・価格帯・サイズ・地域を重ねて指定",
+      ],
       ["m-item", "商品詳細", "画像スライダー、スペック表、出品者の評価。下部に固定の購入バー"],
       ["m-profile", "出品者プロフィール", "評価の平均★と一覧、出品中の商品"],
       ["m-favorites", "お気に入り", "ハートを押した商品がここに集まる"],
@@ -26,7 +31,11 @@ const GROUPS = [
     note: "画像は最大10枚。下書き保存に対応。",
     device: "mobile",
     screens: [
-      ["m-sell", "出品フォーム", "カテゴリで項目が切り替わる。価格入力で手数料と受取額の目安を表示"],
+      [
+        "m-sell",
+        "出品フォーム",
+        "カテゴリで項目が切り替わる。価格入力で手数料と受取額の目安を表示",
+      ],
       ["m-listings", "出品した商品", "下書き/公開中/取引中/売却済/取下げ/非公開をタブで切替"],
     ],
   },

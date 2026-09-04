@@ -72,7 +72,8 @@ describe("publishSchema", () => {
     if (!result.success) expect(errorPaths(result)).toContain("meetupPref");
 
     expect(
-      publishSchema.safeParse(validInput({ deliveryMethod: "in_person", meetupPref: "27" })).success,
+      publishSchema.safeParse(validInput({ deliveryMethod: "in_person", meetupPref: "27" }))
+        .success,
     ).toBe(true);
   });
 

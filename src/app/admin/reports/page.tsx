@@ -5,11 +5,7 @@ import { listReports } from "@/features/admin/queries";
 import { resolveReport } from "@/features/admin/actions";
 import { AdminFilters } from "@/features/admin/components/admin-filters";
 import { ReasonDialog } from "@/features/admin/components/admin-actions";
-import {
-  AdminEmpty,
-  AdminHeader,
-  AdminPagination,
-} from "@/features/admin/components/admin-table";
+import { AdminEmpty, AdminHeader, AdminPagination } from "@/features/admin/components/admin-table";
 import { formatDateTime } from "@/lib/utils";
 import { REPORT_REASONS, REPORT_STATUSES, labelOf } from "@/lib/constants";
 
@@ -44,8 +40,18 @@ export default async function AdminReportsPage({
       <AdminFilters
         basePath="/admin/reports"
         filters={[
-          { name: "status", label: "対応状況", options: REPORT_STATUSES, value: params.status ?? "" },
-          { name: "target_type", label: "対象", options: TARGET_TYPES, value: params.target_type ?? "" },
+          {
+            name: "status",
+            label: "対応状況",
+            options: REPORT_STATUSES,
+            value: params.status ?? "",
+          },
+          {
+            name: "target_type",
+            label: "対象",
+            options: TARGET_TYPES,
+            value: params.target_type ?? "",
+          },
         ]}
       />
 
@@ -85,10 +91,7 @@ export default async function AdminReportsPage({
               <p className="mt-1 text-sm">
                 <span className="text-muted-foreground">通報者: </span>
                 {report.reporter ? (
-                  <Link
-                    href={`/admin/users/${report.reporter.id}`}
-                    className="hover:underline"
-                  >
+                  <Link href={`/admin/users/${report.reporter.id}`} className="hover:underline">
                     {report.reporter.displayName}
                   </Link>
                 ) : (

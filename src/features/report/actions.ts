@@ -5,7 +5,14 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireVerifiedUser } from "@/lib/session";
 import { assertRateLimit } from "@/lib/rate-limit";
-import { ok, fail, toUserMessage, AppError, isUniqueViolation, type ActionResult } from "@/lib/errors";
+import {
+  ok,
+  fail,
+  toUserMessage,
+  AppError,
+  isUniqueViolation,
+  type ActionResult,
+} from "@/lib/errors";
 import { REPORT_DETAIL_MAX, REPORT_REASONS, optionValues } from "@/lib/constants";
 
 const reportSchema = z.object({

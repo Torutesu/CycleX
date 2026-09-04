@@ -27,10 +27,7 @@ export type WebhookOutcome =
  * Stripe はリトライするため冪等に作る。
  */
 export async function handleCheckoutCompleted(
-  session: Pick<
-    Stripe.Checkout.Session,
-    "id" | "metadata" | "payment_intent" | "payment_status"
-  >,
+  session: Pick<Stripe.Checkout.Session, "id" | "metadata" | "payment_intent" | "payment_status">,
 ): Promise<WebhookOutcome> {
   const transactionId = session.metadata?.transaction_id;
   const transaction = transactionId ? await getTransaction(transactionId) : null;

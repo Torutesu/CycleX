@@ -73,7 +73,10 @@ test("他人のものには触れない", async ({ page }) => {
 
   const { data: thread } = await adminDb()
     .from("threads")
-    .insert({ listing_id: otherListingId, buyer_id: (await ensureUser("guard-buyer@example.com", "権限テスト購入者")) as string })
+    .insert({
+      listing_id: otherListingId,
+      buyer_id: (await ensureUser("guard-buyer@example.com", "権限テスト購入者")) as string,
+    })
     .select("id")
     .single();
 
@@ -154,7 +157,10 @@ test("押せる要素の高さが足りている", async ({ page }) => {
             (el.textContent ?? "").trim().length > 0
           );
         })
-        .map((el) => `${(el.textContent ?? "").trim().slice(0, 14)}(${Math.round(el.getBoundingClientRect().height)}px)`),
+        .map(
+          (el) =>
+            `${(el.textContent ?? "").trim().slice(0, 14)}(${Math.round(el.getBoundingClientRect().height)}px)`,
+        ),
     );
     if (found.length > 0) small.push(`${path}: ${found.join(", ")}`);
   }

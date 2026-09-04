@@ -36,7 +36,12 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-11 rounded-full" aria-label="アカウントメニュー">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-11 rounded-full"
+          aria-label="アカウントメニュー"
+        >
           <Avatar className="size-8">
             {avatarSrc && <AvatarImage src={avatarSrc} alt="" />}
             <AvatarFallback>{user.displayName.slice(0, 1) || "U"}</AvatarFallback>

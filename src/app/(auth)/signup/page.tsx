@@ -22,7 +22,10 @@ export default async function SignupPage() {
       footer={
         <p className="text-muted-foreground">
           すでにアカウントをお持ちの方は{" "}
-          <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+          <Link
+            href="/login"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
             ログイン
           </Link>
         </p>

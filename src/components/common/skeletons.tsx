@@ -7,7 +7,13 @@ import { cn } from "@/lib/utils";
  * 押した直後に何も変わらないと「効いていない」と感じて連打されるので、
  * 実際の並びと同じ形をすぐ出す。表示する数は画面に見える範囲に合わせる。
  */
-export function ListingGridSkeleton({ count = 8, className }: { count?: number; className?: string }) {
+export function ListingGridSkeleton({
+  count = 8,
+  className,
+}: {
+  count?: number;
+  className?: string;
+}) {
   return (
     <ul className={cn("grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 lg:grid-cols-4", className)}>
       {Array.from({ length: count }).map((_, index) => (

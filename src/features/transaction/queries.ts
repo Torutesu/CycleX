@@ -56,8 +56,7 @@ type TransactionRow = {
   } | null;
 };
 
-const TX_SELECT =
-  `id, status, price, shipping_note, created_at, paid_at, shipped_at, received_at,
+const TX_SELECT = `id, status, price, shipping_note, created_at, paid_at, shipped_at, received_at,
    completed_at, canceled_at, canceled_reason, buyer_id, seller_id,
    listings!inner(id, title, price, status, delivery_method, listing_images(path, position))`;
 

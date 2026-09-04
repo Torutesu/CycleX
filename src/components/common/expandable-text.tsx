@@ -42,8 +42,15 @@ export function ExpandableText({
     <div className={className}>
       <p
         ref={ref}
-        className={cn("whitespace-pre-wrap text-sm leading-relaxed", !expanded && "overflow-hidden")}
-        style={expanded ? undefined : { display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: lines }}
+        className={cn(
+          "whitespace-pre-wrap text-sm leading-relaxed",
+          !expanded && "overflow-hidden",
+        )}
+        style={
+          expanded
+            ? undefined
+            : { display: "-webkit-box", WebkitBoxOrient: "vertical", WebkitLineClamp: lines }
+        }
       >
         {text}
       </p>

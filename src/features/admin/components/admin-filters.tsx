@@ -56,7 +56,10 @@ export function AdminFilters({
   }
 
   return (
-    <form action={submit} className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border bg-background p-3">
+    <form
+      action={submit}
+      className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border bg-background p-3"
+    >
       {searchPlaceholder && (
         <div className="relative min-w-48 flex-1">
           <Search
@@ -76,7 +79,10 @@ export function AdminFilters({
 
       {filters.map((filter) => (
         <div key={filter.name} className="min-w-40">
-          <label htmlFor={`filter-${filter.name}`} className="mb-1 block text-xs text-muted-foreground">
+          <label
+            htmlFor={`filter-${filter.name}`}
+            className="mb-1 block text-xs text-muted-foreground"
+          >
             {filter.label}
           </label>
           <Select name={filter.name} defaultValue={filter.value || ALL}>
@@ -113,7 +119,13 @@ export function AdminFilters({
             <label htmlFor="filter-to" className="mb-1 block text-xs text-muted-foreground">
               終了日
             </label>
-            <Input id="filter-to" name="to" type="date" defaultValue={dateRange.to} className="h-11" />
+            <Input
+              id="filter-to"
+              name="to"
+              type="date"
+              defaultValue={dateRange.to}
+              className="h-11"
+            />
           </div>
         </>
       )}

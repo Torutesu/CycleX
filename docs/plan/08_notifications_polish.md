@@ -10,17 +10,17 @@
   3. Resend で送信 → email_logs に sent/failed 記録。**throw しない**(失敗しても業務処理は成功させる)
 - テンプレート(`templates/`、react-email。共通レイアウト: ロゴテキスト+本文+CTA ボタン+フッター):
 
-| kind | 宛先 | 件名(例) | optional |
-|---|---|---|---|
-| listing_paid_seller | 出品者 | 商品が購入されました | ○ |
-| purchase_confirmed | 購入者 | ご購入ありがとうございます | ○ |
-| tx_shipped | 購入者 | 発送・受渡のご連絡があります | ○ |
-| tx_received | 出品者 | 受取確認のお知らせ | ○ |
-| review_requested | 相手方 | 評価のお願い | ○ |
-| review_received | 相手方 | 評価が届きました | ○ |
-| tx_completed | 双方 | 取引が完了しました | ○ |
-| tx_canceled | 双方 | 取引がキャンセルされました | ×(必ず送る) |
-| new_message | 受信者 | 新着メッセージがあります | ○ |
+| kind                | 宛先   | 件名(例)                     | optional    |
+| ------------------- | ------ | ---------------------------- | ----------- |
+| listing_paid_seller | 出品者 | 商品が購入されました         | ○           |
+| purchase_confirmed  | 購入者 | ご購入ありがとうございます   | ○           |
+| tx_shipped          | 購入者 | 発送・受渡のご連絡があります | ○           |
+| tx_received         | 出品者 | 受取確認のお知らせ           | ○           |
+| review_requested    | 相手方 | 評価のお願い                 | ○           |
+| review_received     | 相手方 | 評価が届きました             | ○           |
+| tx_completed        | 双方   | 取引が完了しました           | ○           |
+| tx_canceled         | 双方   | 取引がキャンセルされました   | ×(必ず送る) |
+| new_message         | 受信者 | 新着メッセージがあります     | ○           |
 
 - 認証系(確認・リセット・メール変更)は Supabase Auth の標準メールを使用。文面を日本語化(`supabase/templates/` の HTML を config.toml で指定)。ウェルカムメールは `auth/callback` での初回確認完了時に `sendMail(kind:'welcome')`
 - 各 CTA は該当画面への直リンク(取引画面・スレッド・評価画面)
