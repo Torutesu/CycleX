@@ -8,15 +8,15 @@
 
 ## 技術構成
 
-| レイヤ | 採用 |
-|---|---|
-| アプリ | Next.js 16(App Router / Turbopack)+ React 19 + TypeScript |
-| UI | Tailwind CSS v4 + shadcn/ui |
-| DB / 認証 / 画像 | Supabase(PostgreSQL / Auth / Storage) |
-| 決済 | Stripe Checkout + Webhook |
-| メール | Resend |
-| ホスティング | Vercel(日次バッチは Vercel Cron) |
-| テスト | Vitest(ユニット)/ Playwright(E2E スモーク) |
+| レイヤ           | 採用                                                      |
+| ---------------- | --------------------------------------------------------- |
+| アプリ           | Next.js 16(App Router / Turbopack)+ React 19 + TypeScript |
+| UI               | Tailwind CSS v4 + shadcn/ui                               |
+| DB / 認証 / 画像 | Supabase(PostgreSQL / Auth / Storage)                     |
+| 決済             | Stripe Checkout + Webhook                                 |
+| メール           | Resend                                                    |
+| ホスティング     | Vercel(日次バッチは Vercel Cron)                          |
+| テスト           | Vitest(ユニット)/ Playwright(E2E スモーク)                |
 
 ## セットアップ(ローカル)
 
@@ -52,10 +52,10 @@ pnpm db:types       # src/types/database.ts を再生成
 
 ### ローカルで使えるもの
 
-| 用途 | URL |
-|---|---|
-| アプリ | http://localhost:3000 |
-| Supabase API | http://127.0.0.1:54321 |
+| 用途                       | URL                    |
+| -------------------------- | ---------------------- |
+| アプリ                     | http://localhost:3000  |
+| Supabase API               | http://127.0.0.1:54321 |
 | 送信メールの確認(Inbucket) | http://127.0.0.1:54324 |
 
 ### 開発用データの投入
@@ -96,16 +96,16 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 
 `.env.example` を参照してください。本番(Vercel)にも同じキーを設定します。
 
-| 変数 | 用途 |
-|---|---|
-| `NEXT_PUBLIC_APP_URL` | メール本文・OAuth リダイレクトの絶対 URL |
-| `PLATFORM_FEE_RATE` | 販売手数料率(**表示のみ**。精算処理は対象外) |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | クライアント用 |
-| `SUPABASE_SERVICE_ROLE_KEY` | サーバー専用。`src/lib/supabase/admin.ts` からのみ参照 |
-| `SUPABASE_DB_URL` | `supabase db push` 用の direct connection |
-| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | 決済 |
-| `RESEND_API_KEY` / `EMAIL_FROM` | メール送信 |
-| `CRON_SECRET` | `/api/cron/daily` の保護 |
+| 変数                                                         | 用途                                                   |
+| ------------------------------------------------------------ | ------------------------------------------------------ |
+| `NEXT_PUBLIC_APP_URL`                                        | メール本文・OAuth リダイレクトの絶対 URL               |
+| `PLATFORM_FEE_RATE`                                          | 販売手数料率(**表示のみ**。精算処理は対象外)           |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | クライアント用                                         |
+| `SUPABASE_SERVICE_ROLE_KEY`                                  | サーバー専用。`src/lib/supabase/admin.ts` からのみ参照 |
+| `SUPABASE_DB_URL`                                            | `supabase db push` 用の direct connection              |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`                | 決済                                                   |
+| `RESEND_API_KEY` / `EMAIL_FROM`                              | メール送信                                             |
+| `CRON_SECRET`                                                | `/api/cron/daily` の保護                               |
 
 ## デプロイ手順
 
@@ -137,25 +137,33 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 
 ### 要件定義(`docs/requirements/`)
 
-| ドキュメント | 内容 |
-|---|---|
-| [00_overview.md](docs/requirements/00_overview.md) | 目的・前提・スコープ・対象外・用語定義 |
-| [01_functional.md](docs/requirements/01_functional.md) | 機能要件(FR-01〜FR-14) |
-| [02_screens.md](docs/requirements/02_screens.md) | 画面一覧・遷移・UI/UX 方針 |
-| [03_data_model.md](docs/requirements/03_data_model.md) | データモデル |
-| [04_tech_stack.md](docs/requirements/04_tech_stack.md) | 技術スタック・外部サービス |
-| [05_non_functional.md](docs/requirements/05_non_functional.md) | 非機能要件 |
-| [06_development_plan.md](docs/requirements/06_development_plan.md) | 開発計画・受入基準 |
+| ドキュメント                                                       | 内容                                   |
+| ------------------------------------------------------------------ | -------------------------------------- |
+| [00_overview.md](docs/requirements/00_overview.md)                 | 目的・前提・スコープ・対象外・用語定義 |
+| [01_functional.md](docs/requirements/01_functional.md)             | 機能要件(FR-01〜FR-14)                 |
+| [02_screens.md](docs/requirements/02_screens.md)                   | 画面一覧・遷移・UI/UX 方針             |
+| [03_data_model.md](docs/requirements/03_data_model.md)             | データモデル                           |
+| [04_tech_stack.md](docs/requirements/04_tech_stack.md)             | 技術スタック・外部サービス             |
+| [05_non_functional.md](docs/requirements/05_non_functional.md)     | 非機能要件                             |
+| [06_development_plan.md](docs/requirements/06_development_plan.md) | 開発計画・受入基準                     |
 
 ### 実装計画・記録(`docs/plan/`)
 
-| ドキュメント | 内容 |
-|---|---|
-| [00_execution_guide.md](docs/plan/00_execution_guide.md) | 実行ガイド・ADR・ディレクトリ構成 |
-| [01_bootstrap.md](docs/plan/01_bootstrap.md) 〜 [08_notifications_polish.md](docs/plan/08_notifications_polish.md) | フェーズ別の実装計画 |
-| [ACCEPTANCE_RESULT.md](docs/plan/ACCEPTANCE_RESULT.md) | 受入テストの実施結果 |
-| [RESPONSIVE_CHECK.md](docs/plan/RESPONSIVE_CHECK.md) | レスポンシブ点検の結果 |
-| [BACKLOG.md](docs/plan/BACKLOG.md) | スコープ外の改善候補 |
+| ドキュメント                                                                                                       | 内容                              |
+| ------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| [00_execution_guide.md](docs/plan/00_execution_guide.md)                                                           | 実行ガイド・ADR・ディレクトリ構成 |
+| [01_bootstrap.md](docs/plan/01_bootstrap.md) 〜 [08_notifications_polish.md](docs/plan/08_notifications_polish.md) | フェーズ別の実装計画              |
+| [ACCEPTANCE_RESULT.md](docs/plan/ACCEPTANCE_RESULT.md)                                                             | 受入テストの実施結果              |
+| [RESPONSIVE_CHECK.md](docs/plan/RESPONSIVE_CHECK.md)                                                               | レスポンシブ点検の結果            |
+| [BACKLOG.md](docs/plan/BACKLOG.md)                                                                                 | スコープ外の改善候補              |
+
+### レビュー(`docs/review/`)
+
+| ドキュメント                                         | 内容                                                                 |
+| ---------------------------------------------------- | -------------------------------------------------------------------- |
+| [COMPLETION_PLAN.md](docs/review/COMPLETION_PLAN.md) | プロダクト完成に向けた総合レビュー・要件との乖離一覧・実装計画(最新) |
+| [CODE_REVIEW.md](docs/review/CODE_REVIEW.md)         | 前回のコードレビューと対応記録                                       |
+| [DB_VERIFICATION.md](docs/review/DB_VERIFICATION.md) | マイグレーションの実 PostgreSQL 検証結果                             |
 
 ## 対象外の機能
 
