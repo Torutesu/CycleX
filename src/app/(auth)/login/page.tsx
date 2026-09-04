@@ -45,7 +45,7 @@ export default async function LoginPage({
         <p className="text-muted-foreground">
           アカウントをお持ちでない方は{" "}
           <Link
-            href="/signup"
+            href={next === "/" ? "/signup" : `/signup?next=${encodeURIComponent(next)}`}
             className="font-medium text-primary underline-offset-4 hover:underline"
           >
             会員登録

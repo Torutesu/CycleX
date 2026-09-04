@@ -47,13 +47,16 @@ export async function signup(
     return fail("入力内容を確認してください", flat.fieldErrors as Record<string, string[]>);
   }
 
+  // 確認リンクを踏んだ後は、登録を始める前に見ていた画面へ戻す(FR-01-6)
+  const next = safeRedirectPath(formValue(formData, "next") || null, "/mypage");
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       data: { display_name: parsed.data.displayName },
-      emailRedirectTo: absoluteUrl("/auth/callback?next=/mypage"),
+      emailRedirectTo: absoluteUrl(`/auth/callback?next=${encodeURIComponent(next)}`),
     },
   });
 

@@ -56,10 +56,35 @@ describe("safeRedirectPath", () => {
     expect(safeRedirectPath("/mypage")).toBe("/mypage");
   });
 
+  it("クエリとハッシュも保持する", () => {
+    expect(safeRedirectPath("/search?q=trek&page=2#results")).toBe("/search?q=trek&page=2#results");
+  });
+
   it("外部 URL とプロトコル相対は既定値へ落とす", () => {
     expect(safeRedirectPath("https://evil.example.com")).toBe("/");
     expect(safeRedirectPath("//evil.example.com")).toBe("/");
     expect(safeRedirectPath("/\\evil.example.com")).toBe("/");
+  });
+
+  it("制御文字や空白を含む値は既定値へ落とす(ブラウザが除去して外部へ飛ぶため)", () => {
+    // `/login?next=/%09/evil.com` はデコード後にタブを含む
+    expect(safeRedirectPath("/\t/evil.example.com")).toBe("/");
+    expect(safeRedirectPath("/\n/evil.example.com")).toBe("/");
+    expect(safeRedirectPath("/ /evil.example.com")).toBe("/");
+    expect(safeRedirectPath("/\u0000/evil.example.com")).toBe("/");
+    expect(safeRedirectPath("/\r\n/evil.example.com")).toBe("/");
+  });
+
+  it("認証画面への戻り先はループになるので既定値へ落とす", () => {
+    expect(safeRedirectPath("/login")).toBe("/");
+    expect(safeRedirectPath("/login?next=/mypage", "/mypage")).toBe("/mypage");
+    expect(safeRedirectPath("/auth/callback")).toBe("/");
+    expect(safeRedirectPath("/signup")).toBe("/");
+  });
+
+  it("空や null は既定値", () => {
+    expect(safeRedirectPath(null, "/mypage")).toBe("/mypage");
+    expect(safeRedirectPath("", "/mypage")).toBe("/mypage");
   });
 });
 

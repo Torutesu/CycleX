@@ -81,16 +81,37 @@ export function formatTime(value: string | Date | null | undefined): string {
   }).format(date);
 }
 
+/** ログイン後の戻り先として使わないパス(ループや無意味な遷移を避ける) */
+const REDIRECT_DENY_PREFIXES = ["/login", "/signup", "/auth/", "/reset-password", "/verify-email"];
+
 /**
  * オープンリダイレクトを防ぐため、同一オリジン内の相対パスのみを許可する。
  * 不正な値が渡された場合は fallback を返す。
+ *
+ * 文字列の先頭だけを見る判定では `"/\t/evil.com"`(`/%09/evil.com`)のような
+ * 制御文字入りの値をすり抜けられ、ブラウザは制御文字を捨てて `//evil.com` と解釈する。
+ * 制御文字・空白を弾いたうえで、URL として解決しても origin が変わらないことを確かめる。
  */
 export function safeRedirectPath(next: string | null | undefined, fallback = "/"): string {
   if (!next) return fallback;
   if (!next.startsWith("/")) return fallback;
+  // 制御文字・空白(タブ・改行・NUL など)を含む値は信用しない
+  if (/[\u0000-\u001f\u007f\s]/.test(next)) return fallback;
   // "//evil.com" や "/\evil.com" のようなプロトコル相対 URL を弾く
   if (next.startsWith("//") || next.startsWith("/\\")) return fallback;
-  return next;
+
+  let url: URL;
+  try {
+    url = new URL(next, "http://redirect.invalid");
+  } catch {
+    return fallback;
+  }
+  if (url.origin !== "http://redirect.invalid") return fallback;
+
+  // 認証画面へ戻すとループする(ログイン済みで /login?next=/login など)
+  if (REDIRECT_DENY_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))) return fallback;
+
+  return url.pathname + url.search + url.hash;
 }
 
 /**

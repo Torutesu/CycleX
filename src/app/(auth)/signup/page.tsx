@@ -6,12 +6,21 @@ import { GoogleButton } from "@/features/auth/components/google-button";
 import { isGoogleLoginEnabled } from "@/features/auth/providers";
 import { SignupForm } from "@/features/auth/components/signup-form";
 import { getCurrentUser } from "@/lib/session";
+import { safeRedirectPath } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "会員登録" };
 
-export default async function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const params = await searchParams;
+  // ログイン画面から「会員登録」へ移った場合も、元の操作へ戻れるよう next を引き継ぐ
+  const next = safeRedirectPath(params.next ?? null, "/mypage");
+
   const user = await getCurrentUser();
-  if (user) redirect("/mypage");
+  if (user) redirect(next);
 
   const googleEnabled = await isGoogleLoginEnabled();
 
@@ -23,7 +32,7 @@ export default async function SignupPage() {
         <p className="text-muted-foreground">
           すでにアカウントをお持ちの方は{" "}
           <Link
-            href="/login"
+            href={next === "/mypage" ? "/login" : `/login?next=${encodeURIComponent(next)}`}
             className="font-medium text-primary underline-offset-4 hover:underline"
           >
             ログイン
@@ -34,7 +43,7 @@ export default async function SignupPage() {
       <div className="space-y-5">
         {googleEnabled && (
           <>
-            <GoogleButton />
+            <GoogleButton next={next} />
             <div className="flex items-center gap-3">
               <span className="h-px flex-1 bg-border" />
               <span className="text-xs text-muted-foreground">または</span>
@@ -42,7 +51,7 @@ export default async function SignupPage() {
             </div>
           </>
         )}
-        <SignupForm />
+        <SignupForm next={next} />
       </div>
     </AuthFormShell>
   );

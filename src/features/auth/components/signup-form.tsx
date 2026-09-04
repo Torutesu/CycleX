@@ -10,7 +10,7 @@ import { signup } from "@/features/auth/actions";
 import { DISPLAY_NAME_MAX } from "@/lib/constants";
 import type { ActionResult } from "@/lib/errors";
 
-export function SignupForm() {
+export function SignupForm({ next }: { next?: string }) {
   const [state, formAction] = useActionState<ActionResult<undefined> | null, FormData>(
     signup,
     null,
@@ -19,6 +19,8 @@ export function SignupForm() {
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
+      {next && <input type="hidden" name="next" value={next} />}
+
       {state && !state.ok && !fieldErrors && (
         <Alert variant="destructive">
           <AlertDescription>{state.error}</AlertDescription>
