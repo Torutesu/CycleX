@@ -38,16 +38,31 @@ async function replaceImages(listingId: string, paths: string[]): Promise<void> 
     .select("path")
     .eq("listing_id", listingId);
 
-  await admin.from("listing_images").delete().eq("listing_id", listingId);
-
+  // 消してから入れ直すと、途中で失敗したときに画像行が全部消える。
+  // position を鍵に上書きし、余った位置だけを後から消す
   if (paths.length > 0) {
     const rows = paths.map((path, index) => ({
       listing_id: listingId,
       path,
       position: index,
     }));
-    const { error } = await admin.from("listing_images").insert(rows);
-    if (error) throw new AppError("画像の保存に失敗しました。時間をおいて再度お試しください。");
+    const { error } = await admin
+      .from("listing_images")
+      .upsert(rows, { onConflict: "listing_id,position" });
+    if (error) {
+      console.error("[listing images upsert failed]", error);
+      throw new AppError("画像の保存に失敗しました。時間をおいて再度お試しください。");
+    }
+  }
+
+  const { error: trimError } = await admin
+    .from("listing_images")
+    .delete()
+    .eq("listing_id", listingId)
+    .gte("position", paths.length);
+  if (trimError) {
+    console.error("[listing images trim failed]", trimError);
+    throw new AppError("画像の保存に失敗しました。時間をおいて再度お試しください。");
   }
 
   // DB の更新が終わってから消す。逆順だと、保存に失敗したときに実体だけ失う。

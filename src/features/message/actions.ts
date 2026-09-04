@@ -183,7 +183,7 @@ export async function sendMessage(
  * 描画中に書き込むと未読件数がヘッダーへ反映されず、戻ってもバッジが
  * 残ったままになる。クライアントから呼び、ここで再検証まで行う。
  */
-export async function markThreadReadAction(threadId: string): Promise<void> {
+export async function markThreadReadAction(threadId: string, upTo?: string): Promise<void> {
   const user = await getCurrentUser();
   if (!user) return;
 
@@ -191,7 +191,9 @@ export async function markThreadReadAction(threadId: string): Promise<void> {
   if (!context) return;
   if (context.buyerId !== user.id && context.sellerId !== user.id) return;
 
-  await markThreadRead(threadId, user.id);
+  // 画面に出したところまでを既読にする。値は日時として妥当なものだけ通す
+  const boundary = upTo && !Number.isNaN(Date.parse(upTo)) ? upTo : undefined;
+  await markThreadRead(threadId, user.id, boundary);
 
   revalidatePath(`/messages/${threadId}`);
   revalidatePath("/messages");

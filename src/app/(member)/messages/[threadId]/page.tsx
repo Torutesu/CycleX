@@ -81,7 +81,11 @@ export default async function ThreadPage({ params }: { params: Promise<{ threadI
         disabledReason={disabledReason}
       />
 
-      <MarkThreadRead threadId={threadId} hasUnread={thread.hasUnread} />
+      <MarkThreadRead
+        threadId={threadId}
+        hasUnread={thread.hasUnread}
+        upTo={thread.messages.at(-1)?.createdAt}
+      />
     </div>
   );
 }

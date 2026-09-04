@@ -58,7 +58,7 @@ export const listingFormSchema = z.object({
   brandOther: optionalText(80, "ブランド名"),
   modelName: optionalText(80, "モデル名"),
   modelYear: z
-    .union([z.coerce.number().int(), z.literal("")])
+    .union([z.coerce.number().int(), z.literal("")], { error: "年式は数値で入力してください" })
     .optional()
     .nullable()
     .transform((value) => (typeof value === "number" && Number.isFinite(value) ? value : null))
@@ -68,7 +68,9 @@ export const listingFormSchema = z.object({
     ),
   frameSize: optionalEnum(frameSizeValues),
   frameSizeCm: z
-    .union([z.coerce.number(), z.literal("")])
+    .union([z.coerce.number(), z.literal("")], {
+      error: "フレームサイズ(cm)は数値で入力してください",
+    })
     .optional()
     .nullable()
     .transform((value) => (typeof value === "number" && Number.isFinite(value) ? value : null))
@@ -88,7 +90,9 @@ export const listingFormSchema = z.object({
     .nullable()
     .transform((value) => (value ? value : null)),
   price: z
-    .union([z.coerce.number().int(), z.literal("")])
+    .union([z.coerce.number().int(), z.literal("")], {
+      error: "希望価格は整数で入力してください",
+    })
     .optional()
     .nullable()
     .transform((value) => (typeof value === "number" && Number.isFinite(value) ? value : null)),

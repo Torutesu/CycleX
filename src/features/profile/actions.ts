@@ -8,11 +8,7 @@ import { ok, fail, toUserMessage, type ActionResult } from "@/lib/errors";
 import { profileSchema } from "@/features/profile/schema";
 import { IMAGE_BUCKETS, isOwnedImagePath } from "@/lib/images";
 import { removeStorageObjects } from "@/lib/storage";
-
-function formValue(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
+import { formValue } from "@/lib/form";
 
 /** FR-02: プロフィールの更新 */
 export async function updateProfile(

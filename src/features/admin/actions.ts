@@ -24,6 +24,7 @@ import { hideListingImages, restoreListingImages } from "@/lib/storage";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
 import { cancelPendingTransaction } from "@/features/transaction/cancel";
 import { notifyCanceled, notifyCompleted, notifyReceived } from "@/features/notification/notify";
+import { formValue } from "@/lib/form";
 
 const reasonSchema = z
   .string()
@@ -31,11 +32,6 @@ const reasonSchema = z
   .max(500, "理由は500文字以内で入力してください")
   .optional()
   .transform((value) => (value ? value : null));
-
-function formValue(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
 
 // ============================================================
 // 利用者管理(AD-02)
@@ -498,16 +494,21 @@ export async function resolveReport(
     if (!parsed.success) return fail("入力内容を確認してください");
 
     const supabase = createAdminClient();
-    const { error } = await supabase
+    // 対応済みのものを上書きしないよう、未対応の通報だけを対象にする
+    const { data: updated, error } = await supabase
       .from("reports")
       .update({
         status: "resolved",
         resolved_by: admin.id,
         resolved_note: parsed.data,
       })
-      .eq("id", reportId);
+      .eq("id", reportId)
+      .eq("status", "open")
+      .select("id")
+      .maybeSingle();
 
     if (error) throw new AppError("対応状況の更新に失敗しました。");
+    if (!updated) throw new AppError("この通報は見つからないか、すでに対応済みです。");
 
     await recordAdminAction(admin.id, "resolve_report", "report", reportId, parsed.data);
 
@@ -577,9 +578,21 @@ export async function renameBrand(
     }
 
     const supabase = createAdminClient();
-    const { error } = await supabase.from("brands").update({ name: parsed.data }).eq("id", brandId);
+    const { data: updated, error } = await supabase
+      .from("brands")
+      .update({ name: parsed.data })
+      .eq("id", brandId)
+      .select("id")
+      .maybeSingle();
 
-    if (error) throw new AppError("ブランド名の変更に失敗しました。");
+    if (error) {
+      throw new AppError(
+        isUniqueViolation(error)
+          ? "同名のブランドがすでに登録されています。"
+          : "ブランド名の変更に失敗しました。",
+      );
+    }
+    if (!updated) throw new AppError("ブランドが見つかりません。");
 
     await recordAdminAction(admin.id, "rename_brand", "brand", brandId, parsed.data);
 
@@ -599,12 +612,15 @@ export async function toggleBrandActive(
     const admin = await requireAdminAction();
     const supabase = createAdminClient();
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("brands")
       .update({ is_active: isActive })
-      .eq("id", brandId);
+      .eq("id", brandId)
+      .select("id")
+      .maybeSingle();
 
     if (error) throw new AppError("ブランドの更新に失敗しました。");
+    if (!updated) throw new AppError("ブランドが見つかりません。");
 
     await recordAdminAction(
       admin.id,

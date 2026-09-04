@@ -149,3 +149,28 @@ describe("toListingRow", () => {
     expect(toListingRow(parsed).meetup_pref).toBeNull();
   });
 });
+
+describe("数値項目のエラー文言", () => {
+  it("数値でない入力にも日本語で返す(既定の英語メッセージを出さない)", () => {
+    const result = publishSchema.safeParse({
+      title: "テスト商品です",
+      price: "abc",
+      modelYear: "20x",
+      frameSizeCm: "xx",
+      imagePaths: [],
+      discardedImagePaths: [],
+    });
+    expect(result.success).toBe(false);
+    if (result.success) return;
+
+    const messageOf = (field: string) =>
+      result.error.issues.find((issue) => issue.path[0] === field)?.message ?? "";
+
+    expect(messageOf("price")).toBe("希望価格は整数で入力してください");
+    expect(messageOf("modelYear")).toBe("年式は数値で入力してください");
+    expect(messageOf("frameSizeCm")).toBe("フレームサイズ(cm)は数値で入力してください");
+    for (const issue of result.error.issues) {
+      expect(issue.message).not.toMatch(/Invalid|Expected|Required/);
+    }
+  });
+});

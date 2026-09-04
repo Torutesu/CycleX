@@ -12,15 +12,28 @@ import { AppError } from "@/lib/errors";
  * ここに分けて外から呼べないようにする。
  */
 
-/** スレッド表示時に相手発信の未読をまとめて既読にする */
-export async function markThreadRead(threadId: string, userId: string): Promise<void> {
+/**
+ * スレッド表示時に相手発信の未読を既読にする。
+ *
+ * 画面に出したところまでを既読にする。開いた後に届いたメッセージまで
+ * 既読にすると、読んでいないものが未読から消える。
+ */
+export async function markThreadRead(
+  threadId: string,
+  userId: string,
+  upTo?: string,
+): Promise<void> {
   const supabase = createAdminClient();
-  await supabase
+  let query = supabase
     .from("messages")
     .update({ read_at: new Date().toISOString() })
     .eq("thread_id", threadId)
     .neq("sender_id", userId)
     .is("read_at", null);
+
+  if (upTo) query = query.lte("created_at", upTo);
+
+  await query;
 }
 
 /**

@@ -20,7 +20,12 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
   const supabase = await createClient();
   const { data: listing } = await supabase
     .from("listings")
-    .select("*, listing_images(path, position)")
+    .select(
+      `id, seller_id, status, category, parts_subcategory, title, brand_id, brand_other, model_name,
+       model_year, frame_size, frame_size_cm, component, component_note, mileage, condition,
+       description, price, delivery_method, shipping_from_pref, meetup_pref,
+       listing_images(path, position)`,
+    )
     .eq("id", id)
     .maybeSingle();
 

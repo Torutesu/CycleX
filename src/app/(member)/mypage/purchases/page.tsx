@@ -1,21 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ChevronLeft, ShoppingBag } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/session";
-import { EmptyState } from "@/components/common/empty-state";
-import { getTransactionsFor } from "@/features/transaction/queries";
-import { TransactionList } from "@/features/transaction/components/transaction-list";
-import { isActiveTransaction } from "@/features/transaction/state";
-import { cn } from "@/lib/utils";
+import { TransactionTabsPage } from "@/features/transaction/components/transaction-tabs";
 
 export const metadata: Metadata = { title: "購入した取引" };
-
-const TABS = [
-  { value: "active", label: "進行中" },
-  { value: "completed", label: "完了" },
-  { value: "canceled", label: "キャンセル" },
-] as const;
 
 export default async function PurchasesPage({
   searchParams,
@@ -24,86 +11,6 @@ export default async function PurchasesPage({
 }) {
   const user = await requireUser("/mypage/purchases");
   const { tab } = await searchParams;
-  const activeTab = TABS.some((item) => item.value === tab) ? tab! : "active";
 
-  const all = await getTransactionsFor(user.id, "buyer");
-  const counts = {
-    active: all.filter((tx) => isActiveTransaction(tx.status)).length,
-    completed: all.filter((tx) => tx.status === "completed").length,
-    canceled: all.filter((tx) => tx.status === "canceled").length,
-  };
-
-  const visible = all.filter((tx) => {
-    if (activeTab === "active") return isActiveTransaction(tx.status);
-    if (activeTab === "completed") return tx.status === "completed";
-    return tx.status === "canceled";
-  });
-
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-6">
-      <Link
-        href="/mypage"
-        className="mb-4 inline-flex min-h-11 items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="size-4" aria-hidden />
-        マイページ
-      </Link>
-
-      <h1 className="text-xl font-bold">購入した取引</h1>
-
-      <nav className="mt-5">
-        <ul className="flex gap-2">
-          {TABS.map((item) => {
-            const active = item.value === activeTab;
-            return (
-              <li key={item.value}>
-                <Link
-                  href={`/mypage/purchases?tab=${item.value}`}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm transition-colors",
-                    active
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "bg-background text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {item.label}
-                  <span className="tabular-nums opacity-80">{counts[item.value]}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      {visible.length === 0 ? (
-        <EmptyState
-          icon={ShoppingBag}
-          title={
-            activeTab === "active"
-              ? "進行中の取引はありません"
-              : activeTab === "completed"
-                ? "完了した取引はありません"
-                : "キャンセルされた取引はありません"
-          }
-          description={
-            activeTab === "active"
-              ? "商品を購入すると、発送や受取のやり取りをここから進められます。"
-              : undefined
-          }
-          action={
-            activeTab === "active" && (
-              <Button asChild className="h-11">
-                <Link href="/search">商品をさがす</Link>
-              </Button>
-            )
-          }
-        />
-      ) : (
-        <div className="mt-5">
-          <TransactionList transactions={visible} />
-        </div>
-      )}
-    </div>
-  );
+  return <TransactionTabsPage userId={user.id} role="buyer" tab={tab} />;
 }

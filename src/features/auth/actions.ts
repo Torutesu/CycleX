@@ -12,6 +12,7 @@ import { ACTIVE_TRANSACTION_STATUSES } from "@/lib/constants";
 import { IMAGE_BUCKETS } from "@/lib/images";
 import { removeUserFolder } from "@/lib/storage";
 import { canWithdraw, resolvePostLoginPath } from "@/features/auth/rules";
+import { formValue } from "@/lib/form";
 import {
   signupSchema,
   loginSchema,
@@ -22,11 +23,6 @@ import {
 
 /** ログイン失敗時は原因を特定させない共通メッセージを返す(アカウント列挙対策) */
 const LOGIN_FAILED_MESSAGE = "メールアドレスまたはパスワードが正しくありません";
-
-function formValue(formData: FormData, key: string): string {
-  const value = formData.get(key);
-  return typeof value === "string" ? value : "";
-}
 
 // ============================================================
 // FR-01-1 サインアップ
