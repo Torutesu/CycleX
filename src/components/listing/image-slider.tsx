@@ -22,6 +22,8 @@ const SCROLL_SETTLE_MS = 800;
 export function ImageSlider({ paths, title }: ImageSliderProps) {
   const [index, setIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  // 拡大表示でのスワイプ判定(横スクロールは無いので開始位置だけ控える)
+  const touchStartX = useRef<number | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   // 送っている途中の行き先。着くまではスクロールからの更新を受け付けない
   const pendingRef = useRef<{ index: number; until: number } | null>(null);
@@ -169,7 +171,20 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
       <Dialog open={expanded} onOpenChange={setExpanded}>
         <DialogContent className="max-w-4xl p-2 sm:p-4">
           <DialogTitle className="sr-only">{title} の画像</DialogTitle>
-          <div className="relative aspect-square w-full">
+          <div
+            className="relative aspect-square w-full touch-pan-y"
+            onTouchStart={(event) => {
+              touchStartX.current = event.touches[0]?.clientX ?? null;
+            }}
+            onTouchEnd={(event) => {
+              const start = touchStartX.current;
+              touchStartX.current = null;
+              if (start === null) return;
+              const delta = (event.changedTouches[0]?.clientX ?? start) - start;
+              if (Math.abs(delta) < 40) return;
+              scrollTo(delta < 0 ? index + 1 : index - 1);
+            }}
+          >
             <Image
               src={listingImageUrl(paths[index])}
               alt={`${title} の画像 ${index + 1}`}

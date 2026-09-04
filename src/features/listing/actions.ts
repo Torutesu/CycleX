@@ -128,7 +128,7 @@ async function assertEditable(listingId: string, userId: string): Promise<Listin
 async function upsertListing(
   values: ListingFormValues,
   userId: string,
-  nextStatus: "draft" | "published",
+  nextStatus: "draft" | "published" | "withdrawn",
 ): Promise<string> {
   const admin = createAdminClient();
   const row = toListingRow(values);
@@ -139,7 +139,11 @@ async function upsertListing(
   }
 
   if (values.id) {
-    await assertEditable(values.id, userId);
+    const currentStatus = await assertEditable(values.id, userId);
+    // 公開済み・取下げ中の商品を「下書き」へ戻す遷移は要件に無い(FR-03-2)
+    if (nextStatus === "draft" && currentStatus !== "draft") {
+      throw new AppError("公開したことのある商品は下書きに戻せません。");
+    }
 
     // 初回公開時のみ published_at を打つ
     const { data: existing } = await admin
@@ -219,6 +223,25 @@ export async function saveDraft(values: unknown): Promise<SaveResult> {
 
     const id = await upsertListing(parsed.data, user.id, "draft");
     revalidatePath("/mypage/listings");
+    return ok({ id });
+  } catch (error) {
+    return fail(toUserMessage(error));
+  }
+}
+
+/** 取下げ中の商品を、非公開のまま保存する(全必須項目を検証。FR-03-2) */
+export async function updateWithdrawnListing(values: unknown): Promise<SaveResult> {
+  try {
+    const user = await requireVerifiedUser();
+    const parsed = publishSchema.safeParse(values);
+    if (!parsed.success) {
+      return fail("入力内容を確認してください", fieldErrorsOf(parsed.error));
+    }
+    if (!parsed.data.id) throw new AppError("保存する商品が指定されていません。");
+
+    const id = await upsertListing(parsed.data, user.id, "withdrawn");
+    revalidatePath("/mypage/listings");
+    revalidatePath(`/items/${id}`);
     return ok({ id });
   } catch (error) {
     return fail(toUserMessage(error));

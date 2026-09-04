@@ -9,7 +9,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
 import { updateAvatar } from "@/features/profile/actions";
 import { avatarImageUrl, IMAGE_BUCKETS } from "@/lib/images";
-import { ALLOWED_IMAGE_TYPES, AVATAR_MAX_BYTES } from "@/lib/constants";
+import {
+  ALLOWED_IMAGE_TYPES,
+  AVATAR_EDGE,
+  AVATAR_MAX_BYTES,
+  extensionForImageType,
+} from "@/lib/constants";
+import { resizeImageFile } from "@/lib/image-resize";
 
 type AvatarUploaderProps = {
   userId: string;
@@ -17,7 +23,7 @@ type AvatarUploaderProps = {
   currentPath: string | null;
 };
 
-/** FR-02: アイコン画像のアップロード。正方形にクロップして表示する。 */
+/** FR-02: アイコン画像のアップロード。正方形にクロップして保存する。 */
 export function AvatarUploader({ userId, displayName, currentPath }: AvatarUploaderProps) {
   const [path, setPath] = useState(currentPath);
   const [uploading, setUploading] = useState(false);
@@ -37,12 +43,13 @@ export function AvatarUploader({ userId, displayName, currentPath }: AvatarUploa
     setUploading(true);
     try {
       const supabase = createClient();
-      const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-      const objectPath = `${userId}/${crypto.randomUUID()}.${extension}`;
+      // 正方形に中央クロップして保存する(FR-02)。拡張子は検証済みの MIME から決める
+      const prepared = await resizeImageFile(file, { maxEdge: AVATAR_EDGE, square: true });
+      const objectPath = `${userId}/${crypto.randomUUID()}.${extensionForImageType(prepared.type)}`;
 
       const { error: uploadError } = await supabase.storage
         .from(IMAGE_BUCKETS.avatar)
-        .upload(objectPath, file, { upsert: false, contentType: file.type });
+        .upload(objectPath, prepared, { upsert: false, contentType: prepared.type });
 
       if (uploadError) {
         toast.error("アップロードに失敗しました");

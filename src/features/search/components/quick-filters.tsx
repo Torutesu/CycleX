@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, PRICE_PRESETS } from "@/lib/constants";
 import { toQueryString, type SearchParams } from "@/features/search/params";
 import { useChipNavigation } from "@/features/search/components/search-transition";
 import { cn } from "@/lib/utils";
@@ -18,18 +18,13 @@ import { cn } from "@/lib/utils";
  * 先読みも効くため(検索条件はすべて URL に載っている)。
  */
 
-/** 価格帯の目安。自転車の相場に合わせた区切り */
-const PRICE_BANDS: { label: string; min: number | null; max: number | null }[] = [
-  { label: "〜5万円", min: null, max: 50000 },
-  { label: "5〜15万円", min: 50000, max: 150000 },
-  { label: "15〜30万円", min: 150000, max: 300000 },
-  { label: "30〜60万円", min: 300000, max: 600000 },
-  { label: "60万円〜", min: 600000, max: null },
-];
+/** 価格帯はシート/サイドバーと同じ区切り(FR-04-2)。画面内で 2 系統にならないようにする */
+const PRICE_BANDS: readonly { label: string; min: number | null; max: number | null }[] =
+  PRICE_PRESETS;
 
 function chipClass(active: boolean) {
   return cn(
-    "inline-flex min-h-9 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-sm transition-colors active:scale-95",
+    "inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-sm transition-colors active:scale-95",
     active
       ? "border-primary bg-primary text-primary-foreground"
       : "bg-background text-muted-foreground hover:border-primary hover:text-foreground",

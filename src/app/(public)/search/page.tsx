@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ListingGrid } from "@/components/listing/listing-grid";
 import { QuickFilters } from "@/features/search/components/quick-filters";
 import { EmptyState } from "@/components/common/empty-state";
 import { FilterPanel } from "@/features/search/components/filter-panel";
@@ -11,11 +10,16 @@ import {
   MobileFilterSheet,
   SortSelect,
 } from "@/features/search/components/search-controls";
-import { SearchPagination } from "@/features/search/components/pagination";
+import { SearchResultsList } from "@/features/search/components/search-results-list";
 import { SearchResults, SearchTransition } from "@/features/search/components/search-transition";
 import { getBrandOptions, searchListings } from "@/features/search/queries";
 import { getFavoritedIds } from "@/features/favorite/queries";
-import { parseSearchParams, hasActiveFilters, SEARCH_PAGE_SIZE } from "@/features/search/params";
+import {
+  parseSearchParams,
+  hasActiveFilters,
+  toQueryString,
+  SEARCH_PAGE_SIZE,
+} from "@/features/search/params";
 import { getCurrentUser } from "@/lib/session";
 import { CATEGORIES, labelOf } from "@/lib/constants";
 
@@ -73,7 +77,8 @@ export default async function SearchPage({
           {/* PC: サイドバー / スマホ: ボトムシート(FR-04-2) */}
           <aside className="hidden w-64 shrink-0 lg:block">
             <div className="sticky top-24 max-h-[calc(100dvh-8rem)] overflow-hidden">
-              <FilterPanel params={params} brands={brands} />
+              {/* URL が変わったら描き直す。内部状態が古い検索語・並び順を持ち続けないように */}
+              <FilterPanel key={toQueryString(params)} params={params} brands={brands} />
             </div>
           </aside>
 
@@ -115,15 +120,14 @@ export default async function SearchPage({
                   }
                 />
               ) : (
-                <>
-                  <ListingGrid
-                    listings={result.items}
-                    favoritedIds={favoritedIds}
-                    isLoggedIn={Boolean(user)}
-                    className="mt-5"
-                  />
-                  <SearchPagination params={params} totalPages={result.totalPages} />
-                </>
+                <SearchResultsList
+                  params={params}
+                  initialItems={result.items}
+                  initialFavoritedIds={[...favoritedIds]}
+                  totalPages={result.totalPages}
+                  isLoggedIn={Boolean(user)}
+                  currentUserId={user?.id ?? null}
+                />
               )}
             </SearchResults>
           </div>

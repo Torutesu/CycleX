@@ -1,11 +1,12 @@
 "use client"
 
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  // ThemeProvider を置いていない(サイト全体がライト固定)ため、
+  // OS の設定に追従して白い画面に黒いトーストが出ないよう固定する
+  const theme = "light"
 
   return (
     <Sonner

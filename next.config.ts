@@ -14,6 +14,8 @@ const nextConfig: NextConfig = {
       // Google ログイン利用時のプロフィール画像(lh3 以外のサブドメインでも配られる)
       { protocol: "https", hostname: "**.googleusercontent.com" },
     ],
+    // 画像のパスは UUID で不変なので、最適化結果を長く持たせて再変換のコストを抑える
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     // ローカルの Supabase は 127.0.0.1 で動くため、開発時のみ private IP を許可する。
     // 本番の Supabase は公開ホストなので、この緩和は不要かつ有効化しない。
     dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",

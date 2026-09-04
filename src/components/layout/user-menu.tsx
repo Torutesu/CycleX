@@ -22,10 +22,10 @@ export function UserMenu({ user }: { user: SessionUser | null }) {
   if (!user) {
     return (
       <div className="flex items-center gap-2">
-        <Button asChild variant="ghost" size="sm">
+        <Button asChild variant="ghost" className="h-11 px-3">
           <Link href="/login">ログイン</Link>
         </Button>
-        <Button asChild size="sm" className="hidden sm:inline-flex">
+        <Button asChild className="hidden h-11 px-3 sm:inline-flex">
           <Link href="/signup">会員登録</Link>
         </Button>
       </div>

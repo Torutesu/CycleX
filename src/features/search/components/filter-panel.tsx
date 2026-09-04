@@ -128,7 +128,7 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
                     type="button"
                     onClick={() => update({ sub: null })}
                     className={cn(
-                      "flex min-h-9 w-full items-center rounded-md px-2 text-sm",
+                      "flex min-h-11 w-full items-center rounded-md px-2 text-sm",
                       draft.sub === null ? "bg-accent font-medium" : "hover:bg-accent/50",
                     )}
                   >
@@ -141,7 +141,7 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
                       type="button"
                       onClick={() => update({ sub: option.value })}
                       className={cn(
-                        "flex min-h-9 w-full items-center rounded-md px-2 text-sm",
+                        "flex min-h-11 w-full items-center rounded-md px-2 text-sm",
                         draft.sub === option.value ? "bg-accent font-medium" : "hover:bg-accent/50",
                       )}
                     >

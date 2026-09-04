@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { cloneElement, isValidElement, type ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +35,18 @@ export function Field({
   const hintId = `${id}-hint`;
   const hasError = Boolean(errors && errors.length > 0);
 
+  // 直下が 1 つの入力要素なら、補足とエラーを読み上げに結び付ける
+  const describedBy = [hint && !hasError ? hintId : null, hasError ? errorId : null]
+    .filter(Boolean)
+    .join(" ");
+  const control = isValidElement<Record<string, unknown>>(children)
+    ? cloneElement(children, {
+        ...(describedBy ? { "aria-describedby": describedBy } : {}),
+        ...(hasError ? { "aria-invalid": true } : {}),
+        ...(required ? { "aria-required": true } : {}),
+      })
+    : children;
+
   return (
     <div className={cn("space-y-1.5", className)}>
       <div className="flex items-center justify-between gap-2">
@@ -58,14 +70,14 @@ export function Field({
           </span>
         )}
       </div>
-      {children}
+      {control}
       {hint && !hasError && (
         <p id={hintId} className="text-xs text-muted-foreground">
           {hint}
         </p>
       )}
       {hasError && (
-        <ul id={errorId} className="space-y-0.5 text-xs text-destructive">
+        <ul id={errorId} role="alert" className="space-y-0.5 text-xs text-destructive">
           {errors!.map((message) => (
             <li key={message}>{message}</li>
           ))}

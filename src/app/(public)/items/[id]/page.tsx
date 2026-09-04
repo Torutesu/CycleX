@@ -24,6 +24,7 @@ import { findThreadByListing } from "@/features/message/queries";
 import { AskSellerButton } from "@/features/message/components/ask-seller-button";
 import { ReportDialog } from "@/features/report/components/report-dialog";
 import { canEditListing, canPurchase } from "@/features/listing/rules";
+import { OwnerStatusButton } from "@/features/listing/components/owner-status-button";
 import { getCurrentUser } from "@/lib/session";
 import { listingImageUrl } from "@/lib/images";
 import { formatPrice, formatDate, timeAgo } from "@/lib/utils";
@@ -184,7 +185,7 @@ export default async function ItemDetailPage({
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 pb-32 md:pb-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 pb-32 lg:pb-8">
       {paymentCanceled && (
         <Alert className="mb-4">
           <AlertDescription>支払いを中止しました。商品は引き続き購入できます。</AlertDescription>
@@ -247,6 +248,13 @@ export default async function ItemDetailPage({
               isOwner={isOwner}
               purchasable={purchasable}
             />
+            {isOwner && (
+              <OwnerStatusButton
+                listingId={listing.id}
+                status={listing.status as ListingStatus}
+                className="h-11 w-full"
+              />
+            )}
             {!isOwner && (
               <>
                 <FavoriteButton
@@ -343,8 +351,16 @@ export default async function ItemDetailPage({
       )}
 
       {/* スマホ用の固定アクションバー(タブバーの上に重ねる) */}
-      <div className="fixed inset-x-0 bottom-16 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur lg:hidden">
+      {/* タブバーは md で消えるので、md〜lg では画面最下部に付ける */}
+      <div className="fixed inset-x-0 bottom-16 z-30 border-t bg-background/95 px-4 py-3 backdrop-blur md:bottom-0 lg:hidden">
         <div className="flex items-center gap-2">
+          {isOwner && (
+            <OwnerStatusButton
+              listingId={listing.id}
+              status={listing.status as ListingStatus}
+              className="h-12 shrink-0"
+            />
+          )}
           {!isOwner && (
             <>
               <FavoriteButton

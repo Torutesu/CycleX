@@ -179,7 +179,7 @@ export function SearchBar({ className, placeholder = "ブランド・車種で�
             setActive(-1);
             inputRef.current?.focus();
           }}
-          className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+          className="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
         >
           <X className="size-4" aria-hidden />
         </button>
@@ -197,7 +197,7 @@ export function SearchBar({ className, placeholder = "ブランド・車種で�
                   setHistory([]);
                   setOpen(false);
                 }}
-                className="min-h-8 px-1 transition-colors hover:text-foreground"
+                className="min-h-11 px-2 transition-colors hover:text-foreground"
               >
                 履歴を消す
               </button>

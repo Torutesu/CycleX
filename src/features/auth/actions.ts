@@ -51,7 +51,7 @@ export async function signup(
   const next = safeRedirectPath(formValue(formData, "next") || null, "/mypage");
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
@@ -67,22 +67,66 @@ export async function signup(
     return fail("会員登録に失敗しました。時間をおいて再度お試しください。");
   }
 
+  // メール確認必須の設定では、登録済みのアドレスに対して Supabase が
+  // identities の無い偽のユーザーを返す(確認メールは送られない)。
+  // 黙って「送信しました」に着地させず、ログインか再設定へ案内する
+  if (data.user && data.user.identities && data.user.identities.length === 0) {
+    return fail(
+      "このメールアドレスはすでに登録されています。ログインするか、パスワードをお忘れの場合は再設定してください。",
+    );
+  }
+
   redirect(`/verify-email?email=${encodeURIComponent(parsed.data.email)}`);
 }
 
-/** 確認メールの再送 */
+/** 確認メールの再送を同じ宛先に対して抑制する時間(分) */
+const RESEND_COOLDOWN_MINUTES = 5;
+
+/**
+ * 確認メールの再送。
+ *
+ * 任意のアドレスに無制限に送れると、Supabase の時間当たり送信上限を
+ * 使い切られて正規の登録・再設定メールまで止まる。宛先が会員として存在し、
+ * 未確認で、直近に送っていないときだけ送る。存在有無は結果に出さない。
+ */
 export async function resendVerificationEmail(
   _prev: ActionResult<undefined> | null,
   formData: FormData,
 ): Promise<ActionResult<undefined>> {
-  const email = formValue(formData, "email");
+  const email = formValue(formData, "email").trim().toLowerCase();
   if (!email) return fail("メールアドレスが指定されていません");
+
+  const admin = createAdminClient();
+  const { data: target } = await admin
+    .from("users")
+    .select("id, email_verified_at")
+    .eq("email", email)
+    .maybeSingle();
+
+  // 未登録・確認済みは送らない(結果は同じ表示にする)
+  if (!target || target.email_verified_at) return ok();
+
+  const since = new Date(Date.now() - RESEND_COOLDOWN_MINUTES * 60 * 1000).toISOString();
+  const { count } = await admin
+    .from("email_logs")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", target.id)
+    .eq("kind", "verification_resend")
+    .gte("created_at", since);
+  if ((count ?? 0) > 0) return ok();
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resend({
     type: "signup",
     email,
     options: { emailRedirectTo: absoluteUrl("/auth/callback?next=/mypage") },
+  });
+
+  await admin.from("email_logs").insert({
+    user_id: target.id,
+    kind: "verification_resend",
+    status: error ? "failed" : "sent",
+    error: error?.message ?? null,
   });
 
   if (error) return fail("再送に失敗しました。時間をおいて再度お試しください。");
@@ -108,6 +152,13 @@ export async function login(
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+
+  // パスワードは合っているがメール未確認。原因が分からないまま
+  // 無意味なパスワード再設定に進ませないよう、確認画面へ案内する
+  // (パスワードが合っている時点で存在は本人に分かっているので列挙対策は損なわない)
+  if (error?.code === "email_not_confirmed") {
+    redirect(`/verify-email?email=${encodeURIComponent(parsed.data.email)}`);
+  }
 
   if (error || !data.user) {
     return fail(LOGIN_FAILED_MESSAGE);

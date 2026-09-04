@@ -17,12 +17,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Field } from "@/components/form/field";
 import { ImageUploader } from "@/features/listing/components/image-uploader";
+import { publishSchema } from "@/features/listing/schema";
 import {
   backupKey,
   shouldBackup,
   useFormBackup,
 } from "@/features/listing/components/use-form-backup";
-import { saveDraft, publishListing } from "@/features/listing/actions";
+import { saveDraft, publishListing, updateWithdrawnListing } from "@/features/listing/actions";
 import { calcFee } from "@/features/listing/rules";
 import {
   CATEGORIES,
@@ -38,6 +39,7 @@ import {
   TITLE_MAX,
   isBikeCategory,
   modelYearMax,
+  type ListingStatus,
 } from "@/lib/constants";
 import { formatPrice } from "@/lib/utils";
 
@@ -109,9 +111,20 @@ type ListingFormProps = {
   defaults: ListingFormDefaults;
   /** 下書き保存を出すか(公開中の商品の編集では出さない) */
   allowDraft: boolean;
+  /** 編集対象の現在の状態。新規作成では undefined */
+  currentStatus?: ListingStatus;
 };
 
-export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: ListingFormProps) {
+type SubmitMode = "draft" | "publish" | "keep";
+
+export function ListingForm({
+  userId,
+  brands,
+  feeRate,
+  defaults,
+  allowDraft,
+  currentStatus,
+}: ListingFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [values, setValues] = useState<ListingFormDefaults>(defaults);
@@ -172,13 +185,36 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
     };
   }
 
-  function submit(mode: "draft" | "publish") {
+  /**
+   * 項目を離れたときにその項目だけ検証する(02_screens: blur 時のインライン検証)。
+   * 公開時のスキーマで見るので、公開に足りないものが打ちながら分かる
+   */
+  function validateField(key: string) {
+    if (!(key in values)) return;
+    const parsed = publishSchema.safeParse(buildPayload());
+    const messages = parsed.success
+      ? []
+      : parsed.error.issues.filter((issue) => issue.path[0] === key).map((issue) => issue.message);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (messages.length > 0) next[key] = messages;
+      else delete next[key];
+      return next;
+    });
+  }
+
+  function submit(mode: SubmitMode) {
     setFieldErrors({});
     setFormError(null);
 
     startTransition(async () => {
       const payload = buildPayload();
-      const result = mode === "draft" ? await saveDraft(payload) : await publishListing(payload);
+      const result =
+        mode === "draft"
+          ? await saveDraft(payload)
+          : mode === "keep"
+            ? await updateWithdrawnListing(payload)
+            : await publishListing(payload);
 
       if (!result.ok) {
         const errors = result.fieldErrors ?? {};
@@ -197,6 +233,9 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
         toast.success("下書きを保存しました");
         router.replace(`/sell/${result.data.id}/edit`);
         router.refresh();
+      } else if (mode === "keep") {
+        toast.success("保存しました(非公開のままです)");
+        router.push(`/items/${result.data.id}`);
       } else {
         toast.success("商品を公開しました");
         router.push(`/items/${result.data.id}`);
@@ -207,10 +246,9 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
   return (
     <form
       className="space-y-8 pb-28 md:pb-8"
-      onSubmit={(event) => {
-        event.preventDefault();
-        submit("publish");
-      }}
+      // Enter キーの暗黙送信で公開されないよう、送信はボタンからのみ行う
+      onSubmit={(event) => event.preventDefault()}
+      onBlur={(event) => validateField((event.target as HTMLElement).id)}
     >
       {hasBackup && (
         <Alert>
@@ -632,8 +670,30 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
               下書き保存
             </Button>
           )}
-          <Button type="submit" className="h-12 flex-1" disabled={pending}>
-            {pending ? "処理中..." : "公開する"}
+          {currentStatus === "withdrawn" && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 flex-1"
+              disabled={pending}
+              onClick={() => submit("keep")}
+            >
+              非公開のまま保存
+            </Button>
+          )}
+          <Button
+            type="button"
+            className="h-12 flex-1"
+            disabled={pending}
+            onClick={() => submit("publish")}
+          >
+            {pending
+              ? "処理中..."
+              : currentStatus === "published"
+                ? "保存する"
+                : currentStatus === "withdrawn"
+                  ? "保存して公開する"
+                  : "公開する"}
           </Button>
         </div>
       </div>

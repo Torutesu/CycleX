@@ -197,7 +197,8 @@ export function toListingRow(values: ListingFormValues) {
     parts_subcategory: isParts ? values.partsSubcategory : null,
     title: values.title,
     brand_id: values.brandId ?? null,
-    brand_other: values.brandOther,
+    // マスタから選んだときは自由入力を捨てる(両方残ると検索で別ブランド名にヒットする)
+    brand_other: values.brandId ? null : values.brandOther,
     model_name: values.modelName,
     model_year: values.modelYear,
     frame_size: isParts ? null : values.frameSize,

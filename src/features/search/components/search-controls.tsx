@@ -62,7 +62,12 @@ export function MobileFilterSheet({ params, brands }: Props) {
         <SheetHeader className="px-0">
           <SheetTitle>絞り込み</SheetTitle>
         </SheetHeader>
-        <FilterPanel params={params} brands={brands} onApplied={() => setOpen(false)} />
+        <FilterPanel
+          key={toQueryString(params)}
+          params={params}
+          brands={brands}
+          onApplied={() => setOpen(false)}
+        />
       </SheetContent>
     </Sheet>
   );
@@ -178,7 +183,7 @@ export function ActiveFilterChips({
           <button
             type="button"
             onClick={() => go(chip.next)}
-            className="inline-flex min-h-9 items-center gap-1 rounded-full bg-accent px-3 text-xs text-accent-foreground hover:bg-accent/70"
+            className="inline-flex min-h-11 items-center gap-1 rounded-full bg-accent px-3 text-xs text-accent-foreground hover:bg-accent/70"
           >
             {chip.label}
             <X className="size-3" aria-hidden />
@@ -202,7 +207,7 @@ export function ActiveFilterChips({
               includeSold: false,
             })
           }
-          className="inline-flex min-h-9 items-center px-2 text-xs text-muted-foreground underline-offset-4 hover:underline"
+          className="inline-flex min-h-11 items-center px-2 text-xs text-muted-foreground underline-offset-4 hover:underline"
         >
           すべて解除
         </button>

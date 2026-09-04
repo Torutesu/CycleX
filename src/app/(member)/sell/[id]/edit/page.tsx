@@ -71,6 +71,7 @@ export default async function EditListingPage({ params }: { params: Promise<{ id
           feeRate={getPlatformFeeRate()}
           defaults={toFormDefaults(listing, imagePaths)}
           allowDraft={status === "draft"}
+          currentStatus={status}
         />
       </div>
     </div>

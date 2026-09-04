@@ -11,9 +11,11 @@ import {
   ALLOWED_IMAGE_TYPES,
   IMAGE_MAX_BYTES,
   MAX_IMAGES,
+  LISTING_IMAGE_MAX_EDGE,
   extensionForImageType,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { resizeImageFile } from "@/lib/image-resize";
 
 type ImageUploaderProps = {
   userId: string;
@@ -60,12 +62,15 @@ export function ImageUploader({ userId, value, onChange, onDiscard, error }: Ima
           continue;
         }
 
+        // 長辺 1920px に縮小してから上げる(原本 10MB を配信・変換に流さない)
+        const prepared = await resizeImageFile(file, { maxEdge: LISTING_IMAGE_MAX_EDGE });
+
         // 拡張子はファイル名ではなく検証済みの MIME から決める
         // (ファイル名は任意の文字列で、そのまま使うとパスに混ざる)
-        const objectPath = `${userId}/${crypto.randomUUID()}.${extensionForImageType(file.type)}`;
+        const objectPath = `${userId}/${crypto.randomUUID()}.${extensionForImageType(prepared.type)}`;
         const { error: uploadError } = await supabase.storage
           .from(IMAGE_BUCKETS.listing)
-          .upload(objectPath, file, { upsert: false, contentType: file.type });
+          .upload(objectPath, prepared, { upsert: false, contentType: prepared.type });
 
         if (uploadError) {
           toast.error(`${file.name}: アップロードに失敗しました`);
@@ -123,7 +128,7 @@ export function ImageUploader({ userId, value, onChange, onDiscard, error }: Ima
               type="button"
               onClick={() => remove(index)}
               aria-label={`${index + 1}枚目を削除`}
-              className="absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm"
+              className="absolute right-1 top-1 flex size-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm md:size-8"
             >
               <X className="size-4" aria-hidden />
             </button>
@@ -134,7 +139,7 @@ export function ImageUploader({ userId, value, onChange, onDiscard, error }: Ima
                 onClick={() => move(index, -1)}
                 disabled={index === 0}
                 aria-label={`${index + 1}枚目を前へ`}
-                className="flex size-7 items-center justify-center rounded disabled:opacity-30"
+                className="flex size-11 items-center justify-center rounded disabled:opacity-30 md:size-8"
               >
                 <ArrowLeft className="size-4" aria-hidden />
               </button>
@@ -143,7 +148,7 @@ export function ImageUploader({ userId, value, onChange, onDiscard, error }: Ima
                 onClick={() => move(index, 1)}
                 disabled={index === value.length - 1}
                 aria-label={`${index + 1}枚目を後ろへ`}
-                className="flex size-7 items-center justify-center rounded disabled:opacity-30"
+                className="flex size-11 items-center justify-center rounded disabled:opacity-30 md:size-8"
               >
                 <ArrowRight className="size-4" aria-hidden />
               </button>
@@ -183,7 +188,8 @@ export function ImageUploader({ userId, value, onChange, onDiscard, error }: Ima
       />
 
       <p className="text-xs text-muted-foreground">
-        最大{MAX_IMAGES}枚 / 1枚10MBまで(JPEG・PNG・WebP)。1枚目が一覧のサムネイルになります。
+        最大{MAX_IMAGES}枚 / 1枚10MBまで(JPEG・PNG・WebP)。長辺{LISTING_IMAGE_MAX_EDGE}px
+        に自動で縮小されます。1枚目が一覧のサムネイルになります。
       </p>
 
       {error && error.length > 0 && (

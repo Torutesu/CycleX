@@ -34,7 +34,7 @@ export default async function VerifyEmailPage({
         </div>
 
         <p className="text-sm text-muted-foreground">
-          メールが届かない場合は、迷惑メールフォルダをご確認ください。
+          メールが届かない場合は、迷惑メールフォルダをご確認ください。すでに登録済みのアドレスには届きません。その場合はログインするか、パスワードを再設定してください。
         </p>
 
         {email && <ResendVerificationForm email={email} />}

@@ -308,6 +308,10 @@ export const REPORT_DETAIL_MAX = 1000;
 
 /** 画像アップロード制約 */
 export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+/** 商品画像はアップロード前に長辺をこの値まで縮小する(FR-03-1) */
+export const LISTING_IMAGE_MAX_EDGE = 1920;
+/** アイコンは正方形にクロップし、この辺の長さで保存する(FR-02) */
+export const AVATAR_EDGE = 512;
 export const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
