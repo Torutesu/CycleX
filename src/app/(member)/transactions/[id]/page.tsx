@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { ChevronLeft, MessageCircle, Star } from "lucide-react";
+import { ChevronLeft, Star } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { requireUser } from "@/lib/session";
 import { getTransactionDetail } from "@/features/transaction/queries";
-import { openThreadForListing } from "@/features/message/service";
+import { OpenThreadButton } from "@/features/message/components/open-thread-button";
 import { nextActionFor, describeCancelReason } from "@/features/transaction/state";
 import { waitingNotice } from "@/features/transaction/guidance";
 import { StatusTimeline } from "@/features/transaction/components/status-timeline";
@@ -44,10 +44,6 @@ export default async function TransactionPage({
     transaction.hasReviewed,
   );
   const avatarSrc = avatarImageUrl(transaction.counterparty.avatarUrl);
-
-  // 取引連絡は購入前の質問と同じスレッドで続ける(FR-07)
-  const buyerId = transaction.buyerId;
-  const threadId = await openThreadForListing(transaction.listing.id, buyerId).catch(() => null);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -148,13 +144,12 @@ export default async function TransactionPage({
           <>
             <h2 className="text-base font-semibold">{notice.title}</h2>
             {notice.detail && <p className="mt-1 text-sm text-muted-foreground">{notice.detail}</p>}
-            {notice.showMessageLink && threadId && (
-              <Button asChild className="mt-4 h-12 w-full">
-                <Link href={`/messages/${threadId}`}>
-                  <MessageCircle className="size-4" aria-hidden />
-                  メッセージを開く
-                </Link>
-              </Button>
+            {notice.showMessageLink && (
+              <OpenThreadButton
+                transactionId={transaction.id}
+                variant="default"
+                className="mt-4 h-12 w-full"
+              />
             )}
             {transaction.shippingNote && role === "seller" && (
               <p className="mt-3 whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm">
@@ -235,14 +230,7 @@ export default async function TransactionPage({
           >
             {transaction.counterparty.displayName}
           </Link>
-          {threadId && (
-            <Button asChild variant="outline" size="sm" className="h-11">
-              <Link href={`/messages/${threadId}`}>
-                <MessageCircle className="size-4" aria-hidden />
-                メッセージ
-              </Link>
-            </Button>
-          )}
+          <OpenThreadButton transactionId={transaction.id} label="メッセージ" />
         </div>
       </section>
 

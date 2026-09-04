@@ -9,7 +9,7 @@ import { assertRateLimit } from "@/lib/rate-limit";
 import { ok, fail, toUserMessage, AppError, type ActionResult } from "@/lib/errors";
 import { MESSAGE_MAX, type ListingStatus, type UserStatus } from "@/lib/constants";
 import { canSendMessage, canStartThread } from "@/features/message/rules";
-import { markThreadRead } from "@/features/message/service";
+import { markThreadRead, openThreadForListing } from "@/features/message/service";
 import { notifyNewMessage } from "@/features/notification/notify";
 
 const bodySchema = z
@@ -175,6 +175,32 @@ export async function sendMessage(
   } catch (error) {
     return fail(toUserMessage(error));
   }
+}
+
+/**
+ * 取引画面から相手とのやり取りを開く(FR-07)。
+ *
+ * 取引連絡は購入前の質問と同じスレッドで続けるため、無ければここで作る。
+ * 画面の描画中に作ると、出品者が開いただけで購入者名義のスレッドができてしまうので、
+ * 押されたときにだけ実行する。
+ */
+export async function openTransactionThread(transactionId: string): Promise<void> {
+  const user = await requireVerifiedUser();
+  const supabase = createAdminClient();
+
+  const { data: transaction } = await supabase
+    .from("transactions")
+    .select("listing_id, buyer_id, seller_id")
+    .eq("id", transactionId)
+    .maybeSingle();
+
+  if (!transaction) throw new AppError("取引が見つかりません。");
+  if (transaction.buyer_id !== user.id && transaction.seller_id !== user.id) {
+    throw new AppError("この取引のやり取りは開けません。");
+  }
+
+  const threadId = await openThreadForListing(transaction.listing_id, transaction.buyer_id);
+  redirect(`/messages/${threadId}`);
 }
 
 /**

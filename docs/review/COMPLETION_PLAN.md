@@ -391,16 +391,17 @@
 
 ### Phase D: 本番環境構築と受入(約 16h + 外部リードタイム)
 
-| #   | 作業                                                                                                                                                                                                                      | 依存                       | 目安 |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ---- |
-| D-1 | `main` ブランチ作成、Vercel の Production Branch を `main` に、`regions` 設定                                                                                                                                             | —                          | 0.5h |
-| D-2 | Supabase 本番: `setup-hosted.sql` 適用、Auth 設定一式(C-8 の一覧どおり)、`show_trgm('ロードバイク')` 確認、バックアップ方針(Pro の PITR か週次 `pg_dump`)                                                                 | C-8                        | 3h   |
-| D-3 | 確認メール・パスワード再設定・メール変更・Google ログインの実機通し(token_hash 経路含む)                                                                                                                                  | D-2、Google Cloud(甲)      | 2h   |
-| D-4 | Stripe: Webhook 登録(`checkout.session.completed` `expired` `async_payment_succeeded` `async_payment_failed` `charge.dispute.created` `charge.refunded`)、テストカード通し、キャンセル→expire→再購入、遅延入金(A-1)の再現 | A-1、Stripe アカウント(甲) | 3h   |
-| D-5 | Resend: ドメイン認証(SPF/DKIM)、`EMAIL_FROM` 実値、全 12 種の到達確認、ON/OFF 反映                                                                                                                                        | 甲のドメイン               | 2h   |
-| D-6 | Vercel: env 一式、Cron の実行確認(ログ)、`NEXT_PUBLIC_APP_URL` 反映後の再デプロイ                                                                                                                                         | D-1                        | 1h   |
-| D-7 | 受入シナリオ 11 本を本番相当環境で再実施し `ACCEPTANCE_RESULT.md` を更新。375px / 1280px / 1920px の目視                                                                                                                  | 全部                       | 4h   |
-| D-8 | 甲支給物の掲載: 特商法・規約・プライバシーポリシー・問い合わせ窓口(`/suspended` と購入完了画面にも導線)・ブランドマスタ確認・管理者アカウント                                                                             | 甲                         | 1h   |
+| #   | 作業                                                                                                                                                                                                                                                                   | 依存                       | 目安 |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ---- |
+| D-1 | `main` ブランチ作成、Vercel の Production Branch を `main` に、`regions` 設定                                                                                                                                                                                          | —                          | 0.5h |
+| D-2 | Supabase 本番: `setup-hosted.sql` 適用、Auth 設定一式(C-8 の一覧どおり)、`show_trgm('ロードバイク')` 確認、バックアップ方針(Pro の PITR か週次 `pg_dump`)                                                                                                              | C-8                        | 3h   |
+| D-3 | 確認メール・パスワード再設定・メール変更・Google ログインの実機通し(token_hash 経路含む)                                                                                                                                                                               | D-2、Google Cloud(甲)      | 2h   |
+| D-4 | Stripe: Webhook 登録(`checkout.session.completed` `expired` `async_payment_succeeded` `async_payment_failed` `charge.dispute.created` `charge.refunded`)、テストカード通し、キャンセル→expire→再購入、遅延入金(A-1)の再現                                              | A-1、Stripe アカウント(甲) | 3h   |
+| D-5 | Resend: ドメイン認証(SPF/DKIM)、`EMAIL_FROM` 実値、全 12 種の到達確認、ON/OFF 反映                                                                                                                                                                                     | 甲のドメイン               | 2h   |
+| D-6 | Vercel: env 一式、Cron の実行確認(ログ)、`NEXT_PUBLIC_APP_URL` 反映後の再デプロイ                                                                                                                                                                                      | D-1                        | 1h   |
+| D-7 | 受入シナリオ 11 本を本番相当環境で再実施し `ACCEPTANCE_RESULT.md` を更新。375px / 1280px / 1920px の目視                                                                                                                                                               | 全部                       | 4h   |
+| D-9 | Storage の匿名一覧を塞ぐ: 公開バケットの配信が RLS を経由しないことを確認したうえで、`storage.objects` の SELECT ポリシーを所有者に絞る(`supabase/migrations/20260904000002` のコメント参照)。確認方法は、ポリシー変更後に未ログインで商品ページの画像が表示されること | 本番 Supabase              | 0.5h |
+| D-8 | 甲支給物の掲載: 特商法・規約・プライバシーポリシー・問い合わせ窓口(`/suspended` と購入完了画面にも導線)・ブランドマスタ確認・管理者アカウント                                                                                                                          | 甲                         | 1h   |
 
 ### 推奨する進め方
 
