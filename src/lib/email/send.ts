@@ -54,9 +54,10 @@ export async function sendMail(input: SendMailInput): Promise<void> {
     const client = getResend();
 
     if (!client) {
-      // 未設定時は送信せずログのみ残す(ローカル開発)
+      // 未設定時は送信せずログのみ残す(ローカル開発)。
+      // 本番でキーが抜けたときに「送信済み」に見えないよう、sent とは区別する
       console.info(`[mail:skipped] ${input.kind} -> ${user.email} (${subject})`);
-      await logMail(input, "sent", "RESEND_API_KEY 未設定のため送信をスキップ");
+      await logMail(input, "skipped", "RESEND_API_KEY 未設定のため送信をスキップ");
       return;
     }
 
@@ -86,7 +87,7 @@ export async function sendMail(input: SendMailInput): Promise<void> {
 
 async function logMail(
   input: SendMailInput,
-  status: "sent" | "failed",
+  status: "sent" | "failed" | "skipped",
   error?: string,
 ): Promise<void> {
   const supabase = createAdminClient();
@@ -112,7 +113,8 @@ export async function findLastSentAt(
     .eq("user_id", userId)
     .eq("kind", kind)
     .eq("ref_id", refId)
-    .eq("status", "sent")
+    // skipped(ローカルで未送信)も抑制の対象に含め、開発時の挙動を本番と揃える
+    .in("status", ["sent", "skipped"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
