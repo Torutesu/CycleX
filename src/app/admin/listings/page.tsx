@@ -12,7 +12,7 @@ import {
   AdminPagination,
   AdminTableShell,
 } from "@/features/admin/components/admin-table";
-import { listingImageUrl } from "@/lib/images";
+import { hasVisibleImage, listingImageUrl } from "@/lib/images";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { CATEGORIES, LISTING_STATUSES, labelOf } from "@/lib/constants";
 
@@ -73,7 +73,7 @@ export default async function AdminListingsPage({
               <tr key={listing.id} className="hover:bg-accent/30">
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2.5">
-                    {listing.thumbnailPath ? (
+                    {listing.thumbnailPath && hasVisibleImage(listing.status) ? (
                       <Image
                         src={listingImageUrl(listing.thumbnailPath)}
                         alt=""

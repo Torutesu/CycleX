@@ -27,6 +27,7 @@ import { canEditListing, canPurchase } from "@/features/listing/rules";
 import { OwnerStatusButton } from "@/features/listing/components/owner-status-button";
 import { getCurrentUser } from "@/lib/session";
 import { listingImageUrl } from "@/lib/images";
+import { resolveListingImageUrls } from "@/features/listing/image-urls";
 import { formatPrice, formatDate, timeAgo } from "@/lib/utils";
 import {
   CATEGORIES,
@@ -85,7 +86,9 @@ export async function generateMetadata({
       title,
       description,
       url: `/items/${listing.id}`,
-      images: listing.imagePaths[0] ? [listingImageUrl(listing.imagePaths[0])] : undefined,
+      // 非公開の商品は OGP 画像も出さない(公開バケットには実体が無い)
+      images:
+        indexable && listing.imagePaths[0] ? [listingImageUrl(listing.imagePaths[0])] : undefined,
     },
   };
 }
@@ -133,6 +136,8 @@ export default async function ItemDetailPage({
     getListingsBySeller(listing.sellerId, { excludeId: listing.id, limit: 6 }),
     user && !isOwner ? findThreadByListing(listing.id, user.id) : Promise.resolve(null),
   ]);
+
+  const imageUrls = await resolveListingImageUrls(listing.imagePaths, listing.status);
 
   const otherFavoritedIds = await getFavoritedIds(
     user?.id ?? null,
@@ -210,7 +215,7 @@ export default async function ItemDetailPage({
         {/* 画像。PC では列幅いっぱいだと正方形が 750px 近くなり、
             1枚見るのに画面を丸ごと使ってしまうので上限を設ける */}
         <div className="lg:mx-auto lg:w-full lg:max-w-[560px]">
-          <ImageSlider paths={listing.imagePaths} title={listing.title} />
+          <ImageSlider urls={imageUrls} title={listing.title} />
         </div>
 
         {/* 情報 */}

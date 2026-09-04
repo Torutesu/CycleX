@@ -126,3 +126,84 @@ export async function cleanupOrphanListingImages(): Promise<number> {
   if (removed > 0) console.info(`[orphan cleanup] ${removed} 件の未使用画像を削除しました`);
   return removed;
 }
+
+/** 運営が非表示にした商品の画像を退避しておく非公開バケット */
+export const HIDDEN_LISTING_BUCKET = "listing-images-hidden";
+const LISTING_BUCKET = "listing-images";
+
+/** 署名付き URL の有効期間(秒)。画面を開いている間に切れない程度に取る */
+const SIGNED_URL_TTL = 60 * 60;
+
+async function listingImagePaths(listingIds: string[]): Promise<string[]> {
+  if (listingIds.length === 0) return [];
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("listing_images")
+    .select("path")
+    .in("listing_id", listingIds);
+  if (error) {
+    console.error("[listing images fetch failed]", error);
+    return [];
+  }
+  return (data ?? []).map((row) => row.path);
+}
+
+/**
+ * バケット間でオブジェクトを移す。
+ *
+ * 1 件ずつ移し、失敗しても残りを続ける(すでに移動済みのものは失敗するが、
+ * 再実行できるようにしておきたい)。
+ *
+ * @returns 移せた件数
+ */
+async function moveObjects(from: string, to: string, paths: string[]): Promise<number> {
+  if (paths.length === 0) return 0;
+  const supabase = createAdminClient();
+  let moved = 0;
+
+  for (const path of paths) {
+    const { error } = await supabase.storage.from(from).move(path, path, { destinationBucket: to });
+    if (error) {
+      // 見つからない = すでに移動済み。それ以外は記録して次へ
+      console.warn("[storage move skipped]", from, "->", to, path, error.message);
+      continue;
+    }
+    moved += 1;
+  }
+
+  return moved;
+}
+
+/** 非表示にした商品の画像を非公開バケットへ退避する */
+export async function hideListingImages(listingIds: string[]): Promise<number> {
+  const paths = await listingImagePaths(listingIds);
+  return moveObjects(LISTING_BUCKET, HIDDEN_LISTING_BUCKET, paths);
+}
+
+/** 非表示を解除した商品の画像を公開バケットへ戻す */
+export async function restoreListingImages(listingIds: string[]): Promise<number> {
+  const paths = await listingImagePaths(listingIds);
+  return moveObjects(HIDDEN_LISTING_BUCKET, LISTING_BUCKET, paths);
+}
+
+/**
+ * 退避中の画像の署名付き URL。
+ * 出品者本人と管理者だけが辿れる商品詳細で使う。
+ */
+export async function signedHiddenImageUrls(paths: string[]): Promise<string[]> {
+  if (paths.length === 0) return [];
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.storage
+    .from(HIDDEN_LISTING_BUCKET)
+    .createSignedUrls(paths, SIGNED_URL_TTL);
+
+  if (error) {
+    console.error("[signed url failed]", error);
+    return [];
+  }
+  // 入力の順序を保ったまま、署名できなかったものは除く
+  const urlByPath = new Map(
+    (data ?? []).filter((item) => item.signedUrl).map((item) => [item.path ?? "", item.signedUrl]),
+  );
+  return paths.map((path) => urlByPath.get(path)).filter((url): url is string => Boolean(url));
+}

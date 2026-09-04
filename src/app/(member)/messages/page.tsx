@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/session";
 import { EmptyState } from "@/components/common/empty-state";
 import { getThreadList } from "@/features/message/queries";
-import { avatarImageUrl, listingImageUrl } from "@/lib/images";
+import { avatarImageUrl, hasVisibleImage, listingImageUrl } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "メッセージ" };
@@ -126,7 +126,7 @@ export default async function MessagesPage() {
                   </div>
 
                   <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    {thread.listing.thumbnailPath && (
+                    {thread.listing.thumbnailPath && hasVisibleImage(thread.listing.status) && (
                       <Image
                         src={listingImageUrl(thread.listing.thumbnailPath)}
                         alt=""

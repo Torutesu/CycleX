@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { requireUser } from "@/lib/session";
 import { EmptyState } from "@/components/common/empty-state";
 import { createClient } from "@/lib/supabase/server";
-import { listingImageUrl } from "@/lib/images";
+import { hasVisibleImage, listingImageUrl } from "@/lib/images";
 import { formatPrice, formatDate, cn } from "@/lib/utils";
 import { LISTING_STATUSES, labelOf, type ListingStatus } from "@/lib/constants";
 import { ListingRowActions } from "@/features/listing/components/listing-row-actions";
@@ -152,7 +152,7 @@ export default async function MyListingsPage({
               return (
                 <li key={row.id} className="flex items-center gap-3 p-3">
                   <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                    {thumbnail ? (
+                    {thumbnail && hasVisibleImage(row.status) ? (
                       <Image
                         src={listingImageUrl(thumbnail.path)}
                         alt=""

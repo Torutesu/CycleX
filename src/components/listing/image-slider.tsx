@@ -4,11 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, ImageOff, Expand } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { listingImageUrl } from "@/lib/images";
 import { cn } from "@/lib/utils";
 
 type ImageSliderProps = {
-  paths: string[];
+  /** 表示する画像の URL。非表示中の商品は署名付き URL になる(解決はサーバー側) */
+  urls: string[];
   title: string;
 };
 
@@ -19,7 +19,7 @@ const SCROLL_SETTLE_MS = 800;
  * FR-05: 画像スライダー。
  * スマホは CSS scroll-snap によるスワイプ、PC は矢印とサムネイルで操作する。
  */
-export function ImageSlider({ paths, title }: ImageSliderProps) {
+export function ImageSlider({ urls, title }: ImageSliderProps) {
   const [index, setIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
   // 拡大表示でのスワイプ判定(横スクロールは無いので開始位置だけ控える)
@@ -30,14 +30,14 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
 
   const scrollTo = useCallback(
     (next: number) => {
-      const clamped = Math.max(0, Math.min(paths.length - 1, next));
+      const clamped = Math.max(0, Math.min(urls.length - 1, next));
       setIndex(clamped);
       const track = trackRef.current;
       if (!track) return;
       pendingRef.current = { index: clamped, until: Date.now() + SCROLL_SETTLE_MS };
       track.scrollTo({ left: track.clientWidth * clamped, behavior: "smooth" });
     },
-    [paths.length],
+    [urls.length],
   );
 
   // 拡大表示中の左右キー。
@@ -53,7 +53,7 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [expanded, index, scrollTo]);
 
-  if (paths.length === 0) {
+  if (urls.length === 0) {
     return (
       <div className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-lg bg-muted text-muted-foreground">
         <ImageOff className="size-8" aria-hidden />
@@ -86,10 +86,10 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
           onScroll={(event) => onTrackScroll(event.currentTarget)}
           className="flex snap-x snap-mandatory overflow-x-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {paths.map((path, i) => (
+          {urls.map((path, i) => (
             <div key={path} className="relative aspect-square w-full shrink-0 snap-center bg-muted">
               <Image
-                src={listingImageUrl(path)}
+                src={path}
                 alt={`${title} の画像 ${i + 1}`}
                 fill
                 sizes="(max-width: 1024px) 100vw, 560px"
@@ -111,7 +111,7 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
         </button>
 
         {/* PC 用の前後ボタン */}
-        {paths.length > 1 && (
+        {urls.length > 1 && (
           <>
             <button
               type="button"
@@ -125,7 +125,7 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
             <button
               type="button"
               onClick={() => scrollTo(index + 1)}
-              disabled={index === paths.length - 1}
+              disabled={index === urls.length - 1}
               aria-label="次の画像"
               className="absolute right-2 top-1/2 hidden size-11 -translate-y-1/2 items-center justify-center rounded-full bg-background/85 backdrop-blur disabled:opacity-30 md:flex"
             >
@@ -133,16 +133,16 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
             </button>
 
             <span className="absolute left-2 top-2 rounded-full bg-background/85 px-2 py-0.5 text-xs tabular-nums backdrop-blur">
-              {index + 1} / {paths.length}
+              {index + 1} / {urls.length}
             </span>
           </>
         )}
       </div>
 
       {/* サムネイルストリップ */}
-      {paths.length > 1 && (
+      {urls.length > 1 && (
         <ul className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {paths.map((path, i) => (
+          {urls.map((path, i) => (
             <li key={path}>
               <button
                 type="button"
@@ -154,13 +154,7 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
                   i === index ? "border-primary" : "border-transparent opacity-70",
                 )}
               >
-                <Image
-                  src={listingImageUrl(path)}
-                  alt=""
-                  fill
-                  sizes="64px"
-                  className="object-cover"
-                />
+                <Image src={path} alt="" fill sizes="64px" className="object-cover" />
               </button>
             </li>
           ))}
@@ -186,14 +180,14 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
             }}
           >
             <Image
-              src={listingImageUrl(paths[index])}
+              src={urls[index]}
               alt={`${title} の画像 ${index + 1}`}
               fill
               sizes="100vw"
               className="object-contain"
             />
 
-            {paths.length > 1 && (
+            {urls.length > 1 && (
               <>
                 <button
                   type="button"
@@ -207,7 +201,7 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
                 <button
                   type="button"
                   onClick={() => scrollTo(index + 1)}
-                  disabled={index === paths.length - 1}
+                  disabled={index === urls.length - 1}
                   aria-label="次の画像"
                   className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-background/85 backdrop-blur transition-opacity disabled:opacity-30"
                 >
@@ -218,7 +212,7 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
                   aria-live="polite"
                   className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-background/85 px-2.5 py-0.5 text-xs tabular-nums backdrop-blur"
                 >
-                  {index + 1} / {paths.length}
+                  {index + 1} / {urls.length}
                 </span>
               </>
             )}

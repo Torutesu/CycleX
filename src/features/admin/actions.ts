@@ -20,6 +20,7 @@ import {
   SUSPENDABLE_LISTING_STATUSES,
 } from "@/features/admin/rules";
 import { recordAdminAction } from "@/features/admin/audit";
+import { hideListingImages, restoreListingImages } from "@/lib/storage";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
 import { cancelPendingTransaction } from "@/features/transaction/cancel";
 import { notifyCanceled, notifyCompleted, notifyReceived } from "@/features/notification/notify";
@@ -102,6 +103,15 @@ export async function suspendUser(
         .eq("status", status);
     }
 
+    // 停止に伴って隠した出品(status_before_suspend が入っているもの)の画像も退避する
+    const { data: hidden } = await supabase
+      .from("listings")
+      .select("id")
+      .eq("seller_id", userId)
+      .eq("status", "suspended")
+      .not("status_before_suspend", "is", null);
+    await hideListingImages((hidden ?? []).map((row) => row.id));
+
     await recordAdminAction(admin.id, "suspend_user", "user", userId, parsed.data);
 
     revalidatePath("/admin/users");
@@ -141,6 +151,15 @@ export async function unsuspendUser(userId: string): Promise<ActionResult<undefi
     if (error) throw new AppError("利用停止の解除に失敗しました。");
 
     await setAuthAccountStatus(userId, "active");
+
+    // 状態を戻す前に対象を控え、画像を公開バケットへ戻す
+    const { data: toRestore } = await supabase
+      .from("listings")
+      .select("id")
+      .eq("seller_id", userId)
+      .eq("status", "suspended")
+      .not("status_before_suspend", "is", null);
+    await restoreListingImages((toRestore ?? []).map((row) => row.id));
 
     for (const status of SUSPENDABLE_LISTING_STATUSES) {
       await supabase
@@ -242,6 +261,9 @@ export async function suspendListing(
 
     if (error) throw new AppError("非表示化に失敗しました。");
 
+    // 画像は公開バケットに残ると URL を知っていれば見られる。非公開バケットへ退避する
+    await hideListingImages([listingId]);
+
     await recordAdminAction(admin.id, "suspend_listing", "listing", listingId, parsed.data);
 
     revalidatePath("/admin/listings");
@@ -283,6 +305,8 @@ export async function unsuspendListing(listingId: string): Promise<ActionResult<
       .eq("status", "suspended");
 
     if (error) throw new AppError("非表示の解除に失敗しました。");
+
+    await restoreListingImages([listingId]);
 
     await recordAdminAction(admin.id, "unsuspend_listing", "listing", listingId, `→ ${restored}`);
 

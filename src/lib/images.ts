@@ -53,6 +53,16 @@ export function isOwnedImagePath(path: string, userId: string): boolean {
   return rest.length > 0 && !rest.includes("/") && !rest.includes("..");
 }
 
+/**
+ * 一覧・サムネイルで画像を出してよい状態か。
+ *
+ * 運営が非表示にした商品の画像は非公開バケットへ退避しているため、
+ * 公開 URL では表示できない(署名付き URL を使う商品詳細だけが例外)。
+ */
+export function hasVisibleImage(status: string | null | undefined): boolean {
+  return status !== "suspended";
+}
+
 export const IMAGE_BUCKETS = {
   listing: LISTING_BUCKET,
   avatar: AVATAR_BUCKET,

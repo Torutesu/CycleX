@@ -8,7 +8,7 @@ import { getThreadDetail } from "@/features/message/queries";
 import { sendDisabledReason } from "@/features/message/rules";
 import { Conversation } from "@/features/message/components/conversation";
 import { MarkThreadRead } from "@/features/message/components/mark-read";
-import { listingImageUrl } from "@/lib/images";
+import { hasVisibleImage, listingImageUrl } from "@/lib/images";
 import { formatPrice } from "@/lib/utils";
 import { LISTING_STATUSES, labelOf } from "@/lib/constants";
 
@@ -44,7 +44,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ threadI
             href={`/items/${thread.listing.id}`}
             className="flex min-w-0 flex-1 items-center gap-2.5"
           >
-            {thread.listing.thumbnailPath && (
+            {thread.listing.thumbnailPath && hasVisibleImage(thread.listing.status) && (
               <Image
                 src={listingImageUrl(thread.listing.thumbnailPath)}
                 alt=""

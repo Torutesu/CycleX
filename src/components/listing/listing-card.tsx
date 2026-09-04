@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, ImageOff, MapPin } from "lucide-react";
 import { FavoriteButton } from "@/components/listing/favorite-button";
-import { listingImageUrl } from "@/lib/images";
+import { hasVisibleImage, listingImageUrl } from "@/lib/images";
 import { formatPrice, timeAgo, cn } from "@/lib/utils";
 import { CATEGORIES, labelOf, PREFECTURES, isBikeCategory } from "@/lib/constants";
 import { listingBadge } from "@/features/listing/rules";
@@ -52,7 +52,7 @@ export function ListingCard({
         aria-disabled={reachable ? undefined : true}
       >
         <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-          {listing.thumbnailPath ? (
+          {listing.thumbnailPath && hasVisibleImage(listing.status) ? (
             <Image
               src={listingImageUrl(listing.thumbnailPath)}
               alt=""
@@ -64,7 +64,9 @@ export function ListingCard({
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground">
               <ImageOff className="size-6" aria-hidden />
-              <span className="text-xs">画像なし</span>
+              <span className="text-xs">
+                {hasVisibleImage(listing.status) ? "画像なし" : "画像は非公開"}
+              </span>
             </div>
           )}
 
