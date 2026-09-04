@@ -70,9 +70,22 @@ export function toTransaction(row: Row): TransactionRecord {
   };
 }
 
+/**
+ * 取引を 1 件引く。見つからなければ null。
+ *
+ * DB のエラーは「見つからない」と区別して throw する。Webhook でこれを null 扱いすると、
+ * 入金済みのイベントを「不正」として 200 で捨ててしまい、Stripe が再送しなくなる。
+ */
 export async function getTransaction(id: string): Promise<TransactionRecord | null> {
   const supabase = createAdminClient();
-  const { data } = await supabase.from("transactions").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("transactions")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`取引の取得に失敗しました: ${error.message}`);
+  }
   return data ? toTransaction(data as Row) : null;
 }
 

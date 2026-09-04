@@ -35,7 +35,7 @@ async function requireBuyerOfPending(transactionId: string) {
 
 export async function completeDemoPayment(transactionId: string): Promise<ActionResult<undefined>> {
   try {
-    await requireBuyerOfPending(transactionId);
+    const transaction = await requireBuyerOfPending(transactionId);
 
     // 本物の checkout.session.completed と同じ形にして同じ処理へ渡す
     const outcome = await handleCheckoutCompleted({
@@ -43,6 +43,8 @@ export async function completeDemoPayment(transactionId: string): Promise<Action
       metadata: { transaction_id: transactionId },
       payment_intent: `pi_demo_${transactionId}`,
       payment_status: "paid",
+      amount_total: transaction.price,
+      currency: "jpy",
     });
 
     if (!outcome.handled) {

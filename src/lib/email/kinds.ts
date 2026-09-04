@@ -16,7 +16,8 @@ export type MailKind =
   | "review_requested"
   | "review_received"
   | "new_message"
-  | "admin_dispute";
+  | "admin_dispute"
+  | "admin_late_payment";
 
 type MailKindMeta = {
   subject: string;
@@ -38,6 +39,8 @@ export const MAIL_KINDS: Record<MailKind, MailKindMeta> = {
   new_message: { subject: "新着メッセージがあります", category: "message" },
   // 運営あて。応答期限があるため設定に関わらず必ず送る
   admin_dispute: { subject: "【要対応】チャージバックの申し立てがありました", category: null },
+  // 運営あて。キャンセル済みの取引に支払いが届いたので返金が必要
+  admin_late_payment: { subject: "【要対応】キャンセル済み取引に入金がありました", category: null },
 };
 
 /**

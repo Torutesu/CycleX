@@ -62,12 +62,17 @@ describe("MAIL_KINDS", () => {
     }
   });
 
-  it("設定で止められないのはキャンセルとウェルカムのみ", () => {
+  it("設定で止められないのは認証系・キャンセル・運営あてのみ", () => {
     const alwaysSend = (Object.keys(MAIL_KINDS) as MailKind[]).filter(
       (kind) => MAIL_KINDS[kind].category === null,
     );
     // 認証系・トラブル対応・運営あての通知は設定で止められない
-    expect(alwaysSend.sort()).toEqual(["admin_dispute", "tx_canceled", "welcome"]);
+    expect(alwaysSend.sort()).toEqual([
+      "admin_dispute",
+      "admin_late_payment",
+      "tx_canceled",
+      "welcome",
+    ]);
   });
 });
 

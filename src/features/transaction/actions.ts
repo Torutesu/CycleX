@@ -19,6 +19,7 @@ import { CHECKOUT_EXPIRES_MINUTES, SHIPPING_NOTE_MAX, type ListingStatus } from 
 import { listingImageUrl } from "@/lib/images";
 import { isDemoCheckout, demoSessionId } from "@/lib/demo";
 import { getTransaction, recordEvent, transitionTransaction } from "@/features/transaction/service";
+import { cancelPendingTransaction } from "@/features/transaction/cancel";
 import { notifyShipped, notifyReceived } from "@/features/notification/notify";
 
 /**
@@ -29,7 +30,7 @@ import { notifyShipped, notifyReceived } from "@/features/notification/notify";
  * Stripe Checkout へ進める。
  */
 export async function startPurchase(listingId: string): Promise<ActionResult<undefined>> {
-  let checkoutUrl: string;
+  let checkoutUrl = "";
 
   try {
     const user = await requireVerifiedUser();
@@ -56,6 +57,32 @@ export async function startPurchase(listingId: string): Promise<ActionResult<und
 
     if (seller?.status !== "active") {
       throw new AppError("出品者のアカウント状態により、現在購入できません。");
+    }
+
+    // 決済画面から離脱した本人の未決済取引が残っていれば先に片付ける。
+    // 残したままだと部分ユニーク索引に当たり、本人も他の人も 45 分間購入できない(B-1)
+    const { data: ownPending } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("listing_id", listing.id)
+      .eq("buyer_id", user.id)
+      .eq("status", "pending_payment")
+      .maybeSingle();
+
+    if (ownPending) {
+      const previous = await getTransaction(ownPending.id);
+      if (previous && previous.status === "pending_payment") {
+        const result = await cancelPendingTransaction(previous, "system", {
+          reason: "restarted_by_buyer",
+          note: "購入者が決済をやり直した",
+          actorId: user.id,
+        });
+        if (result.outcome === "paid") {
+          // 実はもう支払い済みだった。決済画面ではなく取引画面へ
+          checkoutUrl = `/transactions/${previous.id}`;
+          throw new RedirectSignal();
+        }
+      }
     }
 
     // 有効な取引を1件だけ作れる(重複時は 23505)
@@ -149,11 +176,15 @@ export async function startPurchase(listingId: string): Promise<ActionResult<und
       }
     }
   } catch (error) {
+    if (error instanceof RedirectSignal) return redirect(checkoutUrl);
     return fail(toUserMessage(error));
   }
 
   redirect(checkoutUrl);
 }
+
+/** try の内側から redirect したいときに使う内部シグナル(redirect() は try/catch で捕まるため) */
+class RedirectSignal extends Error {}
 
 const shippingNoteSchema = z
   .string()

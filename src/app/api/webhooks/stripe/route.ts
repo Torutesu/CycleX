@@ -10,7 +10,14 @@ import {
 /**
  * Stripe Webhook(FR-09)。
  * 決済の確定はこのエンドポイントのみが行う。署名検証は必須。
+ *
+ * 2xx を返すと Stripe は二度と再送しない。DB の一時障害のように
+ * 後で成功しうる失敗は 500 を返して再送させる(A-2)。
  */
+
+function retryLater(reason: string) {
+  return NextResponse.json({ error: "後で再試行してください", reason }, { status: 500 });
+}
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("stripe-signature");
   if (!signature) {
@@ -35,6 +42,7 @@ export async function POST(request: NextRequest) {
         const outcome = await handleCheckoutCompleted(event.data.object);
         if (!outcome.handled) {
           console.error("[stripe webhook] completed 処理をスキップ:", outcome.reason);
+          if (outcome.retry) return retryLater(outcome.reason);
         }
         break;
       }
@@ -42,6 +50,7 @@ export async function POST(request: NextRequest) {
         const outcome = await handleCheckoutExpired(event.data.object, "payment_expired");
         if (!outcome.handled) {
           console.error("[stripe webhook] expired 処理をスキップ:", outcome.reason);
+          if (outcome.retry) return retryLater(outcome.reason);
         }
         break;
       }
@@ -49,6 +58,7 @@ export async function POST(request: NextRequest) {
         const outcome = await handleCheckoutExpired(event.data.object, "payment_failed");
         if (!outcome.handled) {
           console.error("[stripe webhook] async_payment_failed 処理をスキップ:", outcome.reason);
+          if (outcome.retry) return retryLater(outcome.reason);
         }
         break;
       }

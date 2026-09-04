@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  amountMatches,
   decideCompleted,
   decideExpired,
   paymentIntentIdOf,
@@ -27,19 +28,35 @@ describe("decideCompleted", () => {
     }
   });
 
-  it("キャンセル済みの取引は復活させない", () => {
-    expect(decideCompleted(TX_ID, "canceled", "paid").kind).toBe("skip");
+  it("キャンセル済みの取引に入金が届いたら、復活させずに遅延入金として記録する", () => {
+    // 管理者キャンセルや掃除バッチの後に購入者が決済画面から支払ったケース
+    expect(decideCompleted(TX_ID, "canceled", "paid")).toEqual({ kind: "late_payment" });
+    expect(decideCompleted(TX_ID, "canceled", "paid", false)).toEqual({ kind: "late_payment" });
   });
 
-  it("metadata が欠けていれば不正として扱う", () => {
-    expect(decideCompleted(undefined, "pending_payment", "paid").kind).toBe("invalid");
-    expect(decideCompleted("", "pending_payment", "paid").kind).toBe("invalid");
+  it("遅延入金を記録済みなら再送はスキップする", () => {
+    expect(decideCompleted(TX_ID, "canceled", "paid", true).kind).toBe("skip");
   });
 
-  it("取引が存在しなければ不正として扱う", () => {
+  it("キャンセル済みでも未入金なら何もしない", () => {
+    expect(decideCompleted(TX_ID, "canceled", "unpaid").kind).toBe("skip");
+  });
+
+  it("metadata が欠けていれば復旧不能な不正として扱う(再送させない)", () => {
+    for (const id of [undefined, ""]) {
+      const decision = decideCompleted(id, "pending_payment", "paid");
+      expect(decision.kind).toBe("invalid");
+      if (decision.kind === "invalid") expect(decision.retry).toBe(false);
+    }
+  });
+
+  it("取引が存在しなければ DB 障害の可能性があるので再送させる", () => {
     const decision = decideCompleted(TX_ID, null, "paid");
     expect(decision.kind).toBe("invalid");
-    if (decision.kind === "invalid") expect(decision.reason).toContain(TX_ID);
+    if (decision.kind === "invalid") {
+      expect(decision.reason).toContain(TX_ID);
+      expect(decision.retry).toBe(true);
+    }
   });
 
   it("状態の判定は入金状態より先に行う(未知の取引を保留にしない)", () => {
@@ -62,7 +79,26 @@ describe("decideExpired", () => {
   });
 
   it("metadata が欠けていれば不正として扱う", () => {
-    expect(decideExpired(null, "pending_payment").kind).toBe("invalid");
+    const decision = decideExpired(null, "pending_payment");
+    expect(decision.kind).toBe("invalid");
+    if (decision.kind === "invalid") expect(decision.retry).toBe(false);
+  });
+
+  it("取引が見つからなければ再送させる", () => {
+    const decision = decideExpired(TX_ID, null);
+    expect(decision.kind).toBe("invalid");
+    if (decision.kind === "invalid") expect(decision.retry).toBe(true);
+  });
+});
+
+describe("amountMatches", () => {
+  it("金額と通貨が一致するときだけ true", () => {
+    expect(amountMatches(15000, 15000, "jpy")).toBe(true);
+    expect(amountMatches(15000, 15000, "JPY")).toBe(true);
+    expect(amountMatches(15000, 14000, "jpy")).toBe(false);
+    expect(amountMatches(15000, 15000, "usd")).toBe(false);
+    expect(amountMatches(15000, null, "jpy")).toBe(false);
+    expect(amountMatches(15000, undefined, "jpy")).toBe(false);
   });
 });
 

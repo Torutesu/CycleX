@@ -357,3 +357,50 @@ export async function notifyDispute(info: DisputeInfo): Promise<void> {
     ),
   );
 }
+
+/**
+ * キャンセル済みの取引に支払いが届いたことを運営へ通知する(A-1)。
+ *
+ * 取引は復活させない。購入者の代金だけが残っている状態なので、
+ * 管理画面の「要返金」から Stripe ダッシュボードで返金してもらう。
+ */
+export async function notifyLatePayment(transactionId: string): Promise<void> {
+  const supabase = createAdminClient();
+  const transaction = await loadTransaction(transactionId);
+
+  const { data: admins } = await supabase
+    .from("users")
+    .select("id")
+    .eq("role", "admin")
+    .eq("status", "active");
+
+  if (!admins || admins.length === 0) {
+    console.error("[late payment] 通知先の管理者が見つかりません", transactionId);
+    return;
+  }
+
+  const details = transaction
+    ? [
+        { label: "商品", value: transaction.listingTitle },
+        { label: "金額", value: formatPrice(transaction.price) },
+        { label: "取引 ID", value: transaction.id },
+      ]
+    : [{ label: "取引 ID", value: transactionId }];
+
+  await Promise.all(
+    admins.map((admin) =>
+      sendMail({
+        userId: admin.id,
+        kind: "admin_late_payment",
+        refId: transactionId,
+        body: {
+          intro:
+            "キャンセル済みの取引に対して支払いが完了しました。取引は復活させていません。購入者への返金を Stripe ダッシュボードから行ってください。",
+          details,
+          cta: { label: "返金対象の取引を確認する", path: "/admin/transactions?refund=1" },
+          outro: "この通知は通知設定に関わらず管理者全員へ送られます。",
+        },
+      }),
+    ),
+  );
+}

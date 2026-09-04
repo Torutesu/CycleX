@@ -14,6 +14,7 @@ import {
 } from "@/features/admin/rules";
 import { recordAdminAction } from "@/features/admin/audit";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
+import { cancelPendingTransaction } from "@/features/transaction/cancel";
 import { notifyCanceled } from "@/features/notification/notify";
 
 const reasonSchema = z
@@ -253,11 +254,27 @@ export async function cancelTransaction(
     const transaction = await getTransaction(transactionId);
     if (!transaction) throw new AppError("取引が見つかりません。");
 
-    await transitionTransaction(transaction, "canceled", "admin", {
-      patch: { canceled_reason: parsed.data },
-      actorId: admin.id,
-      note: parsed.data,
-    });
+    if (transaction.status === "pending_payment") {
+      // 未決済は Stripe の決済画面を先に閉じる(A-1)。閉じる前に支払われていたら paid にする
+      const result = await cancelPendingTransaction(transaction, "admin", {
+        reason: parsed.data,
+        actorId: admin.id,
+        note: parsed.data,
+      });
+      if (result.outcome === "paid") {
+        revalidatePath("/admin/transactions");
+        revalidatePath(`/transactions/${transactionId}`);
+        throw new AppError(
+          "キャンセルする前に購入者の支払いが完了していたため、取引を「支払い済み」にしました。返金が必要な場合は改めてキャンセルしてください。",
+        );
+      }
+    } else {
+      await transitionTransaction(transaction, "canceled", "admin", {
+        patch: { canceled_reason: parsed.data },
+        actorId: admin.id,
+        note: parsed.data,
+      });
+    }
 
     await notifyCanceled(transactionId, parsed.data);
     await recordAdminAction(
