@@ -682,6 +682,17 @@ export type Database = {
     Functions: {
       is_active_user: { Args: never; Returns: boolean }
       release_withdrawn_account: { Args: { target: string }; Returns: undefined }
+      thread_summaries: {
+        Args: { p_user: string }
+        Returns: {
+          thread_id: string
+          last_body: string | null
+          last_created_at: string | null
+          last_sender_id: string | null
+          unread_count: number
+        }[]
+      }
+      unread_message_count: { Args: { p_user: string }; Returns: number }
       is_admin: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

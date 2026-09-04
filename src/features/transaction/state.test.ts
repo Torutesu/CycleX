@@ -3,6 +3,7 @@ import {
   allowedTransitions,
   canTransition,
   isActiveTransaction,
+  describeCancelReason,
   listingStatusFor,
   nextActionFor,
   timestampColumnFor,
@@ -183,5 +184,13 @@ describe("isActiveTransaction", () => {
       "shipped",
       "received",
     ]);
+  });
+});
+
+describe("describeCancelReason", () => {
+  it("内部コードは日本語に、自由文はそのまま", () => {
+    expect(describeCancelReason("payment_timeout")).toBe("未決済のまま期限を超過しました");
+    expect(describeCancelReason("運営判断により")).toBe("運営判断により");
+    expect(describeCancelReason(null)).toBeNull();
   });
 });

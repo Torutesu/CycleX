@@ -161,3 +161,58 @@ alter table public.admin_audit_logs drop constraint if exists admin_audit_logs_t
 alter table public.admin_audit_logs
   add constraint admin_audit_logs_target_type_check
     check (target_type in ('user', 'listing', 'transaction', 'brand', 'report', 'review'));
+
+-- -------------------------------------------------------------
+-- B-7: スレッド一覧の集計を SQL 側で行う
+--
+-- 旧実装は参加スレッドの全メッセージを取得してアプリ側で最終メッセージと
+-- 未読数を数えていた。PostgREST の max_rows(1,000 行)を超えると古いスレッドの
+-- 本文・未読が黙って欠落する。service role からのみ呼ぶ関数に置き換える。
+-- -------------------------------------------------------------
+create or replace function public.thread_summaries(p_user uuid)
+returns table (
+  thread_id uuid,
+  last_body text,
+  last_created_at timestamptz,
+  last_sender_id uuid,
+  unread_count bigint
+)
+language sql stable security definer set search_path = public as $$
+  select t.id,
+         m.body,
+         m.created_at,
+         m.sender_id,
+         (select count(*) from public.messages x
+           where x.thread_id = t.id and x.sender_id <> p_user and x.read_at is null)
+    from public.threads t
+    join public.listings l on l.id = t.listing_id
+    left join lateral (
+      select body, created_at, sender_id
+        from public.messages
+       where thread_id = t.id
+       order by created_at desc
+       limit 1
+    ) m on true
+   where t.buyer_id = p_user or l.seller_id = p_user;
+$$;
+
+create or replace function public.unread_message_count(p_user uuid)
+returns bigint
+language sql stable security definer set search_path = public as $$
+  select count(*)
+    from public.messages x
+    join public.threads t on t.id = x.thread_id
+    join public.listings l on l.id = t.listing_id
+   where (t.buyer_id = p_user or l.seller_id = p_user)
+     and x.sender_id <> p_user
+     and x.read_at is null;
+$$;
+
+revoke all on function public.thread_summaries(uuid) from public, anon, authenticated;
+revoke all on function public.unread_message_count(uuid) from public, anon, authenticated;
+grant execute on function public.thread_summaries(uuid) to service_role;
+grant execute on function public.unread_message_count(uuid) to service_role;
+
+-- レート制限が数える列に索引を張る(旧: 全件走査)
+create index if not exists idx_messages_sender_created on public.messages (sender_id, created_at);
+create index if not exists idx_reports_reporter_created on public.reports (reporter_id, created_at);

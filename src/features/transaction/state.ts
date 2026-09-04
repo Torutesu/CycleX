@@ -115,3 +115,18 @@ export function timestampColumnFor(status: TransactionStatus): string | null {
 export function isActiveTransaction(status: TransactionStatus): boolean {
   return status !== "completed" && status !== "canceled";
 }
+
+/** システムが記録するキャンセル理由コードの表示名。運営が入力した自由文はそのまま返す */
+const CANCEL_REASON_LABELS: Record<string, string> = {
+  payment_expired: "決済の有効期限が切れました",
+  payment_failed: "支払いが確認できませんでした",
+  payment_timeout: "未決済のまま期限を超過しました",
+  checkout_creation_failed: "決済ページを用意できませんでした",
+  restarted_by_buyer: "購入者が決済をやり直しました",
+  canceled_by_buyer: "購入者が決済を中止しました",
+};
+
+export function describeCancelReason(reason: string | null | undefined): string | null {
+  if (!reason) return null;
+  return CANCEL_REASON_LABELS[reason] ?? reason;
+}

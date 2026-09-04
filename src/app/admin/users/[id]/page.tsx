@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { RatingStars } from "@/components/rating-stars";
-import { getUserDetail } from "@/features/admin/queries";
+import { getAuditLogs, getUserDetail } from "@/features/admin/queries";
 import { suspendUser, unsuspendUser } from "@/features/admin/actions";
 import { ReasonDialog, ConfirmButton } from "@/features/admin/components/admin-actions";
 import { ReviewHideButton } from "@/features/admin/components/review-actions";
+import { AuditLogList } from "@/features/admin/components/audit-log-list";
 import { AdminHeader } from "@/features/admin/components/admin-table";
 import { isActiveTransaction } from "@/features/transaction/state";
 import { formatDate, formatDateTime, formatPrice } from "@/lib/utils";
@@ -31,6 +32,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
   if (!detail) notFound();
 
   const { user, listings, transactions, reviews, reports } = detail;
+  const auditLogs = await getAuditLogs("user", id);
   const activeTransactions = transactions.filter((tx) =>
     isActiveTransaction(tx.status as TransactionStatus),
   );
@@ -58,7 +60,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <ConfirmButton
               label="利用停止を解除"
               confirmTitle="利用停止を解除しますか?"
-              confirmDescription="この利用者は再びログインできるようになります。非表示にした出品は自動では戻りません。個別に解除してください。"
+              confirmDescription="この利用者は再びログインできるようになります。利用停止に伴って非表示にした出品は元の状態へ自動で戻ります(運営が個別に非表示にした商品は戻りません)。"
               onConfirm={async () => {
                 "use server";
                 return unsuspendUser(user.id);
@@ -70,7 +72,8 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               trigger="利用停止にする"
               title="利用者を利用停止にしますか?"
               description="この利用者はログイン後、利用停止の案内のみが表示されるようになります。"
-              reasonLabel="理由(記録用)"
+              reasonLabel="理由(記録用・必須)"
+              reasonRequired
               hidden={{ userId: user.id }}
               action={suspendUser}
               successMessage="利用停止にしました"
@@ -173,6 +176,12 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
       </Section>
 
       {/* 評価 */}
+      <Section title="管理操作の履歴" count={auditLogs.length}>
+        <div className="px-4 py-2">
+          <AuditLogList logs={auditLogs} />
+        </div>
+      </Section>
+
       <Section title="受けた評価" count={reviews.length}>
         {reviews.length === 0 ? (
           <Empty message="評価はありません。" />

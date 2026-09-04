@@ -30,6 +30,7 @@ export default async function AdminListingsPage({
     query: params.q,
     status: params.status,
     category: params.category,
+    id: params.id,
     page,
   });
 
@@ -39,7 +40,7 @@ export default async function AdminListingsPage({
 
       <AdminFilters
         basePath="/admin/listings"
-        searchPlaceholder="商品タイトルで検索"
+        searchPlaceholder="タイトル・説明・モデル名で検索"
         searchValue={params.q ?? ""}
         filters={[
           { name: "status", label: "状態", options: LISTING_STATUSES, value: params.status ?? "" },
@@ -112,6 +113,11 @@ export default async function AdminListingsPage({
                   <Badge variant={listing.status === "suspended" ? "destructive" : "outline"}>
                     {labelOf(LISTING_STATUSES, listing.status)}
                   </Badge>
+                  {listing.status === "suspended" && listing.suspendedReason && (
+                    <p className="mt-1 max-w-56 text-xs text-muted-foreground">
+                      理由: {listing.suspendedReason}
+                    </p>
+                  )}
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums">
                   {listing.reportCount > 0 ? (
@@ -128,7 +134,7 @@ export default async function AdminListingsPage({
                     <ConfirmButton
                       label="非表示を解除"
                       confirmTitle="非表示を解除しますか?"
-                      confirmDescription="この商品は公開中に戻り、検索と一覧に表示されるようになります。"
+                      confirmDescription="利用停止に伴って非表示になった商品は元の状態へ戻ります。運営が個別に非表示にした商品は「取下げ中」に戻り、公開するかは出品者が決めます。"
                       onConfirm={async () => {
                         "use server";
                         return unsuspendListing(listing.id);
@@ -142,7 +148,8 @@ export default async function AdminListingsPage({
                       trigger="非表示にする"
                       title="この商品を非表示にしますか?"
                       description="検索・一覧・商品ページから除外され、出品者には「運営により非公開」と表示されます。"
-                      reasonLabel="理由(記録用)"
+                      reasonLabel="理由(出品者に表示されます)"
+                      reasonRequired
                       hidden={{ listingId: listing.id }}
                       action={suspendListing}
                       successMessage="非表示にしました"

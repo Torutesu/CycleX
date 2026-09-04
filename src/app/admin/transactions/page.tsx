@@ -70,7 +70,7 @@ export default async function AdminTransactionsPage({
 
       <AdminFilters
         basePath="/admin/transactions"
-        searchPlaceholder="商品タイトルで検索"
+        searchPlaceholder="商品名・当事者の表示名・メールで検索"
         searchValue={params.q ?? ""}
         filters={[
           {
@@ -169,7 +169,10 @@ export default async function AdminTransactionsPage({
                   </td>
                   <td className="px-4 py-2.5">
                     {/* 決済 ID は Stripe ダッシュボードでの照合に使う */}
-                    <code className="block max-w-40 truncate text-xs text-muted-foreground">
+                    <code
+                      className="block max-w-40 truncate text-xs text-muted-foreground"
+                      title={tx.stripePaymentIntentId ?? tx.stripeSessionId ?? undefined}
+                    >
                       {tx.stripePaymentIntentId ?? tx.stripeSessionId ?? "—"}
                     </code>
                   </td>
@@ -177,6 +180,12 @@ export default async function AdminTransactionsPage({
                     {formatDate(tx.createdAt)}
                   </td>
                   <td className="px-4 py-2.5">
+                    <Link
+                      href={`/admin/transactions/${tx.id}`}
+                      className="mr-2 inline-flex min-h-11 items-center text-sm text-primary hover:underline"
+                    >
+                      詳細
+                    </Link>
                     {cancellable ? (
                       <ReasonDialog
                         trigger="キャンセル"

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { MessageSquareDashed } from "lucide-react";
+import { MessageSquareDashed, RotateCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { requireUser } from "@/lib/session";
 import { EmptyState } from "@/components/common/empty-state";
 import { getThreadList } from "@/features/message/queries";
@@ -29,7 +30,17 @@ export default async function MessagesPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
-      <h1 className="text-xl font-bold">メッセージ</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">メッセージ</h1>
+        {/* リアルタイム同期は行わないため、手動更新の導線を置く(FR-07) */}
+        <Link
+          href="/messages"
+          aria-label="最新の状態に更新"
+          className="flex size-11 items-center justify-center rounded-md hover:bg-accent"
+        >
+          <RotateCw className="size-4" aria-hidden />
+        </Link>
+      </div>
 
       {threads.length === 0 ? (
         <EmptyState
@@ -75,6 +86,11 @@ export default async function MessagesPage() {
                       >
                         {thread.counterparty.displayName}
                       </p>
+                      {thread.counterparty.status !== "active" && (
+                        <Badge variant="secondary" className="shrink-0">
+                          {thread.counterparty.status === "withdrawn" ? "退会済み" : "利用停止中"}
+                        </Badge>
+                      )}
                       {thread.lastMessage && (
                         <time className="ml-auto shrink-0 text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(thread.lastMessage.createdAt), {

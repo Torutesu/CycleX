@@ -114,3 +114,18 @@ export function detectStateMismatch(
 
   return `取引が「${txStatus}」なので商品は「${expected}」であるべきですが、「${listingStatus}」になっています`;
 }
+
+/** admin_audit_logs.action の表示名 */
+export const ADMIN_ACTION_LABELS: Record<string, string> = {
+  suspend_user: "利用停止",
+  unsuspend_user: "利用停止を解除",
+  suspend_listing: "商品を非表示",
+  unsuspend_listing: "商品の非表示を解除",
+  cancel_transaction: "取引をキャンセル",
+  resolve_report: "通報を対応済みに",
+  create_brand: "ブランドを追加",
+  rename_brand: "ブランド名を変更",
+  toggle_brand: "ブランドの有効/無効を切替",
+  hide_review: "評価を非表示",
+  unhide_review: "評価の非表示を解除",
+};

@@ -88,39 +88,32 @@ async function getParticipatingThreads(userId: string): Promise<ThreadRow[]> {
   return [...merged.values()];
 }
 
-/** ヘッダー・タブバーに出す未読メッセージの合計件数 */
+/** ヘッダー・タブバーに出す未読メッセージの合計件数(SQL 側で 1 回で数える) */
 export async function getUnreadCount(userId: string): Promise<number> {
-  const threads = await getParticipatingThreads(userId);
-  if (threads.length === 0) return 0;
-
   const supabase = createAdminClient();
-  const { count } = await supabase
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .in(
-      "thread_id",
-      threads.map((thread) => thread.id),
-    )
-    .neq("sender_id", userId)
-    .is("read_at", null);
-
-  return count ?? 0;
+  const { data, error } = await supabase.rpc("unread_message_count", { p_user: userId });
+  if (error) {
+    console.error("[unread count failed]", error);
+    return 0;
+  }
+  return Number(data ?? 0);
 }
 
-/** M-07: スレッド一覧。最終メッセージ日時の降順。 */
+/**
+ * M-07: スレッド一覧。最終メッセージ日時の降順。
+ *
+ * 最終メッセージと未読数は `thread_summaries` 関数で集計する。
+ * アプリ側で全メッセージを数える方式は PostgREST の 1,000 行上限を超えると
+ * 古いスレッドの本文・未読が黙って欠落していた。
+ */
 export async function getThreadList(userId: string): Promise<ThreadSummary[]> {
   const threads = await getParticipatingThreads(userId);
   if (threads.length === 0) return [];
 
   const supabase = createAdminClient();
-  const threadIds = threads.map((thread) => thread.id);
 
-  const [{ data: messages }, { data: users }] = await Promise.all([
-    supabase
-      .from("messages")
-      .select("id, thread_id, sender_id, body, read_at, created_at")
-      .in("thread_id", threadIds)
-      .order("created_at", { ascending: false }),
+  const [{ data: summaries, error }, { data: users }] = await Promise.all([
+    supabase.rpc("thread_summaries", { p_user: userId }),
     supabase
       .from("users")
       .select("id, display_name, avatar_url, status")
@@ -138,17 +131,18 @@ export async function getThreadList(userId: string): Promise<ThreadSummary[]> {
         ],
       ),
   ]);
+  if (error) console.error("[thread summaries failed]", error);
 
   const userMap = new Map((users ?? []).map((user) => [user.id, user]));
+  const summaryMap = new Map((summaries ?? []).map((row) => [row.thread_id, row]));
 
-  const summaries: ThreadSummary[] = threads
+  const result: ThreadSummary[] = threads
     .filter((thread) => thread.listings)
     .map((thread) => {
       const listing = thread.listings!;
       const counterpartyId = thread.buyer_id === userId ? listing.seller_id : thread.buyer_id;
       const counterparty = userMap.get(counterpartyId);
-      const threadMessages = (messages ?? []).filter((message) => message.thread_id === thread.id);
-      const latest = threadMessages[0];
+      const summary = summaryMap.get(thread.id);
 
       return {
         id: thread.id,
@@ -165,17 +159,20 @@ export async function getThreadList(userId: string): Promise<ThreadSummary[]> {
           avatarUrl: counterparty?.avatar_url ?? null,
           status: (counterparty?.status ?? "withdrawn") as UserStatus,
         },
-        lastMessage: latest
-          ? { body: latest.body, createdAt: latest.created_at, fromMe: latest.sender_id === userId }
-          : null,
-        unreadCount: threadMessages.filter(
-          (message) => message.sender_id !== userId && message.read_at === null,
-        ).length,
+        lastMessage:
+          summary?.last_body && summary.last_created_at
+            ? {
+                body: summary.last_body,
+                createdAt: summary.last_created_at,
+                fromMe: summary.last_sender_id === userId,
+              }
+            : null,
+        unreadCount: Number(summary?.unread_count ?? 0),
         lastMessageAt: thread.last_message_at,
       };
     });
 
-  return summaries.sort((a, b) => {
+  return result.sort((a, b) => {
     const left = a.lastMessageAt ?? "";
     const right = b.lastMessageAt ?? "";
     return right.localeCompare(left);

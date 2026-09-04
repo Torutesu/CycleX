@@ -43,6 +43,7 @@ export async function suspendUser(
     const userId = formValue(formData, "userId");
     const parsed = reasonSchema.safeParse(formValue(formData, "reason"));
     if (!parsed.success) return fail("入力内容を確認してください");
+    if (!parsed.data) throw new AppError("利用停止の理由を入力してください。");
 
     const supabase = createAdminClient();
     const { data: target } = await supabase
@@ -183,6 +184,7 @@ export async function suspendListing(
     const listingId = formValue(formData, "listingId");
     const parsed = reasonSchema.safeParse(formValue(formData, "reason"));
     if (!parsed.success) return fail("入力内容を確認してください");
+    if (!parsed.data) throw new AppError("非表示にする理由を入力してください。");
 
     const supabase = createAdminClient();
     const { data: listing } = await supabase

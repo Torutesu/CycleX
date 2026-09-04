@@ -185,7 +185,7 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
  * - `*`       : PostgREST が `%` として解釈するワイルドカード
  * - `, ( ) "` : `or=(...)` の区切りとして解釈される
  */
-function escapeLike(value: string): string {
+export function escapeLike(value: string): string {
   return value
     .replace(/[%_\\]/g, (match) => `\\${match}`)
     .replace(/[*,()"]/g, " ")

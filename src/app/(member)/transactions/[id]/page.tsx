@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { requireUser } from "@/lib/session";
 import { getTransactionDetail } from "@/features/transaction/queries";
 import { openThreadForListing } from "@/features/message/service";
-import { nextActionFor } from "@/features/transaction/state";
+import { nextActionFor, describeCancelReason } from "@/features/transaction/state";
 import { waitingNotice } from "@/features/transaction/guidance";
 import { StatusTimeline } from "@/features/transaction/components/status-timeline";
 import { ShipForm, ReceiveButton } from "@/features/transaction/components/transaction-actions";
@@ -173,7 +173,7 @@ export default async function TransactionPage({
             </h2>
             {transaction.status === "canceled" && transaction.canceledReason && (
               <p className="mt-2 text-sm text-muted-foreground">
-                理由: {transaction.canceledReason}
+                理由: {describeCancelReason(transaction.canceledReason)}
               </p>
             )}
             {transaction.status === "completed" && !transaction.hasReviewed && (

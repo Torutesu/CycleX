@@ -14,6 +14,7 @@ import { requireAdmin } from "@/lib/session";
 import { ADMIN_PAGE_SIZE, type ListingStatus, type TransactionStatus } from "@/lib/constants";
 import { detectStateMismatch } from "@/features/admin/rules";
 import { jstDateKey, startOfJstDay } from "@/lib/utils";
+import { escapeLike } from "@/features/search/queries";
 
 export type Paged<T> = {
   items: T[];
@@ -36,9 +37,11 @@ function paged<T>(items: T[], total: number, page: number): Paged<T> {
   };
 }
 
-/** ILIKE のワイルドカードを無効化する */
-function escapeLike(value: string): string {
-  return value.replace(/[%_\\]/g, (match) => `\\${match}`).replace(/[,()]/g, " ");
+/** 日付入力(YYYY-MM-DD)の検証。それ以外は無視する */
+function parseDateInput(value: string | undefined): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00+09:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 // ============================================================
@@ -175,12 +178,15 @@ export type AdminListingRow = {
   thumbnailPath: string | null;
   seller: { id: string; displayName: string } | null;
   reportCount: number;
+  suspendedReason: string | null;
 };
 
 export async function listListings(options: {
   query?: string;
   status?: string;
   category?: string;
+  /** 通報などから特定の商品を直接開く */
+  id?: string;
   page: number;
 }): Promise<Paged<AdminListingRow>> {
   await requireAdmin();
@@ -190,13 +196,22 @@ export async function listListings(options: {
   let builder = supabase
     .from("listings")
     .select(
-      "id, title, price, status, category, created_at, published_at, listing_images(path, position), seller:users!listings_seller_id_fkey(id, display_name)",
+      "id, title, price, status, category, created_at, published_at, suspended_reason, listing_images(path, position), seller:users!listings_seller_id_fkey(id, display_name)",
       { count: "exact" },
     )
     .order("created_at", { ascending: false });
 
+  if (options.id && /^[0-9a-f-]{36}$/i.test(options.id)) {
+    builder = builder.eq("id", options.id);
+  }
   if (options.query) {
-    builder = builder.ilike("title", `%${escapeLike(options.query)}%`);
+    // FR-12: キーワードはタイトルだけでなく説明・モデル名・自由入力ブランドも対象にする
+    const pattern = `%${escapeLike(options.query)}%`;
+    if (pattern !== "%%") {
+      builder = builder.or(
+        `title.ilike.${pattern},description.ilike.${pattern},model_name.ilike.${pattern},brand_other.ilike.${pattern}`,
+      );
+    }
   }
   if (options.status) builder = builder.eq("status", options.status);
   if (options.category) builder = builder.eq("category", options.category);
@@ -229,6 +244,7 @@ export async function listListings(options: {
       thumbnailPath: thumbnail?.path ?? null,
       seller: row.seller ? { id: row.seller.id, displayName: row.seller.display_name } : null,
       reportCount: reportCounts[index],
+      suspendedReason: row.suspended_reason,
     };
   });
 
@@ -277,15 +293,45 @@ export async function listTransactions(options: {
     .order("created_at", { ascending: false });
 
   if (options.query) {
-    builder = builder.ilike("listings.title", `%${escapeLike(options.query)}%`);
+    // FR-12: 商品名だけでなく当事者(表示名・メール)でも探せる。
+    // 埋め込み先の列を or に混ぜられないので、先に候補 ID を引いてから絞る
+    const pattern = `%${escapeLike(options.query)}%`;
+    const [{ data: listings }, { data: users }] = await Promise.all([
+      supabase.from("listings").select("id").ilike("title", pattern).limit(200),
+      supabase
+        .from("users")
+        .select("id")
+        .or(`display_name.ilike.${pattern},email.ilike.${pattern}`)
+        .limit(200),
+    ]);
+    const listingIds = (listings ?? []).map((row) => row.id);
+    const userIds = (users ?? []).map((row) => row.id);
+    const conditions: string[] = [];
+    if (listingIds.length > 0) conditions.push(`listing_id.in.(${listingIds.join(",")})`);
+    if (userIds.length > 0) {
+      conditions.push(`buyer_id.in.(${userIds.join(",")})`, `seller_id.in.(${userIds.join(",")})`);
+    }
+    // 何にも当たらなければ 0 件にする(条件なしで全件が出ないように)
+    builder =
+      conditions.length > 0
+        ? builder.or(conditions.join(","))
+        : builder.eq("id", "00000000-0000-0000-0000-000000000000");
   }
   if (options.status) builder = builder.eq("status", options.status);
   // 入金済みのままキャンセルされた取引 = 運営の手動返金が必要なもの
   if (options.refund === "pending") {
     builder = builder.eq("status", "canceled").not("paid_at", "is", null);
   }
-  if (options.from) builder = builder.gte("created_at", options.from);
-  if (options.to) builder = builder.lte("created_at", `${options.to}T23:59:59`);
+  // 期間は日本時間の日付で切る(旧実装は UTC で切れ、朝 9 時前の取引が前日に落ちていた)
+  const fromDate = parseDateInput(options.from);
+  const toDate = parseDateInput(options.to);
+  if (fromDate) builder = builder.gte("created_at", fromDate.toISOString());
+  if (toDate) {
+    builder = builder.lt(
+      "created_at",
+      new Date(toDate.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    );
+  }
 
   const { data, count } = await builder.range(rangeFrom, rangeTo);
 
@@ -303,6 +349,132 @@ export async function listTransactions(options: {
   }));
 
   return paged(items, count ?? 0, options.page);
+}
+
+export type AdminTransactionDetail = {
+  id: string;
+  status: string;
+  price: number;
+  createdAt: string;
+  paidAt: string | null;
+  shippedAt: string | null;
+  receivedAt: string | null;
+  completedAt: string | null;
+  canceledAt: string | null;
+  canceledReason: string | null;
+  shippingNote: string | null;
+  stripeSessionId: string | null;
+  stripePaymentIntentId: string | null;
+  listing: { id: string; title: string; status: string } | null;
+  buyer: { id: string; displayName: string; email: string } | null;
+  seller: { id: string; displayName: string; email: string } | null;
+  events: {
+    id: string;
+    event: string;
+    note: string | null;
+    actorName: string | null;
+    createdAt: string;
+  }[];
+  threadId: string | null;
+};
+
+/** AD-04: 取引詳細(Stripe ID 全文・履歴・発送メモ) */
+export async function getTransactionDetail(id: string): Promise<AdminTransactionDetail | null> {
+  await requireAdmin();
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const supabase = createAdminClient();
+
+  const { data: tx } = await supabase
+    .from("transactions")
+    .select(
+      `id, status, price, created_at, paid_at, shipped_at, received_at, completed_at, canceled_at,
+       canceled_reason, shipping_note, stripe_session_id, stripe_payment_intent_id, listing_id, buyer_id,
+       listings(id, title, status),
+       buyer:users!transactions_buyer_id_fkey(id, display_name, email),
+       seller:users!transactions_seller_id_fkey(id, display_name, email)`,
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (!tx) return null;
+
+  const [{ data: events }, { data: thread }] = await Promise.all([
+    supabase
+      .from("transaction_events")
+      .select(
+        "id, event, note, created_at, actor:users!transaction_events_actor_id_fkey(display_name)",
+      )
+      .eq("transaction_id", id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("threads")
+      .select("id")
+      .eq("listing_id", tx.listing_id)
+      .eq("buyer_id", tx.buyer_id)
+      .maybeSingle(),
+  ]);
+
+  return {
+    id: tx.id,
+    status: tx.status,
+    price: tx.price,
+    createdAt: tx.created_at,
+    paidAt: tx.paid_at,
+    shippedAt: tx.shipped_at,
+    receivedAt: tx.received_at,
+    completedAt: tx.completed_at,
+    canceledAt: tx.canceled_at,
+    canceledReason: tx.canceled_reason,
+    shippingNote: tx.shipping_note,
+    stripeSessionId: tx.stripe_session_id,
+    stripePaymentIntentId: tx.stripe_payment_intent_id,
+    listing: tx.listings
+      ? { id: tx.listings.id, title: tx.listings.title, status: tx.listings.status }
+      : null,
+    buyer: tx.buyer
+      ? { id: tx.buyer.id, displayName: tx.buyer.display_name, email: tx.buyer.email }
+      : null,
+    seller: tx.seller
+      ? { id: tx.seller.id, displayName: tx.seller.display_name, email: tx.seller.email }
+      : null,
+    events: (events ?? []).map((event) => ({
+      id: event.id,
+      event: event.event,
+      note: event.note,
+      actorName: event.actor?.display_name ?? null,
+      createdAt: event.created_at,
+    })),
+    threadId: thread?.id ?? null,
+  };
+}
+
+export type AuditLogRow = {
+  id: string;
+  action: string;
+  note: string | null;
+  adminName: string | null;
+  createdAt: string;
+};
+
+/** 管理操作の履歴(admin_audit_logs)。利用者・出品・取引の詳細で使う */
+export async function getAuditLogs(targetType: string, targetId: string): Promise<AuditLogRow[]> {
+  await requireAdmin();
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("admin_audit_logs")
+    .select(
+      "id, action, note, created_at, admin:users!admin_audit_logs_admin_id_fkey(display_name)",
+    )
+    .eq("target_type", targetType)
+    .eq("target_id", targetId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    action: row.action,
+    note: row.note,
+    adminName: row.admin?.display_name ?? null,
+    createdAt: row.created_at,
+  }));
 }
 
 /**

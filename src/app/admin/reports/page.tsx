@@ -116,7 +116,7 @@ export default async function AdminReportsPage({
                 <Link
                   href={
                     report.targetType === "listing"
-                      ? `/admin/listings?q=${encodeURIComponent(report.targetLabel)}`
+                      ? `/admin/listings?id=${report.targetId}`
                       : `/admin/users/${report.targetId}`
                   }
                   className="inline-flex min-h-11 items-center rounded-md border px-3 text-sm hover:bg-accent"
