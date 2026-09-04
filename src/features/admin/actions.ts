@@ -73,6 +73,11 @@ export async function suspendUser(
 
     if (error) throw new AppError("利用停止に失敗しました。");
 
+    // Auth 側でもセッションを止める(A-5)。
+    // DB の status だけでは既存の JWT で PostgREST / Storage を直接叩けてしまう。
+    // app_metadata の状態は proxy が全パスで参照し、停止画面へ送るのに使う
+    await setAuthAccountStatus(userId, "suspended");
+
     // 公開中・取下げ中・下書きの出品をまとめて非表示にする。
     // 解除時に元へ戻せるよう、直前のステータスを控えておく。
     // 運営が個別に非表示にした商品は status_before_suspend が null のままなので、
@@ -111,6 +116,14 @@ export async function unsuspendUser(userId: string): Promise<ActionResult<undefi
     const admin = await requireAdminAction();
     const supabase = createAdminClient();
 
+    const { data: target } = await supabase
+      .from("users")
+      .select("id, status")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!target) throw new AppError("利用者が見つかりません。");
+    if (target.status !== "suspended") throw new AppError("この利用者は停止中ではありません。");
+
     const { error } = await supabase
       .from("users")
       .update({ status: "active", suspended_reason: null })
@@ -118,6 +131,8 @@ export async function unsuspendUser(userId: string): Promise<ActionResult<undefi
       .eq("status", "suspended");
 
     if (error) throw new AppError("利用停止の解除に失敗しました。");
+
+    await setAuthAccountStatus(userId, "active");
 
     for (const status of SUSPENDABLE_LISTING_STATUSES) {
       await supabase
@@ -136,6 +151,21 @@ export async function unsuspendUser(userId: string): Promise<ActionResult<undefi
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));
+  }
+}
+
+/**
+ * Supabase Auth 側のアカウント状態を更新する。
+ * 停止は BAN(既存トークンの更新とログインを止める)+ app_metadata、解除はその逆。
+ */
+async function setAuthAccountStatus(userId: string, status: "active" | "suspended"): Promise<void> {
+  const { error } = await createAdminClient().auth.admin.updateUserById(userId, {
+    ban_duration: status === "suspended" ? "876000h" : "none",
+    app_metadata: { status },
+  });
+  if (error) {
+    console.error("[auth account status]", userId, status, error);
+    throw new AppError("認証基盤の更新に失敗しました。時間をおいて再度お試しください。");
   }
 }
 

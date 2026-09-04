@@ -311,7 +311,10 @@ export async function withdraw(
     await removeUserFolder(IMAGE_BUCKETS.avatar, user.id);
 
     // 5. 以降ログインできないようにする
-    await admin.auth.admin.updateUserById(user.id, { ban_duration: "876000h" });
+    await admin.auth.admin.updateUserById(user.id, {
+      ban_duration: "876000h",
+      app_metadata: { status: "withdrawn" },
+    });
   } catch (error) {
     return fail(toUserMessage(error));
   }

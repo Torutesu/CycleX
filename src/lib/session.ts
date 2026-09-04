@@ -65,7 +65,7 @@ export async function requireUser(nextPath?: string): Promise<SessionUser> {
     const params = nextPath ? `?next=${encodeURIComponent(nextPath)}` : "";
     redirect(`/login${params}`);
   }
-  if (user.status === "suspended") {
+  if (user.status === "suspended" || user.status === "withdrawn") {
     redirect("/suspended");
   }
   return user;
@@ -104,5 +104,6 @@ export async function requireUserAction(): Promise<SessionUser> {
   if (!user) throw new AppError("ログインが必要です。");
   if (user.status === "suspended")
     throw new AppError("アカウントが利用停止中のため、この操作は行えません。");
+  if (user.status === "withdrawn") throw new AppError("退会済みのアカウントです。");
   return user;
 }
