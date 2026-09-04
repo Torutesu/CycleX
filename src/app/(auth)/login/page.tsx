@@ -22,6 +22,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     "リンクの有効期限が切れています。お手数ですが、もう一度メールの送信からやり直してください。",
   callback:
     "リンクを確認できませんでした。有効期限が切れているか、すでに使用済みの可能性があります。もう一度お試しください。",
+  banned:
+    "このアカウントは退会済みか、運営により利用を停止されています。退会済みの場合は新規に会員登録してください。",
 };
 
 export default async function LoginPage({

@@ -12,24 +12,11 @@
  * 実行後は `node scripts/seed-images.mjs 200 --replace` で貼り直すこと。
  */
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "node:fs";
 import { BIKES, PARTS, SIZE_CM, buildDescription } from "./seed-catalog.mjs";
+import { loadEnv } from "./lib/env.mjs";
 
-const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
-    .split("\n")
-    .filter((line) => line.includes("=") && !line.trim().startsWith("#"))
-    .map((line) => {
-      const index = line.indexOf("=");
-      return [
-        line.slice(0, index).trim(),
-        line
-          .slice(index + 1)
-          .trim()
-          .replace(/^"|"$/g, ""),
-      ];
-    }),
-);
+// .env.local を読み、接続先がローカルでなければ止める(scripts/lib/env.mjs)
+const env = loadEnv();
 
 const url = process.env.SUPABASE_URL ?? env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? env.SUPABASE_SERVICE_ROLE_KEY;

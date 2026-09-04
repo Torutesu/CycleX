@@ -56,34 +56,19 @@ select show_trgm('ロードバイク');
 
 ---
 
-## 3. 初期データを入れる(任意)
+## 3. 管理者アカウントを設定する
 
-確認用に商品を並べておきたい場合のみ。**本番運用を始めたら実行しないこと。**
-
-手元の `.env.local` を一時的に本番の値に書き換えて実行する。
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=<Project URL>
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
-SUPABASE_SERVICE_ROLE_KEY=<service_role key>
-```
-
-```bash
-node scripts/seed-users.mjs      # テスト会員5名(管理者含む)
-node scripts/seed-dev.mjs 120    # ダミー商品120件
-node scripts/seed-images.mjs     # 商品画像
-```
-
-終わったら `.env.local` をローカル用の値に戻す。
-
-管理者アカウントを本番の自分のアカウントにする場合は、会員登録したあとに
-`SQL Editor` で次を実行する。
+本番のアカウントで会員登録したあと、`SQL Editor` で次を実行する。
 
 ```sql
 update public.users set role = 'admin' where email = '<自分のメールアドレス>';
 ```
 
----
+> **本番にダミーデータやテスト会員を投入しないこと。**
+> `scripts/seed-*.mjs` は開発用で、既知のパスワードを持つテスト会員や偽の取引を作る。
+> 接続先がローカルの Supabase 以外なら、これらのスクリプトは自動的に止まる
+> (どうしても検証環境に入れたい場合だけ `--allow-remote` を付ける)。
+> E2E(`pnpm test:e2e`)も同じ理由でローカル以外には接続しない。
 
 ## 4. Vercel に載せる
 

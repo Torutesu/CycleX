@@ -681,6 +681,7 @@ export type Database = {
     }
     Functions: {
       is_active_user: { Args: never; Returns: boolean }
+      release_withdrawn_account: { Args: { target: string }; Returns: undefined }
       is_admin: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

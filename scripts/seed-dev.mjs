@@ -8,27 +8,13 @@
  * 説明文が互いに矛盾しないように組み立てる。本番の商用データではない。
  */
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "node:fs";
 import { BIKES, PARTS, SIZE_CM, buildDescription } from "./seed-catalog.mjs";
+import { loadEnv } from "./lib/env.mjs";
 
 const COUNT = Number(process.argv[2] ?? 500);
 
-// .env.local を読む(dotenv を足さずに済ませる)
-const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
-    .split("\n")
-    .filter((line) => line.includes("=") && !line.trim().startsWith("#"))
-    .map((line) => {
-      const index = line.indexOf("=");
-      return [
-        line.slice(0, index).trim(),
-        line
-          .slice(index + 1)
-          .trim()
-          .replace(/^"|"$/g, ""),
-      ];
-    }),
-);
+// .env.local を読み、接続先がローカルでなければ止める(scripts/lib/env.mjs)
+const env = loadEnv();
 
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },

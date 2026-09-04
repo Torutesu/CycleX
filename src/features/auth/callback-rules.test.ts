@@ -56,6 +56,13 @@ describe("decideAuthCallback", () => {
     expect(decide("error=access_denied")).toEqual({ kind: "error", reason: "expired" });
   });
 
+  it("退会・停止済みアカウント(user_banned)は期限切れと区別する", () => {
+    expect(decide("error=access_denied&error_code=user_banned")).toEqual({
+      kind: "error",
+      reason: "banned",
+    });
+  });
+
   it("そのほかの Supabase エラーは callback として扱う", () => {
     expect(decide("error=server_error")).toEqual({ kind: "error", reason: "callback" });
   });

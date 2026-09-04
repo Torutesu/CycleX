@@ -311,10 +311,20 @@ export async function withdraw(
     await removeUserFolder(IMAGE_BUCKETS.avatar, user.id);
 
     // 5. 以降ログインできないようにする
-    await admin.auth.admin.updateUserById(user.id, {
+    const { error: banError } = await admin.auth.admin.updateUserById(user.id, {
       ban_duration: "876000h",
       app_metadata: { status: "withdrawn" },
     });
+    if (banError) throw new AppError("退会処理に失敗しました。時間をおいて再度お試しください。");
+
+    // 6. メールアドレスと Google の identity を解放し、同じメールで再登録できるようにする
+    const { error: releaseError } = await admin.rpc("release_withdrawn_account", {
+      target: user.id,
+    });
+    if (releaseError) {
+      console.error("[withdraw] release_withdrawn_account failed", releaseError);
+      throw new AppError("退会処理に失敗しました。時間をおいて再度お試しください。");
+    }
   } catch (error) {
     return fail(toUserMessage(error));
   }

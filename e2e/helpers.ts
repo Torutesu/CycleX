@@ -4,6 +4,19 @@ import type { Page } from "@playwright/test";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
+// E2E は service role でテスト会員や出品を作成・削除する。
+// playwright.config.ts が .env.local を読むため、本番の値が入ったままだと本番を書き換える。
+// ローカルの Supabase 以外には明示的なフラグが無い限り接続しない。
+if (
+  !/^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?$/.test(SUPABASE_URL) &&
+  process.env.CYCLEX_ALLOW_REMOTE !== "1"
+) {
+  throw new Error(
+    `E2E の接続先がローカルの Supabase ではありません: ${SUPABASE_URL}。` +
+      "意図したものなら CYCLEX_ALLOW_REMOTE=1 を設定してください。",
+  );
+}
+
 export const TEST_PASSWORD = "abcd1234";
 
 export function adminDb() {

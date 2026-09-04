@@ -24,10 +24,21 @@ export function listingImageUrl(path: string): string {
   return publicUrl(LISTING_BUCKET, path);
 }
 
-/** プロフィールアイコンの公開 URL。外部 URL(Google 等)はそのまま返す。 */
+/** 外部アイコン URL として許可するホスト(Google ログインのプロフィール画像) */
+const ALLOWED_AVATAR_HOST = /^https:\/\/[a-z0-9-]+\.googleusercontent\.com\//;
+
+/**
+ * プロフィールアイコンの公開 URL。
+ *
+ * 外部 URL は Google のプロフィール画像だけを通す。それ以外のホストは
+ * next/image の許可リストに無く描画時に例外になる(そのユーザーが出てくる
+ * 画面が全員に対して落ちる)ので、既定アイコンにフォールバックさせる。
+ */
 export function avatarImageUrl(path: string | null | undefined): string | null {
   if (!path) return null;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return ALLOWED_AVATAR_HOST.test(path) ? path : null;
+  }
   return publicUrl(AVATAR_BUCKET, path);
 }
 

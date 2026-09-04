@@ -8,25 +8,12 @@
  */
 import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "node:fs";
+import { loadEnv } from "./lib/env.mjs";
 
 const COUNT = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 120);
 
-const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
-    .split("\n")
-    .filter((line) => line.includes("=") && !line.trim().startsWith("#"))
-    .map((line) => {
-      const i = line.indexOf("=");
-      return [
-        line.slice(0, i).trim(),
-        line
-          .slice(i + 1)
-          .trim()
-          .replace(/^"|"$/g, ""),
-      ];
-    }),
-);
+// .env.local を読み、接続先がローカルでなければ止める(scripts/lib/env.mjs)
+const env = loadEnv();
 
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },

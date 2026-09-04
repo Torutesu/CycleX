@@ -18,7 +18,7 @@ import { safeRedirectPath } from "@/lib/utils";
 export type CallbackDecision =
   | { kind: "code"; code: string; next: string }
   | { kind: "otp"; tokenHash: string; type: EmailOtpType; next: string }
-  | { kind: "error"; reason: "expired" | "callback" };
+  | { kind: "error"; reason: "expired" | "callback" | "banned" };
 
 const OTP_TYPES: readonly EmailOtpType[] = [
   "signup",
@@ -39,8 +39,10 @@ const DEFAULT_NEXT: Partial<Record<EmailOtpType, string>> = {
 const EXPIRED_CODES = new Set(["otp_expired", "access_denied"]);
 
 export function decideAuthCallback(params: URLSearchParams): CallbackDecision {
+  // error_code の方が具体的(user_banned など)。access_denied は汎用なので後回し
   const errorCode = params.get("error_code") ?? params.get("error");
   if (errorCode) {
+    if (errorCode === "user_banned") return { kind: "error", reason: "banned" };
     return { kind: "error", reason: EXPIRED_CODES.has(errorCode) ? "expired" : "callback" };
   }
 
