@@ -1,7 +1,9 @@
 import "server-only";
 
 import { expireCheckoutSession } from "@/lib/stripe";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  getTransaction,
   transitionTransaction,
   type TransactionRecord,
   type TransitionOptions,
@@ -58,4 +60,40 @@ export async function cancelPendingTransaction(
     patch: { canceled_reason: options.reason, ...options.patch },
   });
   return { outcome: "canceled", transaction: canceled };
+}
+
+/**
+ * 購入者が決済画面から戻ってきた(cancel_url)ときに、その人の未決済取引を片付ける。
+ * 放置すると部分ユニーク索引に当たり、本人も他の人も 45 分間その商品を買えない。
+ *
+ * @returns 支払い済みと分かった場合はその取引 ID(取引画面へ案内する)
+ */
+export async function cancelBuyerPendingForListing(
+  listingId: string,
+  buyerId: string,
+): Promise<{ paidTransactionId: string | null }> {
+  const supabase = createAdminClient();
+  const { data: pending } = await supabase
+    .from("transactions")
+    .select("id")
+    .eq("listing_id", listingId)
+    .eq("buyer_id", buyerId)
+    .eq("status", "pending_payment")
+    .maybeSingle();
+  if (!pending) return { paidTransactionId: null };
+
+  const transaction = await getTransaction(pending.id);
+  if (!transaction || transaction.status !== "pending_payment") return { paidTransactionId: null };
+
+  try {
+    const result = await cancelPendingTransaction(transaction, "system", {
+      reason: "canceled_by_buyer",
+      note: "購入者が決済画面から戻った",
+      actorId: buyerId,
+    });
+    return { paidTransactionId: result.outcome === "paid" ? transaction.id : null };
+  } catch (error) {
+    console.error("[cancel by buyer failed]", transaction.id, error);
+    return { paidTransactionId: null };
+  }
 }

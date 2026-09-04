@@ -153,3 +153,11 @@ alter table public.users
 alter table public.users
   add constraint users_notification_prefs_shape
     check (jsonb_typeof(notification_prefs) = 'object' and pg_column_size(notification_prefs) < 2048);
+
+-- -------------------------------------------------------------
+-- B-4: 管理者による評価の非表示化を監査ログの対象に加える
+-- -------------------------------------------------------------
+alter table public.admin_audit_logs drop constraint if exists admin_audit_logs_target_type_check;
+alter table public.admin_audit_logs
+  add constraint admin_audit_logs_target_type_check
+    check (target_type in ('user', 'listing', 'transaction', 'brand', 'report', 'review'));

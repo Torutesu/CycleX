@@ -143,6 +143,10 @@ describe("listingStatusFor", () => {
     expect(listingStatusFor("paid", "published")).toBe("trading");
   });
 
+  it("運営が非表示にした商品は支払いが来ても上書きしない", () => {
+    expect(listingStatusFor("paid", "suspended")).toBeNull();
+  });
+
   it("取引完了で売却済にする", () => {
     expect(listingStatusFor("completed", "trading")).toBe("sold");
   });

@@ -196,6 +196,30 @@ export async function suspendListing(
     const check = canSuspendListing(listing.status as ListingStatus);
     if (!check.allowed) throw new AppError(check.reason);
 
+    // 決済画面を開いている購入者がいれば先に閉じる(B-6)。
+    // 閉じずに非表示にすると、その後の入金で非表示の商品が取引中→売却済になる
+    const { data: pending } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("listing_id", listingId)
+      .eq("status", "pending_payment")
+      .maybeSingle();
+    if (pending) {
+      const transaction = await getTransaction(pending.id);
+      if (transaction && transaction.status === "pending_payment") {
+        const result = await cancelPendingTransaction(transaction, "admin", {
+          reason: "商品の非表示化に伴うキャンセル",
+          actorId: admin.id,
+          note: parsed.data ?? undefined,
+        });
+        if (result.outcome === "paid") {
+          throw new AppError(
+            "購入者の支払いが完了していたため非表示にできません。取引をキャンセルしてから実行してください。",
+          );
+        }
+      }
+    }
+
     // 運営が個別に非表示にしたものは、利用停止解除の一括復帰では戻さない。
     // 直前の状態は控えるが、復帰は unsuspendListing から明示的に行う。
     const { error } = await supabase
@@ -317,6 +341,45 @@ export async function cancelTransaction(
 
     revalidatePath("/admin/transactions");
     revalidatePath(`/transactions/${transactionId}`);
+    return ok();
+  } catch (error) {
+    return fail(toUserMessage(error));
+  }
+}
+
+// ============================================================
+// 評価管理(FR-10)
+// ============================================================
+
+/** FR-10: 管理者による評価の非表示化 / 解除。評価は削除せず、表示と平均★から除外する */
+export async function setReviewHidden(
+  reviewId: string,
+  hidden: boolean,
+): Promise<ActionResult<undefined>> {
+  try {
+    const admin = await requireAdminAction();
+    const supabase = createAdminClient();
+
+    const { data: review } = await supabase
+      .from("reviews")
+      .select("id, reviewee_id, is_hidden")
+      .eq("id", reviewId)
+      .maybeSingle();
+    if (!review) throw new AppError("評価が見つかりません。");
+    if (review.is_hidden === hidden) {
+      throw new AppError(hidden ? "すでに非表示です。" : "非表示ではありません。");
+    }
+
+    const { error } = await supabase
+      .from("reviews")
+      .update({ is_hidden: hidden })
+      .eq("id", reviewId);
+    if (error) throw new AppError("評価の更新に失敗しました。");
+
+    await recordAdminAction(admin.id, hidden ? "hide_review" : "unhide_review", "review", reviewId);
+
+    revalidatePath(`/admin/users/${review.reviewee_id}`);
+    revalidatePath(`/users/${review.reviewee_id}`);
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));

@@ -32,8 +32,8 @@ export const MAIL_KINDS: Record<MailKind, MailKindMeta> = {
   tx_shipped: { subject: "発送・受渡のご連絡があります", category: "transaction" },
   tx_received: { subject: "受取確認のお知らせ", category: "transaction" },
   tx_completed: { subject: "取引が完了しました", category: "transaction" },
-  // トラブル対応に関わるため、設定に関わらず必ず送る
-  tx_canceled: { subject: "取引がキャンセルされました", category: null },
+  // FR-13 では 5〜12 の通知を設定で止められる。キャンセルも「取引」カテゴリに従う
+  tx_canceled: { subject: "取引がキャンセルされました", category: "transaction" },
   review_requested: { subject: "評価のお願い", category: "review" },
   review_received: { subject: "評価が届きました", category: "review" },
   new_message: { subject: "新着メッセージがあります", category: "message" },

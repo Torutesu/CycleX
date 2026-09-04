@@ -3,7 +3,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
 import { resolveReviewPublication } from "@/features/review/rules";
-import { notifyCompleted } from "@/features/notification/notify";
+import { notifyCompleted, notifyReviewReceived } from "@/features/notification/notify";
 import { REVIEW_AUTO_PUBLISH_DAYS } from "@/lib/constants";
 
 export type ReviewBatchResult = {
@@ -57,12 +57,19 @@ export async function publishOverdueReviews(now = new Date()): Promise<ReviewBat
     );
 
     if (decision.publish) {
-      const { error } = await supabase
+      const { data: published, error } = await supabase
         .from("reviews")
         .update({ is_published: true })
         .eq("transaction_id", candidate.id)
-        .eq("is_published", false);
-      if (!error) result.published += 1;
+        .eq("is_published", false)
+        .select("reviewee_id");
+      if (!error) {
+        result.published += 1;
+        // 自動公開でも「評価が届いた」を送る(FR-13 #9)
+        for (const review of published ?? []) {
+          await notifyReviewReceived(candidate.id, review.reviewee_id);
+        }
+      }
     }
 
     if (decision.complete) {
@@ -78,6 +85,26 @@ export async function publishOverdueReviews(now = new Date()): Promise<ReviewBat
           console.error("[review batch] 完了処理に失敗", candidate.id, error);
         }
       }
+    }
+  }
+
+  // 完了済みの取引に未公開の評価が残っていれば公開する
+  // (旧ロジックでは完了後に登録した評価が永久に非公開だった)
+  const { data: leftovers } = await supabase
+    .from("reviews")
+    .select("id, transaction_id, reviewee_id, transactions!inner(status)")
+    .eq("is_published", false)
+    .eq("transactions.status", "completed");
+
+  for (const review of leftovers ?? []) {
+    const { error } = await supabase
+      .from("reviews")
+      .update({ is_published: true })
+      .eq("id", review.id)
+      .eq("is_published", false);
+    if (!error) {
+      result.published += 1;
+      await notifyReviewReceived(review.transaction_id, review.reviewee_id);
     }
   }
 

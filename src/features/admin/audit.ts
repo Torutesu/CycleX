@@ -12,9 +12,11 @@ export type AdminAction =
   | "resolve_report"
   | "create_brand"
   | "rename_brand"
-  | "toggle_brand";
+  | "toggle_brand"
+  | "hide_review"
+  | "unhide_review";
 
-export type AuditTargetType = "user" | "listing" | "transaction" | "brand" | "report";
+export type AuditTargetType = "user" | "listing" | "transaction" | "brand" | "report" | "review";
 
 /**
  * 管理操作の記録(S3-6)。

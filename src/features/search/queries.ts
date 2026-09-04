@@ -26,6 +26,8 @@ export type ListingCardData = {
   publishedAt: string | null;
   thumbnailPath: string | null;
   brandName: string | null;
+  sellerId: string;
+  deliveryMethod: string | null;
 };
 
 type ListingRow = {
@@ -41,10 +43,15 @@ type ListingRow = {
   published_at: string | null;
   listing_images: { path: string; position: number }[] | null;
   brands: { name: string } | null;
+  seller_id: string;
+  brand_other: string | null;
+  delivery_method: string | null;
 };
 
-const CARD_SELECT =
-  "id, title, price, status, category, frame_size, shipping_from_pref, meetup_pref, favorites_count, published_at, listing_images(path, position), brands(name)";
+export const CARD_SELECT =
+  "id, title, price, status, category, frame_size, shipping_from_pref, meetup_pref, favorites_count, published_at, seller_id, brand_other, delivery_method, listing_images(path, position), brands(name)";
+
+export type { ListingRow };
 
 export function toCard(row: ListingRow): ListingCardData {
   const thumbnail = [...(row.listing_images ?? [])].sort((a, b) => a.position - b.position)[0];
@@ -60,7 +67,10 @@ export function toCard(row: ListingRow): ListingCardData {
     favoritesCount: row.favorites_count,
     publishedAt: row.published_at,
     thumbnailPath: thumbnail?.path ?? null,
-    brandName: row.brands?.name ?? null,
+    // マスタに無い「その他」ブランドは自由入力の名前を出す
+    brandName: row.brands?.name ?? row.brand_other ?? null,
+    sellerId: row.seller_id,
+    deliveryMethod: row.delivery_method,
   };
 }
 
@@ -148,6 +158,9 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
     default:
       query = query.order("published_at", { ascending: false, nullsFirst: false });
   }
+
+  // 同じ価格・同じ日時が 1 ページ分を超えると、ページ間で重複や欠落が出るので id で安定させる
+  query = query.order("id", { ascending: true });
 
   const from = (params.page - 1) * SEARCH_PAGE_SIZE;
   const { data, count, error } = await query.range(from, from + SEARCH_PAGE_SIZE - 1);

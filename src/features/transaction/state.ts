@@ -81,7 +81,8 @@ export function listingStatusFor(
 ): ListingStatus | null {
   switch (txStatus) {
     case "paid":
-      return "trading";
+      // 運営が非表示にした商品まで取引中へ上書きしない(状態のズレは日次で検出する)
+      return currentListingStatus === "published" ? "trading" : null;
     case "completed":
       return "sold";
     case "canceled":

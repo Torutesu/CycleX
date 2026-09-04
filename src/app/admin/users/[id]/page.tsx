@@ -9,6 +9,7 @@ import { RatingStars } from "@/components/rating-stars";
 import { getUserDetail } from "@/features/admin/queries";
 import { suspendUser, unsuspendUser } from "@/features/admin/actions";
 import { ReasonDialog, ConfirmButton } from "@/features/admin/components/admin-actions";
+import { ReviewHideButton } from "@/features/admin/components/review-actions";
 import { AdminHeader } from "@/features/admin/components/admin-table";
 import { isActiveTransaction } from "@/features/transaction/state";
 import { formatDate, formatDateTime, formatPrice } from "@/lib/utils";
@@ -183,6 +184,9 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                   <RatingStars value={review.rating} />
                   {!review.is_published && <Badge variant="secondary">未公開</Badge>}
                   {review.is_hidden && <Badge variant="destructive">非表示</Badge>}
+                  <span className="ml-auto">
+                    <ReviewHideButton reviewId={review.id} hidden={review.is_hidden} />
+                  </span>
                   <span className="ml-auto text-xs text-muted-foreground">
                     {formatDate(review.created_at)}
                   </span>

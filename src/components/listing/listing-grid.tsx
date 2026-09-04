@@ -6,6 +6,8 @@ type ListingGridProps = {
   listings: ListingCardData[];
   favoritedIds?: Set<string>;
   isLoggedIn?: boolean;
+  /** ログイン中の利用者。自分の出品にはハートを出さない */
+  currentUserId?: string | null;
   className?: string;
 };
 
@@ -21,6 +23,7 @@ export function ListingGrid({
   listings,
   favoritedIds,
   isLoggedIn = false,
+  currentUserId = null,
   className,
 }: ListingGridProps) {
   return (
@@ -31,6 +34,7 @@ export function ListingGrid({
             listing={listing}
             favorited={favoritedIds?.has(listing.id) ?? false}
             isLoggedIn={isLoggedIn}
+            isOwn={currentUserId !== null && listing.sellerId === currentUserId}
             priority={index < EAGER_COUNT}
           />
         </li>

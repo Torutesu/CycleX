@@ -4,7 +4,7 @@ import { Heart, ImageOff, MapPin } from "lucide-react";
 import { FavoriteButton } from "@/components/listing/favorite-button";
 import { listingImageUrl } from "@/lib/images";
 import { formatPrice, timeAgo, cn } from "@/lib/utils";
-import { labelOf, PREFECTURES, isBikeCategory } from "@/lib/constants";
+import { CATEGORIES, labelOf, PREFECTURES, isBikeCategory } from "@/lib/constants";
 import { listingBadge } from "@/features/listing/rules";
 import type { ListingCardData } from "@/features/search/queries";
 
@@ -27,15 +27,29 @@ export function ListingCard({
   priority = false,
 }: ListingCardProps) {
   const badge = listingBadge(listing.status);
-  const region = labelOf(PREFECTURES, listing.shippingFromPref ?? listing.meetupPref);
+  // 対面は受渡地域、配送は発送元(商品詳細と同じ規則)
+  const region = labelOf(
+    PREFECTURES,
+    listing.deliveryMethod === "in_person"
+      ? (listing.meetupPref ?? listing.shippingFromPref)
+      : (listing.shippingFromPref ?? listing.meetupPref),
+  );
+  const category = labelOf(CATEGORIES, listing.category);
   const showFrameSize = isBikeCategory(listing.category) && listing.frameSize;
   const posted = timeAgo(listing.publishedAt);
+  // 取下げ・非表示・下書きは本人以外に詳細を見せられない(お気に入り一覧で「その旨」を示す)
+  const reachable = ["published", "trading", "sold"].includes(listing.status);
+  const Body = reachable ? Link : "div";
 
   return (
     <article className="group relative">
-      <Link
+      <Body
         href={`/items/${listing.id}`}
-        className="block transition-transform duration-150 active:scale-[0.98]"
+        className={cn(
+          "block transition-transform duration-150",
+          reachable ? "active:scale-[0.98]" : "opacity-70",
+        )}
+        aria-disabled={reachable ? undefined : true}
       >
         <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
           {listing.thumbnailPath ? (
@@ -80,6 +94,7 @@ export function ListingCard({
           <h3 className="line-clamp-2 break-phrase text-sm leading-snug">{listing.title}</h3>
           <p className="font-bold tabular-nums">{formatPrice(listing.price)}</p>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+            {category && <span>{category}</span>}
             {listing.brandName && <span className="truncate">{listing.brandName}</span>}
             {showFrameSize && <span>サイズ {listing.frameSize}</span>}
             {region && (
@@ -102,9 +117,9 @@ export function ListingCard({
             </div>
           )}
         </div>
-      </Link>
+      </Body>
 
-      {!isOwn && (
+      {!isOwn && reachable && (
         <FavoriteButton
           listingId={listing.id}
           favorited={favorited}

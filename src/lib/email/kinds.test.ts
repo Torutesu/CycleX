@@ -28,8 +28,9 @@ describe("shouldSend", () => {
     expect(shouldSend("tx_shipped", { message: false }, "active")).toBe(true);
   });
 
-  it("キャンセル通知は設定で止められない", () => {
-    expect(shouldSend("tx_canceled", { transaction: false }, "active")).toBe(true);
+  it("キャンセル通知は「取引」の設定に従う(FR-13: 5〜12 は ON/OFF 可)", () => {
+    expect(shouldSend("tx_canceled", { transaction: false }, "active")).toBe(false);
+    expect(shouldSend("tx_canceled", {}, "active")).toBe(true);
   });
 
   it("ウェルカムメールは設定の対象外", () => {
@@ -67,12 +68,7 @@ describe("MAIL_KINDS", () => {
       (kind) => MAIL_KINDS[kind].category === null,
     );
     // 認証系・トラブル対応・運営あての通知は設定で止められない
-    expect(alwaysSend.sort()).toEqual([
-      "admin_dispute",
-      "admin_late_payment",
-      "tx_canceled",
-      "welcome",
-    ]);
+    expect(alwaysSend.sort()).toEqual(["admin_dispute", "admin_late_payment", "welcome"]);
   });
 });
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Clock, Heart, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,11 +17,13 @@ import {
   type RatingSummary,
 } from "@/features/profile/queries";
 import { SellerCard } from "@/features/profile/components/seller-card";
-import { isFavorited } from "@/features/favorite/queries";
+import { getFavoritedIds, isFavorited } from "@/features/favorite/queries";
+import { cancelBuyerPendingForListing } from "@/features/transaction/cancel";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { findThreadByListing } from "@/features/message/queries";
 import { AskSellerButton } from "@/features/message/components/ask-seller-button";
 import { ReportDialog } from "@/features/report/components/report-dialog";
-import { canPurchase } from "@/features/listing/rules";
+import { canEditListing, canPurchase } from "@/features/listing/rules";
 import { getCurrentUser } from "@/lib/session";
 import { listingImageUrl } from "@/lib/images";
 import { formatPrice, formatDate, timeAgo } from "@/lib/utils";
@@ -36,6 +38,7 @@ import {
   PREFECTURES,
   isBikeCategory,
   labelOf,
+  type ListingStatus,
 } from "@/lib/constants";
 
 /**
@@ -86,13 +89,28 @@ export async function generateMetadata({
   };
 }
 
-export default async function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function ItemDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ canceled?: string }>;
+}) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const [listing, user] = await Promise.all([getListingDetail(id), getCurrentUser()]);
 
   if (!listing) notFound();
 
   const isOwner = user?.id === listing.sellerId;
+
+  // Stripe の決済画面で「戻る」を押した(cancel_url)。本人の未決済取引を片付けて
+  // 商品を再び購入できる状態にする。描画時の副作用だが、購入者自身の意思による戻りなので許容する
+  let paymentCanceled = false;
+  if (query.canceled === "1" && user && !isOwner) {
+    const { paidTransactionId } = await cancelBuyerPendingForListing(listing.id, user.id);
+    if (paidTransactionId) redirect(`/transactions/${paidTransactionId}`);
+    paymentCanceled = true;
+  }
   const emptySummary: RatingSummary = {
     average: null,
     count: 0,
@@ -115,8 +133,15 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
     user && !isOwner ? findThreadByListing(listing.id, user.id) : Promise.resolve(null),
   ]);
 
+  const otherFavoritedIds = await getFavoritedIds(
+    user?.id ?? null,
+    otherListings.map((item) => item.id),
+  );
+
   const purchasable = canPurchase(listing.status);
   const posted = timeAgo(listing.publishedAt ?? listing.updatedAt);
+  const updatedAfterPublish =
+    listing.publishedAt && listing.updatedAt && listing.updatedAt > listing.publishedAt;
   const showBikeSpecs = isBikeCategory(listing.category);
 
   const specs: { label: string; value: string | null }[] = [
@@ -160,6 +185,11 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 pb-32 md:pb-8">
+      {paymentCanceled && (
+        <Alert className="mb-4">
+          <AlertDescription>支払いを中止しました。商品は引き続き購入できます。</AlertDescription>
+        </Alert>
+      )}
       {listing.status === "suspended" && (
         <div className="mb-4">
           <Badge variant="destructive">この商品は運営により非公開になっています</Badge>
@@ -282,6 +312,7 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
           <ExpandableText text={listing.description} className="mt-3" />
           <p className="mt-4 text-xs text-muted-foreground">
             出品日 {formatDate(listing.publishedAt ?? listing.updatedAt)}
+            {updatedAfterPublish && <> ・ 更新日 {formatDate(listing.updatedAt)}</>}
           </p>
         </section>
       )}
@@ -301,7 +332,13 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
       {otherListings.length > 0 && (
         <section className="mt-12">
           <h2 className="text-base font-semibold">この出品者の他の商品</h2>
-          <ListingGrid listings={otherListings} isLoggedIn={Boolean(user)} className="mt-4" />
+          <ListingGrid
+            listings={otherListings}
+            favoritedIds={otherFavoritedIds}
+            isLoggedIn={Boolean(user)}
+            currentUserId={user?.id ?? null}
+            className="mt-4"
+          />
         </section>
       )}
 
@@ -353,6 +390,17 @@ function PrimaryAction({
   purchasable: boolean;
 }) {
   if (isOwner) {
+    if (!canEditListing(status as ListingStatus)) {
+      return (
+        <Button disabled className="h-12 w-full">
+          {status === "trading"
+            ? "取引中(編集できません)"
+            : status === "sold"
+              ? "SOLD"
+              : "編集できません"}
+        </Button>
+      );
+    }
     return (
       <Button asChild className="h-12 w-full">
         <Link href={`/sell/${listingId}/edit`}>

@@ -94,7 +94,12 @@ export async function submitReview(
       createdAt: review.created_at,
     }));
 
-    const decision = resolveReviewPublication(reviews, transaction.receivedAt, new Date());
+    // 完了後(14 日経過で自動完了した取引など)の評価は報復評価の抑止対象ではないので即時公開する。
+    // 非公開のまま残すと、相手が二度と評価しなければ永久に公開されない
+    const decision =
+      transaction.status === "completed"
+        ? { publish: true, complete: false, requestReview: false }
+        : resolveReviewPublication(reviews, transaction.receivedAt, new Date());
 
     if (decision.publish) {
       await supabase
@@ -106,17 +111,26 @@ export async function submitReview(
     if (decision.complete) {
       const latest = await getTransaction(transactionId);
       if (latest && latest.status === "received") {
-        await transitionTransaction(latest, "completed", "system", {
-          note: "双方の評価が完了",
-        });
-        await notifyCompleted(transactionId);
+        try {
+          await transitionTransaction(latest, "completed", "system", {
+            note: "双方の評価が完了",
+          });
+          await notifyCompleted(transactionId);
+        } catch (error) {
+          // 双方がほぼ同時に評価すると、楽観ロックで片方の遷移が負ける。
+          // 相手側が完了させていれば成功扱いにする
+          const after = await getTransaction(transactionId);
+          if (after?.status !== "completed") throw error;
+        }
       }
     }
 
     if (decision.requestReview) {
       await notifyReviewRequested(transactionId, user.id);
     } else if (decision.publish) {
+      // 双方の評価が公開された。相手には自分の評価が、自分には相手の評価が届く
       await notifyReviewReceived(transactionId, revieweeId);
+      if (reviews.length >= 2) await notifyReviewReceived(transactionId, user.id);
     }
 
     revalidatePath(`/transactions/${transactionId}`);
