@@ -216,3 +216,44 @@ grant execute on function public.unread_message_count(uuid) to service_role;
 -- レート制限が数える列に索引を張る(旧: 全件走査)
 create index if not exists idx_messages_sender_created on public.messages (sender_id, created_at);
 create index if not exists idx_reports_reporter_created on public.reports (reporter_id, created_at);
+
+-- -------------------------------------------------------------
+-- C-3: 返金・チャージバックの追跡列。
+--      返金 API は対象外(別紙1 3.(4))だが、Stripe で返金した事実を受け取って
+--      「要返金」を消せないと、管理画面の警告が永久に残る
+-- -------------------------------------------------------------
+alter table public.transactions
+  add column if not exists refunded_at timestamptz,
+  add column if not exists disputed_at timestamptz,
+  add column if not exists dispute_id text;
+
+create index if not exists idx_transactions_refund_pending
+  on public.transactions (canceled_at)
+  where status = 'canceled' and paid_at is not null and refunded_at is null;
+
+-- C-6: ブランド名は大文字小文字を区別せず一意にする(Trek / trek の併存を防ぐ)
+create unique index if not exists uq_brands_name_ci on public.brands (lower(name));
+
+-- C-2: ホームのカテゴリ件数を 1 回で数える(旧: カテゴリ数ぶんの count クエリ)
+create or replace function public.listing_category_counts()
+returns table (category text, count bigint)
+language sql stable security definer set search_path = public as $$
+  select category, count(*)
+    from public.listings
+   where status in ('published', 'trading')
+   group by category;
+$$;
+revoke all on function public.listing_category_counts() from public, anon, authenticated;
+grant execute on function public.listing_category_counts() to service_role;
+
+-- C-2: 管理画面の利用者一覧の件数を 1 回で数える(旧: 行ごとに 2 クエリ)
+create or replace function public.admin_user_counts(ids uuid[])
+returns table (user_id uuid, listing_count bigint, transaction_count bigint)
+language sql stable security definer set search_path = public as $$
+  select u.id,
+         (select count(*) from public.listings l where l.seller_id = u.id),
+         (select count(*) from public.transactions t where t.buyer_id = u.id or t.seller_id = u.id)
+    from unnest(ids) as u(id);
+$$;
+revoke all on function public.admin_user_counts(uuid[]) from public, anon, authenticated;
+grant execute on function public.admin_user_counts(uuid[]) to service_role;

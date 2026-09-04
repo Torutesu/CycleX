@@ -1,9 +1,11 @@
 import type { NextConfig } from "next";
 
-// Supabase Storage の公開 URL / 画像変換 URL を next/image に許可する
-const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
-  : "127.0.0.1";
+// Supabase Storage の公開 URL / 画像変換 URL を next/image に許可する。
+// ビルド時に未設定だと本番で全画像が拒否されるので、黙って 127.0.0.1 に落とさない
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  throw new Error("NEXT_PUBLIC_SUPABASE_URL がビルド環境に設定されていません");
+}
+const supabaseHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname;
 
 const nextConfig: NextConfig = {
   images: {

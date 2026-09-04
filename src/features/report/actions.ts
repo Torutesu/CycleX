@@ -60,10 +60,13 @@ export async function submitReport(
       const { data } = await supabase.from("users").select("id").eq("id", targetId).maybeSingle();
       if (!data) throw new AppError("対象の利用者が見つかりません。");
     } else {
+      // 公開されていない商品(下書き・取下げ・運営非表示)は存在しないものとして扱う。
+      // service role で確認するため、そうしないと非公開商品の ID の有無が分かってしまう
       const { data } = await supabase
         .from("listings")
         .select("id, seller_id")
         .eq("id", targetId)
+        .in("status", ["published", "trading", "sold"])
         .maybeSingle();
       if (!data) throw new AppError("対象の商品が見つかりません。");
       if (data.seller_id === user.id) throw new AppError("自分が出品した商品は通報できません。");

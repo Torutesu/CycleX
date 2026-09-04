@@ -22,6 +22,12 @@ import { TRANSACTION_STATUSES, labelOf, type TransactionStatus } from "@/lib/con
  */
 const REFUND_FILTER_OPTIONS = [{ value: "pending", label: "返金対応が必要" }] as const;
 
+/** 止まっている取引の抽出(C-3)。催促や代理操作の対象を洗い出す */
+const STALE_FILTER_OPTIONS = [
+  { value: "paid7", label: "支払い後 7 日以上 発送なし" },
+  { value: "shipped14", label: "発送後 14 日以上 受取なし" },
+] as const;
+
 export const metadata: Metadata = { title: "取引管理" };
 
 export default async function AdminTransactionsPage({
@@ -37,6 +43,7 @@ export default async function AdminTransactionsPage({
       query: params.q,
       status: params.status,
       refund: params.refund,
+      stale: params.stale,
       from: params.from,
       to: params.to,
       page,
@@ -85,6 +92,12 @@ export default async function AdminTransactionsPage({
             options: REFUND_FILTER_OPTIONS,
             value: params.refund ?? "",
           },
+          {
+            name: "stale",
+            label: "停滞",
+            options: STALE_FILTER_OPTIONS,
+            value: params.stale ?? "",
+          },
         ]}
         dateRange={{ from: params.from ?? "", to: params.to ?? "" }}
       />
@@ -108,7 +121,11 @@ export default async function AdminTransactionsPage({
           <tbody className="divide-y">
             {result.items.map((tx) => {
               const cancellable = isCancellable(tx.status as TransactionStatus);
-              const refundNeeded = needsRefund(tx.status as TransactionStatus, tx.paidAt);
+              const refundNeeded = needsRefund(
+                tx.status as TransactionStatus,
+                tx.paidAt,
+                tx.refundedAt,
+              );
 
               return (
                 <tr key={tx.id} className="hover:bg-accent/30">
@@ -164,6 +181,16 @@ export default async function AdminTransactionsPage({
                     {refundNeeded && (
                       <Badge variant="destructive" className="ml-1.5">
                         要返金
+                      </Badge>
+                    )}
+                    {tx.refundedAt && (
+                      <Badge variant="secondary" className="ml-1.5">
+                        返金済み
+                      </Badge>
+                    )}
+                    {tx.disputedAt && (
+                      <Badge variant="destructive" className="ml-1.5">
+                        チャージバック
                       </Badge>
                     )}
                   </td>

@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminAction } from "@/features/admin/guard";
-import { ok, fail, toUserMessage, AppError, type ActionResult } from "@/lib/errors";
+import {
+  ok,
+  fail,
+  toUserMessage,
+  AppError,
+  isUniqueViolation,
+  type ActionResult,
+} from "@/lib/errors";
 import { ACTIVE_TRANSACTION_STATUSES, type ListingStatus, type UserStatus } from "@/lib/constants";
 import {
   canSuspendListing,
@@ -15,7 +22,7 @@ import {
 import { recordAdminAction } from "@/features/admin/audit";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
 import { cancelPendingTransaction } from "@/features/transaction/cancel";
-import { notifyCanceled } from "@/features/notification/notify";
+import { notifyCanceled, notifyCompleted, notifyReceived } from "@/features/notification/notify";
 
 const reasonSchema = z
   .string()
@@ -349,6 +356,70 @@ export async function cancelTransaction(
   }
 }
 
+/**
+ * 返金済みにする(C-3)。Stripe ダッシュボードで返金したあと、
+ * charge.refunded の Webhook が届かなかった場合の手動経路。
+ */
+export async function markRefunded(transactionId: string): Promise<ActionResult<undefined>> {
+  try {
+    const admin = await requireAdminAction();
+    const transaction = await getTransaction(transactionId);
+    if (!transaction) throw new AppError("取引が見つかりません。");
+    if (transaction.status !== "canceled" || !transaction.paidAt) {
+      throw new AppError("返金対象の取引ではありません。");
+    }
+
+    const { error } = await createAdminClient()
+      .from("transactions")
+      .update({ refunded_at: new Date().toISOString() })
+      .eq("id", transactionId)
+      .is("refunded_at", null);
+    if (error) throw new AppError("更新に失敗しました。");
+
+    await recordAdminAction(admin.id, "mark_refunded", "transaction", transactionId);
+    revalidatePath("/admin/transactions");
+    revalidatePath(`/admin/transactions/${transactionId}`);
+    return ok();
+  } catch (error) {
+    return fail(toUserMessage(error));
+  }
+}
+
+/**
+ * 止まった取引を運営が代理で進める(C-3)。
+ * 受取確認をしない購入者、評価が揃わない取引を、確認のうえ次へ進める。
+ */
+export async function forceTransition(
+  transactionId: string,
+  to: "received" | "completed",
+): Promise<ActionResult<undefined>> {
+  try {
+    const admin = await requireAdminAction();
+    const transaction = await getTransaction(transactionId);
+    if (!transaction) throw new AppError("取引が見つかりません。");
+
+    await transitionTransaction(transaction, to, "admin", {
+      actorId: admin.id,
+      note: "運営による代理操作",
+    });
+    if (to === "received") await notifyReceived(transactionId);
+    if (to === "completed") await notifyCompleted(transactionId);
+
+    await recordAdminAction(
+      admin.id,
+      to === "received" ? "force_received" : "force_completed",
+      "transaction",
+      transactionId,
+    );
+    revalidatePath("/admin/transactions");
+    revalidatePath(`/admin/transactions/${transactionId}`);
+    revalidatePath(`/transactions/${transactionId}`);
+    return ok();
+  } catch (error) {
+    return fail(toUserMessage(error));
+  }
+}
+
 // ============================================================
 // 評価管理(FR-10)
 // ============================================================
@@ -453,7 +524,7 @@ export async function createBrand(
 
     if (error) {
       throw new AppError(
-        error.code === "23505"
+        isUniqueViolation(error)
           ? "同名のブランドがすでに登録されています。"
           : "ブランドの追加に失敗しました。",
       );

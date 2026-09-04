@@ -14,7 +14,10 @@ export type AdminAction =
   | "rename_brand"
   | "toggle_brand"
   | "hide_review"
-  | "unhide_review";
+  | "unhide_review"
+  | "mark_refunded"
+  | "force_received"
+  | "force_completed";
 
 export type AuditTargetType = "user" | "listing" | "transaction" | "brand" | "report" | "review";
 

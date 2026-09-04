@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getAuditLogs, getTransactionDetail } from "@/features/admin/queries";
-import { cancelTransaction } from "@/features/admin/actions";
-import { ReasonDialog } from "@/features/admin/components/admin-actions";
+import { cancelTransaction, forceTransition, markRefunded } from "@/features/admin/actions";
+import { ConfirmButton, ReasonDialog } from "@/features/admin/components/admin-actions";
 import { AdminHeader } from "@/features/admin/components/admin-table";
 import { AuditLogList } from "@/features/admin/components/audit-log-list";
 import { isCancellable, needsRefund } from "@/features/admin/rules";
@@ -42,7 +42,7 @@ export default async function AdminTransactionDetailPage({
 
   const auditLogs = await getAuditLogs("transaction", id);
   const status = tx.status as TransactionStatus;
-  const refundNeeded = needsRefund(status, tx.paidAt);
+  const refundNeeded = needsRefund(status, tx.paidAt, tx.refundedAt);
 
   const timeline: { label: string; at: string | null }[] = [
     { label: "購入手続き開始", at: tx.createdAt },
@@ -67,19 +67,57 @@ export default async function AdminTransactionDetailPage({
         title={tx.listing?.title ?? "(削除された商品)"}
         description={`取引 ID: ${tx.id}`}
         action={
-          isCancellable(status) ? (
-            <ReasonDialog
-              trigger="キャンセル"
-              title="この取引をキャンセルしますか?"
-              description="取引をキャンセル状態にし、商品が取引中であれば販売中に戻します。双方にメールで通知されます。入力した理由は双方に送られます。"
-              reasonLabel="キャンセル理由(双方に通知されます)"
-              reasonRequired
-              hidden={{ transactionId: tx.id }}
-              action={cancelTransaction}
-              successMessage="取引をキャンセルしました"
-              warning="返金はこの操作では行われません。必要な場合は Stripe ダッシュボードから別途実施してください。"
-            />
-          ) : undefined
+          <div className="flex flex-wrap gap-2">
+            {refundNeeded && (
+              <ConfirmButton
+                label="返金済みにする"
+                confirmTitle="この取引を返金済みにしますか?"
+                confirmDescription="Stripe ダッシュボードで返金を完了したあとに実行してください。通常は Stripe からの通知で自動的に更新されます。"
+                onConfirm={async () => {
+                  "use server";
+                  return markRefunded(tx.id);
+                }}
+                successMessage="返金済みにしました"
+              />
+            )}
+            {status === "shipped" && (
+              <ConfirmButton
+                label="受取確認を代理で行う"
+                confirmTitle="受取確認を代理で行いますか?"
+                confirmDescription="購入者が受け取ったことを運営が確認できている場合のみ実行してください。出品者に受取確認の通知が送られます。"
+                onConfirm={async () => {
+                  "use server";
+                  return forceTransition(tx.id, "received");
+                }}
+                successMessage="受取確認済みにしました"
+              />
+            )}
+            {status === "received" && (
+              <ConfirmButton
+                label="取引を完了にする"
+                confirmTitle="取引を完了にしますか?"
+                confirmDescription="評価が揃っていなくても完了にします。未公開の評価は日次バッチで公開されます。双方に完了の通知が送られます。"
+                onConfirm={async () => {
+                  "use server";
+                  return forceTransition(tx.id, "completed");
+                }}
+                successMessage="取引を完了にしました"
+              />
+            )}
+            {isCancellable(status) && (
+              <ReasonDialog
+                trigger="キャンセル"
+                title="この取引をキャンセルしますか?"
+                description="取引をキャンセル状態にし、商品が取引中であれば販売中に戻します。双方にメールで通知されます。入力した理由は双方に送られます。"
+                reasonLabel="キャンセル理由(双方に通知されます)"
+                reasonRequired
+                hidden={{ transactionId: tx.id }}
+                action={cancelTransaction}
+                successMessage="取引をキャンセルしました"
+                warning="返金はこの操作では行われません。必要な場合は Stripe ダッシュボードから別途実施してください。"
+              />
+            )}
+          </div>
         }
       />
 
@@ -103,6 +141,16 @@ export default async function AdminTransactionDetailPage({
               {refundNeeded && (
                 <Badge variant="destructive" className="ml-1.5">
                   要返金
+                </Badge>
+              )}
+              {tx.refundedAt && (
+                <Badge variant="secondary" className="ml-1.5">
+                  返金済み {formatDateTime(tx.refundedAt)}
+                </Badge>
+              )}
+              {tx.disputedAt && (
+                <Badge variant="destructive" className="ml-1.5">
+                  チャージバック {formatDateTime(tx.disputedAt)}
                 </Badge>
               )}
             </dd>
@@ -181,6 +229,14 @@ export default async function AdminTransactionDetailPage({
                 <code className="break-all text-xs">{tx.stripeSessionId ?? "—"}</code>
               </dd>
             </div>
+            {tx.disputeId && (
+              <div>
+                <dt className="text-muted-foreground">Dispute</dt>
+                <dd>
+                  <code className="break-all text-xs">{tx.disputeId}</code>
+                </dd>
+              </div>
+            )}
           </dl>
 
           <h2 className="mb-3 mt-6 text-sm font-semibold">日時</h2>

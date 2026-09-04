@@ -2,6 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   SEARCH_PAGE_SIZE,
   brandIdsForKeyword,
@@ -107,7 +108,10 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
 
     // 全角で打たれても半角で打たれても当たるよう、両方の綴りで探す
     for (const variant of keywordVariants(word)) {
-      const pattern = `%${escapeLike(variant)}%`;
+      const escaped = escapeLike(variant);
+      // 記号だけの語は無害化すると空になり、%% で全件に一致してしまうので条件に入れない
+      if (!escaped) continue;
+      const pattern = `%${escaped}%`;
       conditions.push(
         `title.ilike.${pattern}`,
         `description.ilike.${pattern}`,
@@ -127,7 +131,7 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
     const brandIds = brandIdsForKeyword(word, brands);
     if (brandIds.length > 0) conditions.push(`brand_id.in.(${brandIds.join(",")})`);
 
-    query = query.or(conditions.join(","));
+    if (conditions.length > 0) query = query.or(conditions.join(","));
   }
 
   if (params.category) query = query.eq("category", params.category);
@@ -266,18 +270,17 @@ export const getBrandOptions = cache(async function getBrandOptions(): Promise<
 export const getCategoryCounts = cache(async function getCategoryCounts(): Promise<
   Map<string, number>
 > {
-  const supabase = await createClient();
-  const results = await Promise.all(
-    CATEGORIES.map(async (category) => {
-      const { count } = await supabase
-        .from("listings")
-        .select("*", { count: "exact", head: true })
-        .eq("category", category.value)
-        .in("status", ["published", "trading"]);
-      return [category.value, count ?? 0] as const;
-    }),
+  // 公開中・取引中の件数は誰が見ても同じなので service role の関数で 1 回で数える
+  const { data, error } = await createAdminClient().rpc("listing_category_counts");
+  if (error) {
+    console.error("[category counts failed]", error);
+    return new Map(CATEGORIES.map((category) => [category.value, 0] as const));
+  }
+  const counts = new Map<string, number>(
+    CATEGORIES.map((category) => [category.value, 0] as const),
   );
-  return new Map(results);
+  for (const row of data ?? []) counts.set(row.category, Number(row.count));
+  return counts;
 });
 
 /** 出品者が公開している商品の件数(商品ページの導線に出す) */

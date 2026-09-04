@@ -5,6 +5,11 @@ on:
     branches: ["**"]
   pull_request:
 
+# 同じブランチへの連続 push は古い実行を止める(Supabase を毎回起動するため)
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -32,6 +37,14 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
 
       - name: Lint
         run: pnpm lint
@@ -75,11 +88,15 @@ jobs:
           export SUPABASE_SERVICE_ROLE_KEY=$(pnpm supabase status -o json | jq -r '.SERVICE_ROLE_KEY')
           export NEXT_PUBLIC_APP_URL=http://localhost:3000
           export PLATFORM_FEE_RATE=0.07
-          export STRIPE_SECRET_KEY=sk_test_dummy
+          # E2E は Stripe 未構成のデモ決済で取引を通す(STRIPE_SECRET_KEY は設定しない)
+          export ALLOW_DEMO_CHECKOUT=1
           export STRIPE_WEBHOOK_SECRET=whsec_dummy
           export RESEND_API_KEY=re_dummy
           export EMAIL_FROM="CycleX <noreply@example.com>"
           export CRON_SECRET=dummy-cron-secret
+          # 絞り込み・ページ送りのテストが前提にする出品を入れておく
+          node scripts/seed-users.mjs
+          node scripts/seed-dev.mjs 60
           pnpm test:e2e
 
       - uses: actions/upload-artifact@v4

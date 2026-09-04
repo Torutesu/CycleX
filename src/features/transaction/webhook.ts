@@ -22,7 +22,8 @@ export type WebhookOutcome =
         | "expired"
         | "already_processed"
         | "awaiting_payment"
-        | "dispute_notified";
+        | "dispute_notified"
+        | "refund_recorded";
     }
   /** retry が true のときは 500 を返して Stripe に再送させる */
   | { handled: false; reason: string; retry: boolean };
@@ -153,6 +154,15 @@ export async function handleCheckoutExpired(
 export async function handleDisputeCreated(
   dispute: Pick<Stripe.Dispute, "id" | "amount" | "reason" | "payment_intent" | "evidence_details">,
 ): Promise<WebhookOutcome> {
+  // 管理画面で見えるよう取引に記録する(状態は変えない)
+  const paymentIntentId = paymentIntentIdOf(dispute.payment_intent);
+  if (paymentIntentId) {
+    await createAdminClient()
+      .from("transactions")
+      .update({ disputed_at: new Date().toISOString(), dispute_id: dispute.id })
+      .eq("stripe_payment_intent_id", paymentIntentId);
+  }
+
   await notifyDispute({
     disputeId: dispute.id,
     paymentIntentId: paymentIntentIdOf(dispute.payment_intent),
@@ -162,6 +172,33 @@ export async function handleDisputeCreated(
   });
 
   return { handled: true, action: "dispute_notified" };
+}
+
+/**
+ * charge.refunded の処理(C-3)。
+ *
+ * 返金そのものは運営が Stripe ダッシュボードで行う(別紙1 3.(4))。
+ * ここではその事実を受け取り、管理画面の「要返金」から外す。
+ */
+export async function handleChargeRefunded(
+  charge: Pick<Stripe.Charge, "id" | "payment_intent" | "refunded" | "amount_refunded">,
+): Promise<WebhookOutcome> {
+  const paymentIntentId = paymentIntentIdOf(charge.payment_intent);
+  if (!paymentIntentId) {
+    return { handled: false, reason: "payment_intent がありません", retry: false };
+  }
+  if (!charge.refunded && !charge.amount_refunded) {
+    return { handled: true, action: "already_processed" };
+  }
+
+  const { error } = await createAdminClient()
+    .from("transactions")
+    .update({ refunded_at: new Date().toISOString() })
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .is("refunded_at", null);
+  if (error) throw new Error(`返金の記録に失敗しました: ${error.message}`);
+
+  return { handled: true, action: "refund_recorded" };
 }
 
 /**

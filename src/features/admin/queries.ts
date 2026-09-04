@@ -83,39 +83,31 @@ export async function listUsers(options: {
   const { data, count } = await builder.range(from, to);
   const rows = data ?? [];
 
-  // 一覧に出す件数は行ごとに集計する(件数は最大20件なので許容範囲)
-  const items = await Promise.all(
-    rows.map(async (row) => {
-      const [{ count: listingCount }, { count: transactionCount }] = await Promise.all([
-        supabase
-          .from("listings")
-          .select("*", { count: "exact", head: true })
-          .eq("seller_id", row.id),
-        supabase
-          .from("transactions")
-          .select("*", { count: "exact", head: true })
-          .or(`buyer_id.eq.${row.id},seller_id.eq.${row.id}`),
-      ]);
+  // 出品数・取引数は 1 回の関数呼び出しでまとめて数える(旧: 行ごとに 2 クエリ)
+  const { data: counts } = await supabase.rpc("admin_user_counts", {
+    ids: rows.map((row) => row.id),
+  });
+  const countMap = new Map((counts ?? []).map((row) => [row.user_id, row]));
 
-      return {
-        id: row.id,
-        email: row.email,
-        displayName: row.display_name,
-        avatarUrl: row.avatar_url,
-        role: row.role,
-        status: row.status,
-        createdAt: row.created_at,
-        listingCount: listingCount ?? 0,
-        transactionCount: transactionCount ?? 0,
-      };
-    }),
-  );
+  const items: AdminUserRow[] = rows.map((row) => ({
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    role: row.role,
+    status: row.status,
+    createdAt: row.created_at,
+    listingCount: Number(countMap.get(row.id)?.listing_count ?? 0),
+    transactionCount: Number(countMap.get(row.id)?.transaction_count ?? 0),
+  }));
 
   return paged(items, count ?? 0, options.page);
 }
 
 export async function getUserDetail(userId: string) {
   await requireAdmin();
+  // URL の値をそのままフィルタ式に埋め込まないよう、先に形式を確かめる
+  if (!/^[0-9a-f-]{36}$/i.test(userId)) return null;
   const supabase = createAdminClient();
 
   const [
@@ -219,16 +211,20 @@ export async function listListings(options: {
   const { data, count } = await builder.range(from, to);
   const rows = data ?? [];
 
-  const reportCounts = await Promise.all(
-    rows.map(async (row) => {
-      const { count: reportCount } = await supabase
-        .from("reports")
-        .select("*", { count: "exact", head: true })
-        .eq("target_type", "listing")
-        .eq("target_id", row.id);
-      return reportCount ?? 0;
-    }),
-  );
+  // 通報件数は 1 クエリで引いて数える(旧: 行ごとに count)
+  const { data: reportRows } = await supabase
+    .from("reports")
+    .select("target_id")
+    .eq("target_type", "listing")
+    .in(
+      "target_id",
+      rows.map((row) => row.id),
+    );
+  const reportCountMap = new Map<string, number>();
+  for (const report of reportRows ?? []) {
+    reportCountMap.set(report.target_id, (reportCountMap.get(report.target_id) ?? 0) + 1);
+  }
+  const reportCounts = rows.map((row) => reportCountMap.get(row.id) ?? 0);
 
   const items: AdminListingRow[] = rows.map((row, index) => {
     const images = row.listing_images ?? [];
@@ -261,6 +257,8 @@ export type AdminTransactionRow = {
   price: number;
   createdAt: string;
   paidAt: string | null;
+  refundedAt: string | null;
+  disputedAt: string | null;
   stripeSessionId: string | null;
   stripePaymentIntentId: string | null;
   listing: { id: string; title: string } | null;
@@ -273,6 +271,8 @@ export async function listTransactions(options: {
   status?: string;
   /** "pending" のとき、返金対応が必要な取引のみに絞る */
   refund?: string;
+  /** 止まっている取引: "paid7"(支払い後 7 日発送なし)/ "shipped14"(発送後 14 日受取なし) */
+  stale?: string;
   from?: string;
   to?: string;
   page: number;
@@ -284,7 +284,7 @@ export async function listTransactions(options: {
   let builder = supabase
     .from("transactions")
     .select(
-      `id, status, price, created_at, paid_at, stripe_session_id, stripe_payment_intent_id,
+      `id, status, price, created_at, paid_at, refunded_at, disputed_at, stripe_session_id, stripe_payment_intent_id,
        listings!inner(id, title),
        buyer:users!transactions_buyer_id_fkey(id, display_name),
        seller:users!transactions_seller_id_fkey(id, display_name)`,
@@ -320,7 +320,15 @@ export async function listTransactions(options: {
   if (options.status) builder = builder.eq("status", options.status);
   // 入金済みのままキャンセルされた取引 = 運営の手動返金が必要なもの
   if (options.refund === "pending") {
-    builder = builder.eq("status", "canceled").not("paid_at", "is", null);
+    builder = builder.eq("status", "canceled").not("paid_at", "is", null).is("refunded_at", null);
+  }
+  if (options.stale === "paid7") {
+    const threshold = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    builder = builder.eq("status", "paid").lt("paid_at", threshold);
+  }
+  if (options.stale === "shipped14") {
+    const threshold = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
+    builder = builder.eq("status", "shipped").lt("shipped_at", threshold);
   }
   // 期間は日本時間の日付で切る(旧実装は UTC で切れ、朝 9 時前の取引が前日に落ちていた)
   const fromDate = parseDateInput(options.from);
@@ -341,6 +349,8 @@ export async function listTransactions(options: {
     price: row.price,
     createdAt: row.created_at,
     paidAt: row.paid_at,
+    refundedAt: row.refunded_at,
+    disputedAt: row.disputed_at,
     stripeSessionId: row.stripe_session_id,
     stripePaymentIntentId: row.stripe_payment_intent_id,
     listing: row.listings ? { id: row.listings.id, title: row.listings.title } : null,
@@ -362,6 +372,9 @@ export type AdminTransactionDetail = {
   completedAt: string | null;
   canceledAt: string | null;
   canceledReason: string | null;
+  refundedAt: string | null;
+  disputedAt: string | null;
+  disputeId: string | null;
   shippingNote: string | null;
   stripeSessionId: string | null;
   stripePaymentIntentId: string | null;
@@ -388,7 +401,8 @@ export async function getTransactionDetail(id: string): Promise<AdminTransaction
     .from("transactions")
     .select(
       `id, status, price, created_at, paid_at, shipped_at, received_at, completed_at, canceled_at,
-       canceled_reason, shipping_note, stripe_session_id, stripe_payment_intent_id, listing_id, buyer_id,
+       canceled_reason, refunded_at, disputed_at, dispute_id, shipping_note, stripe_session_id,
+       stripe_payment_intent_id, listing_id, buyer_id,
        listings(id, title, status),
        buyer:users!transactions_buyer_id_fkey(id, display_name, email),
        seller:users!transactions_seller_id_fkey(id, display_name, email)`,
@@ -424,6 +438,9 @@ export async function getTransactionDetail(id: string): Promise<AdminTransaction
     completedAt: tx.completed_at,
     canceledAt: tx.canceled_at,
     canceledReason: tx.canceled_reason,
+    refundedAt: tx.refunded_at,
+    disputedAt: tx.disputed_at,
+    disputeId: tx.dispute_id,
     shippingNote: tx.shipping_note,
     stripeSessionId: tx.stripe_session_id,
     stripePaymentIntentId: tx.stripe_payment_intent_id,
@@ -488,7 +505,8 @@ export async function countRefundPending(): Promise<number> {
     .from("transactions")
     .select("*", { count: "exact", head: true })
     .eq("status", "canceled")
-    .not("paid_at", "is", null);
+    .not("paid_at", "is", null)
+    .is("refunded_at", null);
 
   return count ?? 0;
 }

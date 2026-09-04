@@ -557,6 +557,9 @@ export type Database = {
           seller_id: string
           shipped_at: string | null
           shipping_note: string | null
+          refunded_at: string | null
+          disputed_at: string | null
+          dispute_id: string | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
@@ -576,6 +579,9 @@ export type Database = {
           seller_id: string
           shipped_at?: string | null
           shipping_note?: string | null
+          refunded_at?: string | null
+          disputed_at?: string | null
+          dispute_id?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -595,6 +601,9 @@ export type Database = {
           seller_id?: string
           shipped_at?: string | null
           shipping_note?: string | null
+          refunded_at?: string | null
+          disputed_at?: string | null
+          dispute_id?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -693,6 +702,11 @@ export type Database = {
         }[]
       }
       unread_message_count: { Args: { p_user: string }; Returns: number }
+      listing_category_counts: { Args: never; Returns: { category: string; count: number }[] }
+      admin_user_counts: {
+        Args: { ids: string[] }
+        Returns: { user_id: string; listing_count: number; transaction_count: number }[]
+      }
       is_admin: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

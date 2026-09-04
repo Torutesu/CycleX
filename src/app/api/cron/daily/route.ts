@@ -1,7 +1,9 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { publishOverdueReviews } from "@/features/review/batch";
 import { cleanupStalePendingTransactions } from "@/features/transaction/webhook";
 import { findStateMismatches } from "@/features/admin/queries";
+import { cleanupOrphanListingImages } from "@/lib/storage";
 
 /**
  * 日次バッチ(ADR #8)。
@@ -10,6 +12,7 @@ import { findStateMismatches } from "@/features/admin/queries";
  * 1. 評価の14日自動公開と取引完了
  * 2. 未決済のまま放置された取引の掃除(Webhook 取りこぼしの保険)
  * 3. 取引と商品の状態ズレの検出(件数をログに残す。復旧は管理画面から手動)
+ * 4. 保存されずに残った商品画像の回収
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -18,16 +21,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "設定エラー" }, { status: 500 });
   }
 
-  const authorization = request.headers.get("authorization");
-  if (authorization !== `Bearer ${secret}`) {
+  const authorization = request.headers.get("authorization") ?? "";
+  const expected = Buffer.from(`Bearer ${secret}`);
+  const actual = Buffer.from(authorization);
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
     return NextResponse.json({ error: "認証に失敗しました" }, { status: 401 });
   }
 
   try {
-    const [reviews, canceled, mismatches] = await Promise.all([
+    const [reviews, canceled, mismatches, orphanImages] = await Promise.all([
       publishOverdueReviews(),
       cleanupStalePendingTransactions(),
       findStateMismatches(),
+      cleanupOrphanListingImages(),
     ]);
 
     if (mismatches.length > 0) {
@@ -39,6 +45,7 @@ export async function GET(request: NextRequest) {
       reviews,
       canceledStalePayments: canceled,
       stateMismatches: mismatches.length,
+      orphanImagesRemoved: orphanImages,
     });
   } catch (error) {
     console.error("[cron] 日次バッチに失敗しました", error);

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, getWebhookSecret } from "@/lib/stripe";
 import {
+  handleChargeRefunded,
   handleCheckoutCompleted,
   handleCheckoutExpired,
   handleDisputeCreated,
@@ -65,6 +66,11 @@ export async function POST(request: NextRequest) {
       // カード会社からの不正利用の申し立て。応答期限があるため運営へ通知する
       case "charge.dispute.created": {
         await handleDisputeCreated(event.data.object);
+        break;
+      }
+      // 運営がダッシュボードで返金した。管理画面の「要返金」から外す
+      case "charge.refunded": {
+        await handleChargeRefunded(event.data.object);
         break;
       }
       default:

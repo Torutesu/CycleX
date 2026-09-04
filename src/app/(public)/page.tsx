@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import Link from "next/link";
 import { Bike, Cog, PlusCircle, Search, Shapes, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,9 @@ const CATEGORY_ICONS: Record<string, typeof Bike> = {
 };
 
 export default async function HomePage() {
+  // ログイン状態に依存する画面なので常に動的。ビルド時に DB へ繋ぎに行かないよう先に宣言する
+  await connection();
+
   const [newest, popular, counts, user] = await Promise.all([
     getNewestListings(12),
     getPopularListings(8),

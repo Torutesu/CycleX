@@ -96,10 +96,14 @@ describe("canTransition — 禁止される遷移", () => {
 });
 
 describe("allowedTransitions", () => {
-  it("管理者は各段階でキャンセルできる", () => {
+  it("管理者は各段階でキャンセルでき、止まった取引を代理で進められる", () => {
+    expect(allowedTransitions("pending_payment", "admin")).toEqual(["canceled"]);
     expect(allowedTransitions("paid", "admin")).toEqual(["canceled"]);
-    expect(allowedTransitions("shipped", "admin")).toEqual(["canceled"]);
+    // 受取確認をしない購入者・評価が揃わない取引は運営が代理で進める(C-3)
+    expect(allowedTransitions("shipped", "admin")).toEqual(["received", "canceled"]);
+    expect(allowedTransitions("received", "admin")).toEqual(["completed", "canceled"]);
     expect(allowedTransitions("completed", "admin")).toEqual([]);
+    expect(allowedTransitions("canceled", "admin")).toEqual([]);
   });
 
   it("出品者は支払い済みの取引を発送済みにできる", () => {

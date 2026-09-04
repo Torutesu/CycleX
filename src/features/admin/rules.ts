@@ -91,8 +91,12 @@ export function isCancellable(status: TransactionStatus): boolean {
  * 残っている状態になる。返金 API の実装は対象外のため、この判定で対象を洗い出し、
  * 運営が Stripe ダッシュボードから手動で返金する。
  */
-export function needsRefund(status: TransactionStatus, paidAt: string | null | undefined): boolean {
-  return status === "canceled" && Boolean(paidAt);
+export function needsRefund(
+  status: TransactionStatus,
+  paidAt: string | null | undefined,
+  refundedAt: string | null | undefined = null,
+): boolean {
+  return status === "canceled" && Boolean(paidAt) && !refundedAt;
 }
 
 /**
@@ -128,4 +132,7 @@ export const ADMIN_ACTION_LABELS: Record<string, string> = {
   toggle_brand: "ブランドの有効/無効を切替",
   hide_review: "評価を非表示",
   unhide_review: "評価の非表示を解除",
+  mark_refunded: "返金済みにした",
+  force_received: "受取確認を代理で実行",
+  force_completed: "取引完了を代理で実行",
 };

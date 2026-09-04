@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { absoluteUrl } from "@/lib/utils";
 
 /**
@@ -10,7 +11,26 @@ import { absoluteUrl } from "@/lib/utils";
  */
 const MAX_LISTINGS = 5000;
 
-export const revalidate = 3600;
+// ビルド時に DB へ繋がないよう動的にし、商品一覧だけを 1 時間キャッシュする
+export const dynamic = "force-dynamic";
+
+const getListingEntries = unstable_cache(
+  async () => {
+    const { data, error } = await createAdminClient()
+      .from("listings")
+      .select("id, updated_at")
+      .in("status", ["published", "trading"])
+      .order("published_at", { ascending: false, nullsFirst: false })
+      .limit(MAX_LISTINGS);
+    if (error) {
+      console.error("[sitemap] 商品の取得に失敗しました", error);
+      return null;
+    }
+    return data ?? [];
+  },
+  ["sitemap-listings"],
+  { revalidate: 3600, tags: ["listings"] },
+);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
@@ -21,21 +41,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/tokushoho"), changeFrequency: "yearly", priority: 0.3 },
   ];
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("listings")
-    .select("id, updated_at")
-    .in("status", ["published", "trading"])
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .limit(MAX_LISTINGS);
+  const data = await getListingEntries();
+  // サイトマップの失敗でページ全体を落とさない。静的ページだけ返す。
+  if (data === null) return staticEntries;
 
-  if (error) {
-    // サイトマップの失敗でページ全体を落とさない。静的ページだけ返す。
-    console.error("[sitemap] 商品の取得に失敗しました", error);
-    return staticEntries;
-  }
-
-  const listingEntries: MetadataRoute.Sitemap = (data ?? []).map((listing) => ({
+  const listingEntries: MetadataRoute.Sitemap = data.map((listing) => ({
     url: absoluteUrl(`/items/${listing.id}`),
     lastModified: new Date(listing.updated_at),
     changeFrequency: "weekly",

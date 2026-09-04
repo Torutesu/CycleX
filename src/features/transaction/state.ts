@@ -20,13 +20,14 @@ const TRANSITIONS: Record<TransactionStatus, Partial<Record<TransactionStatus, T
     shipped: ["seller"],
     canceled: ["admin"],
   },
+  // 購入者が受取確認しないまま止まった取引は、運営が確認のうえ代理で進められる
   shipped: {
-    received: ["buyer"],
+    received: ["buyer", "admin"],
     canceled: ["admin"],
   },
   // 完了は双方の評価が揃った時点(または14日経過)にシステムが行う
   received: {
-    completed: ["system"],
+    completed: ["system", "admin"],
     canceled: ["admin"],
   },
   completed: {},
