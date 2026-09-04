@@ -31,7 +31,9 @@ Supabase(データベース)と Vercel(アプリの配信)に載せる。
 これだけでテーブル・権限・インデックス・Storage・ブランドの初期データがすべて入る。
 CLI のインストールもログインも不要。
 
-更地から一度で通ること、同じものを二度流しても壊れないことを確認済み。
+このファイルは `node scripts/gen-setup-hosted.mjs` で migrations から生成する(手で編集しない)。
+**更地に一度だけ**実行する。2 回目は `create table` で失敗する。以後の変更は
+`supabase link` → `pnpm db:push` で適用する(末尾で適用済みとして記録しているので二重には流れない)。
 
 <details>
 <summary>CLI で流したい場合(任意)</summary>
@@ -73,7 +75,7 @@ update public.users set role = 'admin' where email = '<自分のメールアド�
 ## 4. Vercel に載せる
 
 1. https://vercel.com で GitHub の `Torutesu/CycleX` を Import
-2. Production Branch に `claude/bicycle-c2c-mvp-chct00` を指定
+2. Production Branch に `main` を指定(作業ブランチをそのまま本番にしない)
 3. 環境変数に以下を入れる(値は Supabase の画面からコピーする)
 
 ```
@@ -87,7 +89,11 @@ STRIPE_WEBHOOK_SECRET        whsec_xxx
 RESEND_API_KEY               re_xxx
 EMAIL_FROM                   CycleX <noreply@example.com>
 CRON_SECRET                  <ランダムな文字列>
+NEXT_PUBLIC_NOINDEX          1(関係者限定で検証している間だけ。一般公開時に外す)
 ```
+
+`ALLOW_DEMO_CHECKOUT` は本番に入れない(入っていると起動時に止まる)。Preview 環境で
+Stripe 未構成のまま購入まで通したいときだけ Preview の環境変数として設定する。
 
 `NEXT_PUBLIC_APP_URL` は初回デプロイでドメインが決まってから設定し、
 もう一度デプロイし直す。
@@ -98,8 +104,8 @@ CRON_SECRET                  <ランダムな文字列>
 openssl rand -hex 32
 ```
 
-Stripe / Resend をまだ用意していない場合は、上記のダミー値のままでよい。
-商品の閲覧・検索・会員登録までは動く(決済とメール送信のみ動かない)。
+Stripe / Resend をまだ用意していない場合、本番ではダミー値のままにできない(起動時の検証で止まる)。
+先に Preview 環境で確認し、本番は両方が揃ってから公開する。
 
 > **Vercel Marketplace に Supabase の連携がある場合はそちらが早い。**
 > プロジェクトを繋ぐと `NEXT_PUBLIC_SUPABASE_URL` などが自動で入るため、
@@ -116,6 +122,15 @@ Stripe / Resend をまだ用意していない場合は、上記のダミー値�
 
 これを設定しないと、会員登録の確認メールとパスワード再設定のリンクが機能しない。
 **デプロイ後、最初に確認すべき箇所。**
+
+そのほかの Authentication の設定(メール確認必須・パスワード要件・メールテンプレートの
+`token_hash` 化・SMTP・Google・Secure email change)は README の
+「本番 Supabase の設定項目一覧」を参照。
+
+Stripe の Webhook は次のイベントを購読する:
+`checkout.session.completed` / `checkout.session.expired` /
+`checkout.session.async_payment_succeeded` / `checkout.session.async_payment_failed` /
+`charge.dispute.created` / `charge.refunded`
 
 ---
 
@@ -135,10 +150,8 @@ Stripe / Resend をまだ用意していない場合は、上記のダミー値�
 ## 検証用として公開する場合
 
 決定事項7「関係者のみ」に沿って、検索エンジンには載せない設定にする。
-Vercel の環境変数に次を足すと `robots.txt` が全面拒否になる…わけではないため、
-`src/app/robots.ts` を一時的に全 disallow へ変更してデプロイするのが確実。
-
-一般公開に切り替える段階で元に戻す。
+Vercel の環境変数に `NEXT_PUBLIC_NOINDEX=1` を入れてデプロイすると `robots.txt` が全面拒否になる。
+一般公開に切り替える段階で外す。
 
 ---
 

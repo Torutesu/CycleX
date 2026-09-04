@@ -20,7 +20,7 @@
 
 ## セットアップ(ローカル)
 
-前提: Node.js 20.9 以上、pnpm、Docker
+前提: Node.js 22 以上、pnpm、Docker
 
 ```bash
 pnpm install
@@ -52,11 +52,11 @@ pnpm db:types       # src/types/database.ts を再生成
 
 ### ローカルで使えるもの
 
-| 用途                       | URL                    |
-| -------------------------- | ---------------------- |
-| アプリ                     | http://localhost:3000  |
-| Supabase API               | http://127.0.0.1:54321 |
-| 送信メールの確認(Inbucket) | http://127.0.0.1:54324 |
+| 用途                      | URL                    |
+| ------------------------- | ---------------------- |
+| アプリ                    | http://localhost:3000  |
+| Supabase API              | http://127.0.0.1:54321 |
+| 送信メールの確認(Mailpit) | http://127.0.0.1:54324 |
 
 ### 開発用データの投入
 
@@ -86,7 +86,7 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 
 ### 日次バッチの手動実行
 
-評価の14日自動公開と、未決済取引の掃除を行います。
+評価の14日自動公開、未決済取引の掃除(Stripe 側のセッション失効を含む)、取引と商品の状態ズレの検出、保存されなかった画像の回収を行います。
 
 ```bash
 curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/daily
@@ -96,24 +96,28 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 
 `.env.example` を参照してください。本番(Vercel)にも同じキーを設定します。
 
-| 変数                                                         | 用途                                                   |
-| ------------------------------------------------------------ | ------------------------------------------------------ |
-| `NEXT_PUBLIC_APP_URL`                                        | メール本文・OAuth リダイレクトの絶対 URL               |
-| `PLATFORM_FEE_RATE`                                          | 販売手数料率(**表示のみ**。精算処理は対象外)           |
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | クライアント用                                         |
-| `SUPABASE_SERVICE_ROLE_KEY`                                  | サーバー専用。`src/lib/supabase/admin.ts` からのみ参照 |
-| `SUPABASE_DB_URL`                                            | `supabase db push` 用の direct connection              |
-| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`                | 決済                                                   |
-| `RESEND_API_KEY` / `EMAIL_FROM`                              | メール送信                                             |
-| `CRON_SECRET`                                                | `/api/cron/daily` の保護                               |
+| 変数                                                         | 用途                                                                                                               |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_APP_URL`                                        | メール本文・OAuth リダイレクトの絶対 URL                                                                           |
+| `PLATFORM_FEE_RATE`                                          | 販売手数料率(**表示のみ**。精算処理は対象外)                                                                       |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | クライアント用                                                                                                     |
+| `SUPABASE_SERVICE_ROLE_KEY`                                  | サーバー専用。`src/lib/supabase/admin.ts` からのみ参照                                                             |
+| `SUPABASE_DB_URL`                                            | `supabase db push` 用の direct connection                                                                          |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET`                | 決済                                                                                                               |
+| `RESEND_API_KEY` / `EMAIL_FROM`                              | メール送信                                                                                                         |
+| `CRON_SECRET`                                                | `/api/cron/daily` の保護                                                                                           |
+| `ALLOW_DEMO_CHECKOUT`                                        | `1` で Stripe 未構成時にデモ決済を有効化(ローカル・Preview 用。本番では無効化され、設定していると起動時に失敗する) |
+| `NEXT_PUBLIC_NOINDEX`                                        | `1` で `robots.txt` を全面拒否(関係者限定の検証公開の間だけ)                                                       |
+
+本番(`VERCEL_ENV=production`)では起動時に必須の環境変数を検証し、欠落やダミー値(`sk_test_xxx` など)があれば起動を止めます(`src/lib/env.ts`)。
 
 ## デプロイ手順
 
-1. **Supabase**(本番プロジェクト)
-   - `supabase link --project-ref <ref>` → `pnpm db:push`
-   - `supabase/seed.sql` のブランドマスタを投入
-   - Authentication → URL Configuration に本番ドメインと `/auth/callback` を登録
-   - Authentication → Providers → Google を有効化(Client ID / Secret を設定)
+詳細は [docs/DEPLOY.md](docs/DEPLOY.md)。要点は次のとおり。
+
+1. **Supabase**(本番プロジェクト・Tokyo リージョン)
+   - `supabase/setup-hosted.sql` を SQL Editor に貼って一度だけ実行する(`scripts/gen-setup-hosted.mjs` で生成。手で編集しない)。以後の変更は `supabase link` → `pnpm db:push`
+   - Authentication の設定は下記「本番 Supabase の設定項目一覧」を漏れなく行う
    - Storage に `listing-images` / `avatars` バケットが作成されていることを確認
 
 2. **Google OAuth**(甲名義の Google Cloud プロジェクト)
@@ -122,16 +126,32 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 3. **Stripe**
    - テストモードのまま運用(本番切替は甲の審査完了後)
    - Webhook エンドポイントに `https://<本番ドメイン>/api/webhooks/stripe` を登録
-   - 購読イベント: `checkout.session.completed`, `checkout.session.expired`
+   - 購読イベント: `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `charge.dispute.created`, `charge.refunded`
    - 署名シークレットを `STRIPE_WEBHOOK_SECRET` に設定
 
 4. **Resend**
-   - 送信ドメインを追加し、DNS(SPF / DKIM)を設定
-   - 検証が完了するまでは Resend のテスト用ドメインで送信される
+   - 送信ドメインを追加し、DNS(SPF / DKIM)を設定。`EMAIL_FROM` はそのドメインのアドレスにする
 
 5. **Vercel**
-   - リポジトリを接続し、環境変数をすべて設定
-   - `vercel.json` の Cron(毎日 JST 4:00)が登録されることを確認
+   - 本番ブランチは `main`。リポジトリを接続し、環境変数をすべて設定(`ALLOW_DEMO_CHECKOUT` は本番に入れない)
+   - `vercel.json` の Cron(毎日 JST 4:00)とリージョン(`hnd1`)が反映されることを確認
+
+### 本番 Supabase の設定項目一覧(Authentication)
+
+`supabase/config.toml` はローカル専用で、ホスティング側には反映されない。ダッシュボードで以下を設定する。
+
+| 項目                                | 場所                              | 値                                                                                                                                              |
+| ----------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Site URL                            | URL Configuration                 | `https://<本番ドメイン>`                                                                                                                        |
+| Redirect URLs                       | URL Configuration                 | `https://<本番ドメイン>/auth/callback`                                                                                                          |
+| メール確認を必須にする              | Providers → Email → Confirm email | ON                                                                                                                                              |
+| Secure email change(新旧両方に確認) | Providers → Email                 | ON(設定画面の文言と合わせる)                                                                                                                    |
+| パスワード要件                      | Providers → Email → Password      | 8 文字以上、英字と数字を含む                                                                                                                    |
+| メールテンプレート                  | Emails → Templates                | 確認・再設定・メール変更のリンクを `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=...` 形式にする(別端末でメールを開いても通る) |
+| OTP の有効期限                      | Providers → Email                 | 3600 秒(1 時間)                                                                                                                                 |
+| SMTP                                | Project Settings → Auth → SMTP    | Resend など外部 SMTP を設定(既定の送信は日次上限が厳しい)                                                                                       |
+| Google プロバイダ                   | Providers → Google                | Client ID / Secret を設定、Skip nonce check は OFF                                                                                              |
+| セッションの上限                    | Sessions(Pro プラン)              | 30 日(要件 FR-01-3。Free プランでは設定不可のため要件側で合意する)                                                                              |
 
 ## ドキュメント
 

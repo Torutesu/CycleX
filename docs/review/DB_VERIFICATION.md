@@ -91,3 +91,41 @@ Supabase の既定は UTF-8 対応のロケールなので通常は問題ない�
 - Stripe のテストカード決済とWebhook受信
 - Resend のドメイン認証とメール到達
 - Google ログイン
+
+---
+
+# 追加検証(2026-09-04、`20260904000001_completion_hardening.sql`)
+
+`docs/review/COMPLETION_PLAN.md` の Phase A〜C で追加したマイグレーションを、
+同じ方法(PostgreSQL 16 / `C.UTF-8` / Supabase 相当のロールと `auth` `storage` スキーマの最小再現)で検証した。
+
+## 1. 適用
+
+7 本すべてがエラーなく順に適用できた。`scripts/gen-setup-hosted.mjs` で生成した
+`supabase/setup-hosted.sql` も更地の DB に一度で適用でき、末尾で
+`supabase_migrations.schema_migrations` に 7 本が記録されることを確認した。
+`show_trgm('ロードバイク')` は 7 個のトライグラムを返す。
+
+## 2. 試したこと
+
+| 試したこと                                                                                     | 期待                             | 結果                                                                                |
+| ---------------------------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------- |
+| `thread_summaries(uid)` で最終メッセージと未読数                                               | 本文と件数が返る                 | **OK**(2 件未読、最終本文一致)                                                      |
+| `unread_message_count(uid)`                                                                    | 2                                | **OK**                                                                              |
+| `listing_category_counts()` / `admin_user_counts(ids)`                                         | カテゴリ別・利用者別の件数       | **OK**                                                                              |
+| `authenticated` が上記 RPC を直接呼ぶ                                                          | 拒否                             | **拒否**(permission denied)                                                         |
+| 利用中の本人が `bio` を更新                                                                    | 許可                             | **許可**                                                                            |
+| 停止中の本人が `bio` を更新                                                                    | 0 行(RLS)                        | **0 行**                                                                            |
+| 停止中の本人がお気に入り登録 / Storage へ INSERT                                               | 拒否                             | **拒否**(`is_active_user`)                                                          |
+| `display_name=''` / 外部ホストの `avatar_url` / `prefecture='48'`                              | CHECK 違反                       | **拒否**                                                                            |
+| `lh5.googleusercontent.com` のアイコンと `prefecture='13'`                                     | 許可                             | **許可**                                                                            |
+| `release_withdrawn_account(uid)`                                                               | メール解放・identities 削除      | **OK**(`withdrawn+…@withdrawn.invalid`、identities 0 件、public.users.email も同期) |
+| 退会後に同じメールで `auth.users` へ INSERT                                                    | 新しい `public.users` が作られる | **OK**(UNIQUE に当たらない)                                                         |
+| `email_logs.status='skipped'`                                                                  | 許可                             | **許可**                                                                            |
+| `brands` に `TREK`(既存 `Trek`)                                                                | 一意制約違反                     | **拒否**(`uq_brands_name_ci`)                                                       |
+| `transactions.refunded_at / disputed_at / dispute_id`、`admin_audit_logs.target_type='review'` | 存在・許可                       | **OK**                                                                              |
+
+## 3. 残っていること
+
+DB 側の未確認は無い。残るのは外部サービスの実機確認(本番 Supabase の Auth 設定、
+Stripe のテストカードと Webhook の 6 イベント、Resend、Google ログイン)のみ。

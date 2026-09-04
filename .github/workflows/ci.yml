@@ -52,6 +52,9 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+      - name: setup-hosted.sql が migrations と一致するか
+        run: node scripts/gen-setup-hosted.mjs && git diff --exit-code -- supabase/setup-hosted.sql
+
       - name: Typecheck
         run: pnpm typecheck
 

@@ -90,7 +90,7 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 
 ## メールの確認
 
-ローカルでは Inbucket が受信箱になる。http://127.0.0.1:54324 を開くと、
+ローカルでは Mailpit が受信箱になる。http://127.0.0.1:54324 を開くと、
 会員登録の確認メールや取引通知が届いているのを確認できる。
 
 ## 片付け

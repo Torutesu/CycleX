@@ -57,7 +57,7 @@ pnpm build         # next build
 
 | #   | 決定                                                                                                                                                | 理由                                                                                                                                                           |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Next.js 15 App Router + Server Actions、API Route は Webhook 等の外部起点のみ                                                                       | 実装量最小化                                                                                                                                                   |
+| 1   | Next.js 16 App Router + Server Actions、API Route は Webhook 等の外部起点のみ(ルート保護は `middleware.ts` ではなく `src/proxy.ts`)                 | 実装量最小化                                                                                                                                                   |
 | 2   | 認証は Supabase Auth(`@supabase/ssr` の Cookie セッション)。`public.users` プロフィールは auth.users への INSERT トリガーで自動作成                 | FR-01 の大半を委譲                                                                                                                                             |
 | 3   | 認可は「RLS + Server Action 内ガード」の二重化。RLS は閲覧制御中心、状態遷移の正しさはサーバーコードで担保                                          | 単純化                                                                                                                                                         |
 | 4   | 商品検索は pg_trgm(ILIKE + GIN index)。tsvector は使わない                                                                                          | 日本語形態素解析を避ける                                                                                                                                       |
@@ -131,18 +131,18 @@ src/
 │   ├── message/  transaction/  review/  report/  admin/
 │   │   └── 各: actions.ts / queries.ts / schema.ts(Zod)/ 必要なら components/
 ├── lib/
-│   ├── supabase/ (client.ts, server.ts, admin.ts, middleware.ts)
+│   ├── supabase/ (client.ts, server.ts, admin.ts, proxy.ts, access-rules.ts)
 │   ├── stripe.ts  email/(send.ts, templates/)  constants.ts  utils.ts  rate-limit.ts
-├── types/ (database.ts = supabase gen types, domain.ts)
+├── types/ (database.ts = supabase gen types)
 supabase/
 ├── migrations/  seed.sql  config.toml
-e2e/  vitest.config.ts  playwright.config.ts  vercel.json
+e2e/  vitest.config.mts  playwright.config.ts  vercel.json
 ```
 
 ## 6. テスト方針
 
 - **Vitest(ユニット)**: 純粋ロジックを対象 — 取引ステータス遷移ガード、Zod スキーマ、検索クエリビルダ、手数料計算、評価公開判定。Supabase はモック不要な設計(ロジックを純関数に切り出す)
-- **Playwright(スモーク 1 本)**: Phase 8 で「登録→出品→検索→詳細→お気に入り」のゲスト+会員動線。決済は Webhook 依存のため E2E 対象外(ユニット+手動で担保)
+- **Playwright(E2E)**: 登録・出品・検索・お気に入り・メッセージ・通報・管理・権限に加え、Stripe 未構成時のデモ決済で購入〜評価〜完了までを通す。実 Stripe(テストカード)は手動で確認する
 - 各フェーズの「検証」節に手動確認手順を記載。手動確認も完了条件に含む
 
 ## 7. 障害時の方針
