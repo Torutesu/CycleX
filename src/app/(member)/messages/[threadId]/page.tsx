@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, RotateCw } from "lucide-react";
 import { requireUser } from "@/lib/session";
 import { getThreadDetail } from "@/features/message/queries";
+import { sendDisabledReason } from "@/features/message/rules";
 import { Conversation } from "@/features/message/components/conversation";
 import { MarkThreadRead } from "@/features/message/components/mark-read";
 import { listingImageUrl } from "@/lib/images";
@@ -21,11 +22,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ threadI
   if (!thread) notFound();
 
   const disabledReason =
-    thread.counterparty.status === "withdrawn"
-      ? "相手が退会済みのため、新しいメッセージは送信できません。"
-      : thread.counterparty.status === "suspended"
-        ? "相手のアカウントが利用停止中のため、新しいメッセージは送信できません。"
-        : undefined;
+    sendDisabledReason(thread.counterparty.status, thread.listing.status) ?? undefined;
 
   const statusLabel =
     thread.listing.status !== "published" ? labelOf(LISTING_STATUSES, thread.listing.status) : null;

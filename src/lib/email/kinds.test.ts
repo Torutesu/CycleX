@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MAIL_KINDS,
   shouldSend,
+  shouldSendReminder,
   shouldThrottleMessageNotification,
   type MailKind,
 } from "@/lib/email/kinds";
@@ -85,5 +86,21 @@ describe("shouldThrottleMessageNotification", () => {
   it("30分を過ぎたら再通知する", () => {
     expect(shouldThrottleMessageNotification(minutesAgo(30), NOW)).toBe(false);
     expect(shouldThrottleMessageNotification(minutesAgo(60), NOW)).toBe(false);
+  });
+});
+
+describe("shouldSendReminder", () => {
+  const now = new Date("2026-09-10T00:00:00Z");
+  const daysAgo = (days: number) =>
+    new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  it("一度も送っていなければ送る", () => {
+    expect(shouldSendReminder(null, now)).toBe(true);
+  });
+
+  it("間隔を空けて送る(既定 7 日)", () => {
+    expect(shouldSendReminder(daysAgo(6), now)).toBe(false);
+    expect(shouldSendReminder(daysAgo(7), now)).toBe(true);
+    expect(shouldSendReminder(daysAgo(30), now)).toBe(true);
   });
 });

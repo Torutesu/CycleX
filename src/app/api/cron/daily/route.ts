@@ -4,6 +4,7 @@ import { publishOverdueReviews } from "@/features/review/batch";
 import { cleanupStalePendingTransactions } from "@/features/transaction/webhook";
 import { findStateMismatches } from "@/features/admin/queries";
 import { cleanupOrphanListingImages } from "@/lib/storage";
+import { sendStalledTransactionReminders } from "@/features/transaction/reminders";
 
 /**
  * 日次バッチ(ADR #8)。
@@ -29,11 +30,12 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [reviews, canceled, mismatches, orphanImages] = await Promise.all([
+    const [reviews, canceled, mismatches, orphanImages, reminders] = await Promise.all([
       publishOverdueReviews(),
       cleanupStalePendingTransactions(),
       findStateMismatches(),
       cleanupOrphanListingImages(),
+      sendStalledTransactionReminders(),
     ]);
 
     if (mismatches.length > 0) {
@@ -46,6 +48,7 @@ export async function GET(request: NextRequest) {
       canceledStalePayments: canceled,
       stateMismatches: mismatches.length,
       orphanImagesRemoved: orphanImages,
+      reminders,
     });
   } catch (error) {
     console.error("[cron] 日次バッチに失敗しました", error);

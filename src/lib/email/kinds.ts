@@ -16,6 +16,8 @@ export type MailKind =
   | "review_requested"
   | "review_received"
   | "new_message"
+  | "tx_ship_reminder"
+  | "tx_receive_reminder"
   | "admin_dispute"
   | "admin_late_payment";
 
@@ -37,6 +39,9 @@ export const MAIL_KINDS: Record<MailKind, MailKindMeta> = {
   review_requested: { subject: "評価のお願い", category: "review" },
   review_received: { subject: "評価が届きました", category: "review" },
   new_message: { subject: "新着メッセージがあります", category: "message" },
+  // 止まったままの取引の催促(FR-08 の運用補助)。取引の通知として扱う
+  tx_ship_reminder: { subject: "発送・受渡のご連絡をお願いします", category: "transaction" },
+  tx_receive_reminder: { subject: "商品は届きましたか?", category: "transaction" },
   // 運営あて。応答期限があるため設定に関わらず必ず送る
   admin_dispute: { subject: "【要対応】チャージバックの申し立てがありました", category: null },
   // 運営あて。キャンセル済みの取引に支払いが届いたので返金が必要
@@ -59,6 +64,20 @@ export function shouldSend(
   if (category === null) return true;
 
   return prefs?.[category] !== false;
+}
+
+/** 止まった取引の催促を送る間隔(日)。同じ取引に毎日は送らない */
+export const REMINDER_INTERVAL_DAYS = 7;
+
+/** 直近の送信ログから、催促を送ってよいか判定する(純関数) */
+export function shouldSendReminder(
+  lastSentAt: string | null,
+  now: Date,
+  intervalDays = REMINDER_INTERVAL_DAYS,
+): boolean {
+  if (!lastSentAt) return true;
+  const elapsedMs = now.getTime() - new Date(lastSentAt).getTime();
+  return elapsedMs >= intervalDays * 24 * 60 * 60 * 1000;
 }
 
 /** 同一スレッドの新着通知を抑制する時間(分) */

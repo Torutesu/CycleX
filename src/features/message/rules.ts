@@ -8,6 +8,8 @@ export type ThreadContext = {
   buyerId: string;
   sellerId: string;
   counterpartyStatus: UserStatus;
+  /** やり取りの対象商品の状態 */
+  listingStatus: ListingStatus;
 };
 
 export type SendCheck = { allowed: true } | { allowed: false; reason: string };
@@ -25,7 +27,29 @@ export function canSendMessage(viewerId: string, thread: ThreadContext): SendChe
       reason: "相手のアカウントが利用停止中のため、メッセージを送信できません。",
     };
   }
+  // 運営が非表示にした商品では新規のやり取りを止める(質問の開始を塞ぐ canStartThread と対称)。
+  // 取下げ・売却済みは当事者の都合なので、進行中の連絡は続けられるようにする
+  if (thread.listingStatus === "suspended") {
+    return {
+      allowed: false,
+      reason: "この商品は運営により非公開のため、メッセージを送信できません。",
+    };
+  }
   return { allowed: true };
+}
+
+/** 送信できない理由(画面の入力欄を閉じるときの案内文)。送信できるなら null */
+export function sendDisabledReason(
+  counterpartyStatus: UserStatus,
+  listingStatus: ListingStatus,
+): string | null {
+  const check = canSendMessage("viewer", {
+    buyerId: "viewer",
+    sellerId: "other",
+    counterpartyStatus,
+    listingStatus,
+  });
+  return check.allowed ? null : check.reason;
 }
 
 /** スレッドを開始できる商品の状態か(下書き・取下げ・非表示には問い合わせできない) */

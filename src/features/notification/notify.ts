@@ -404,3 +404,44 @@ export async function notifyLatePayment(transactionId: string): Promise<void> {
     ),
   );
 }
+
+/** 発送されないまま止まっている取引を出品者へ催促する */
+export async function notifyShipReminder(transactionId: string, days: number): Promise<void> {
+  const tx = await loadTransaction(transactionId);
+  if (!tx) return;
+
+  await sendMail({
+    userId: tx.sellerId,
+    kind: "tx_ship_reminder",
+    refId: tx.id,
+    body: {
+      intro: `お支払いから${days}日が経過しましたが、${tx.isInPerson ? "受渡" : "発送"}のご連絡がまだのようです。購入者がお待ちです。`,
+      details: [
+        { label: "商品", value: tx.listingTitle },
+        { label: "金額", value: formatPrice(tx.price) },
+      ],
+      cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
+      outro:
+        "事情がある場合は、取引画面のメッセージから購入者へご連絡ください。ご対応が難しい場合は運営までお知らせください。",
+    },
+  });
+}
+
+/** 受取確認がされないまま止まっている取引を購入者へ催促する */
+export async function notifyReceiveReminder(transactionId: string, days: number): Promise<void> {
+  const tx = await loadTransaction(transactionId);
+  if (!tx) return;
+
+  await sendMail({
+    userId: tx.buyerId,
+    kind: "tx_receive_reminder",
+    refId: tx.id,
+    body: {
+      intro: `${tx.isInPerson ? "受渡" : "発送"}のご連絡から${days}日が経過しました。商品を受け取られましたら、取引画面から受取確認をお願いします。`,
+      details: [{ label: "商品", value: tx.listingTitle }],
+      cta: { label: "受取確認をする", path: `/transactions/${tx.id}` },
+      outro:
+        "まだ届いていない場合や、商品に問題がある場合は、取引画面のメッセージから出品者へご連絡ください。",
+    },
+  });
+}

@@ -97,6 +97,7 @@ export async function startThread(
       buyerId: user.id,
       sellerId: listing.seller_id,
       counterpartyStatus: sellerStatus,
+      listingStatus: listing.status as ListingStatus,
     });
     if (!sendCheck.allowed) throw new AppError(sendCheck.reason);
 
@@ -159,6 +160,7 @@ export async function sendMessage(
       buyerId: context.buyerId,
       sellerId: context.sellerId,
       counterpartyStatus,
+      listingStatus: context.listingStatus,
     });
     if (!check.allowed) throw new AppError(check.reason);
 
