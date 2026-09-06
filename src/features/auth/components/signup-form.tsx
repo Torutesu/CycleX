@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Field } from "@/components/form/field";
@@ -16,6 +16,10 @@ export function SignupForm() {
     null,
   );
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
+  // 入力に不備があると素の入力欄は空に戻ってしまう。
+  // パスワードだけ直せば済むように、名前とメールは持ち越す。
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
@@ -31,6 +35,8 @@ export function SignupForm() {
           name="displayName"
           autoComplete="nickname"
           maxLength={DISPLAY_NAME_MAX}
+          value={displayName}
+          onChange={(event) => setDisplayName(event.target.value)}
           className="h-11"
           required
         />
@@ -43,6 +49,8 @@ export function SignupForm() {
           type="email"
           inputMode="email"
           autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           className="h-11"
           required
         />

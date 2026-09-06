@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SearchX } from "lucide-react";
+import { AlertTriangle, SearchX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListingGrid } from "@/components/listing/listing-grid";
 import { QuickFilters } from "@/features/search/components/quick-filters";
@@ -15,11 +15,7 @@ import { SearchPagination } from "@/features/search/components/pagination";
 import { SearchResults, SearchTransition } from "@/features/search/components/search-transition";
 import { getBrandOptions, searchListings } from "@/features/search/queries";
 import { getFavoritedIds } from "@/features/favorite/queries";
-import {
-  parseSearchParams,
-  hasActiveFilters,
-  SEARCH_PAGE_SIZE,
-} from "@/features/search/params";
+import { parseSearchParams, hasActiveFilters, SEARCH_PAGE_SIZE } from "@/features/search/params";
 import { getCurrentUser } from "@/lib/session";
 import { CATEGORIES, labelOf } from "@/lib/constants";
 
@@ -105,7 +101,18 @@ export default async function SearchPage({
             </header>
 
             <SearchResults>
-              {result.items.length === 0 ? (
+              {result.failed ? (
+                <EmptyState
+                  icon={AlertTriangle}
+                  title="検索を実行できませんでした"
+                  description="一時的に混み合っている可能性があります。少し時間をおいて、もう一度お試しください。"
+                  action={
+                    <Button asChild variant="outline" className="h-11">
+                      <Link href="/search">やり直す</Link>
+                    </Button>
+                  }
+                />
+              ) : result.items.length === 0 ? (
                 <EmptyState
                   icon={SearchX}
                   title="条件に合う商品が見つかりませんでした"

@@ -68,6 +68,12 @@ export type SearchResult = {
   items: ListingCardData[];
   total: number;
   totalPages: number;
+  /**
+   * 検索そのものが失敗したか。
+   * 0件と区別が付かないと、DB が落ちているときに「商品がありません」と
+   * 案内してしまう。
+   */
+  failed: boolean;
 };
 
 /**
@@ -153,8 +159,21 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
   const { data, count, error } = await query.range(from, from + SEARCH_PAGE_SIZE - 1);
 
   if (error) {
+    // 件数の外を指す range は PostgREST が 416 を返す。古いリンクや
+    // ブックマークで起こりうる。そのまま返すと商品があるのに「0件」と
+    // 案内してしまうので、最後のページへ寄せて返す。
+    //
+    // ここで redirect しないのは、この画面に loading.tsx があるため。
+    // 描画が始まったあとの redirect は 1 秒待つ meta タグに化けて、
+    // その間つなぎの画面が出てしまう。
+    if (isRangeOutOfBounds(error)) {
+      const firstPage = await searchListings({ ...params, page: 1 });
+      if (firstPage.failed || firstPage.totalPages <= 1) return firstPage;
+      return searchListings({ ...params, page: firstPage.totalPages });
+    }
+
     console.error("[search failed]", error);
-    return { items: [], total: 0, totalPages: 0 };
+    return { items: [], total: 0, totalPages: 0, failed: true };
   }
 
   const total = count ?? 0;
@@ -162,8 +181,15 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
     items: (data ?? []).map((row) => toCard(row as unknown as ListingRow)),
     total,
     totalPages: Math.max(1, Math.ceil(total / SEARCH_PAGE_SIZE)),
+    failed: false,
   };
 }
+
+/** range が範囲外だったときのエラーか */
+function isRangeOutOfBounds(error: { code?: string; message?: string }): boolean {
+  return error.code === "PGRST103" || /range not satisfiable/i.test(error.message ?? "");
+}
+
 
 /**
  * ILIKE のワイルドカードと、PostgREST のフィルタ構文で意味を持つ記号を無効化する。

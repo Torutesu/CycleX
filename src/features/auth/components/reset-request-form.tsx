@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Field } from "@/components/form/field";
@@ -13,6 +13,9 @@ export function ResetRequestForm() {
     requestPasswordReset,
     null,
   );
+
+  // 失敗しても打ち直しにならないよう値を持っておく
+  const [email, setEmail] = useState("");
 
   // 送信済みはアカウントの存在有無に関わらず同じ表示にする
   if (state?.ok) {
@@ -40,6 +43,8 @@ export function ResetRequestForm() {
           type="email"
           inputMode="email"
           autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           className="h-11"
           required
         />

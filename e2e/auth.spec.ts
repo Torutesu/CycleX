@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { linkInMail, mailcatcherAvailable, waitForMail } from "./mail";
 
 /**
  * 認証まわりの通し(FR-01)。
@@ -10,48 +11,8 @@ import { test, expect, type Page } from "@playwright/test";
  * `supabase start` が動いている環境でのみ実行する。
  */
 
-// Supabase CLI のメールキャッチャー。ホストされた環境では動かないので skip する
-const MAIL_API = "http://127.0.0.1:54324/api/v1";
 const PASSWORD = "abcd1234";
 const NEW_PASSWORD = "zyxw9876";
-
-type MailSummary = { ID: string; Subject: string; To: { Address: string }[] };
-
-async function mailcatcherAvailable(): Promise<boolean> {
-  try {
-    const response = await fetch(`${MAIL_API}/messages?limit=1`);
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-/** 宛先に届いたメールのうち、既読済み ID を除いた最新の1通を待つ */
-async function waitForMail(to: string, seen: Set<string>): Promise<MailSummary> {
-  for (let attempt = 0; attempt < 30; attempt++) {
-    const response = await fetch(`${MAIL_API}/messages?limit=50`);
-    const { messages } = (await response.json()) as { messages: MailSummary[] };
-    const hit = messages.find(
-      (m) => !seen.has(m.ID) && m.To.some((address) => address.Address === to),
-    );
-    if (hit) {
-      seen.add(hit.ID);
-      return hit;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  throw new Error(`メールが届きません: ${to}`);
-}
-
-/** メール本文から認証リンクを取り出す */
-async function linkInMail(id: string): Promise<string> {
-  const response = await fetch(`${MAIL_API}/message/${id}`);
-  const body = (await response.json()) as { HTML?: string; Text?: string };
-  const urls = (body.HTML || body.Text || "").match(/https?:\/\/[^\s"'<>]+/g) ?? [];
-  const link = urls.find((url) => url.includes("/verify") || url.includes("/auth/callback"));
-  if (!link) throw new Error("メール本文に認証リンクがありません");
-  return link.replace(/&amp;/g, "&");
-}
 
 async function signedInAs(page: Page): Promise<boolean> {
   await page.goto("/mypage");
@@ -120,4 +81,29 @@ test.describe("認証", () => {
     await expect(page).toHaveURL(/\/login\?error=callback/);
     await expect(page.getByText("リンクを確認できませんでした")).toBeVisible();
   });
+});
+
+test("入力に不備があっても、打ち直しになるのはパスワードだけ", async ({ page }) => {
+  // ログイン: メールアドレスは残る
+  await page.goto("/login");
+  await page.fill("#email", "keep-me@example.com");
+  await page.fill("#password", "wrongpass1");
+  await page.click('button[type="submit"]:has-text("ログイン")');
+  await expect(page.getByText(/メールアドレスまたはパスワード/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator("#email")).toHaveValue("keep-me@example.com");
+
+  // 会員登録: 名前とメールは残る
+  await page.goto("/signup");
+  await page.fill("#displayName", "やまもと");
+  await page.fill("#email", "keep-signup@example.com");
+  await page.fill("#password", "short");
+  await page.click('button[type="submit"]');
+  await expect(page.locator("#displayName")).toHaveValue("やまもと", { timeout: 20_000 });
+  await expect(page.locator("#email")).toHaveValue("keep-signup@example.com");
+
+  // パスワード再設定の依頼: メールは残る
+  await page.goto("/reset-password");
+  await page.fill("#email", "not-an-email");
+  await page.click('button[type="submit"]');
+  await expect(page.locator("#email")).toHaveValue("not-an-email", { timeout: 20_000 });
 });

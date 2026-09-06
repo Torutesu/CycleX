@@ -75,6 +75,7 @@ export default async function EditListingPage({
           feeRate={getPlatformFeeRate()}
           defaults={toFormDefaults(listing, imagePaths)}
           allowDraft={status === "draft"}
+          alreadyPublished={status === "published"}
         />
       </div>
     </div>

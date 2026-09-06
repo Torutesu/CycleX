@@ -105,9 +105,22 @@ type ListingFormProps = {
   defaults: ListingFormDefaults;
   /** 下書き保存を出すか(公開中の商品の編集では出さない) */
   allowDraft: boolean;
+  /**
+   * すでに公開されている商品の編集か。
+   * 同じ操作でも、新規や下書きなら「公開する」、公開中なら「変更を保存」と
+   * 呼ぶほうが実際に起きることに合う。
+   */
+  alreadyPublished?: boolean;
 };
 
-export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: ListingFormProps) {
+export function ListingForm({
+  userId,
+  brands,
+  feeRate,
+  defaults,
+  allowDraft,
+  alreadyPublished = false,
+}: ListingFormProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [values, setValues] = useState<ListingFormDefaults>(defaults);
@@ -194,7 +207,7 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
         router.replace(`/sell/${result.data.id}/edit`);
         router.refresh();
       } else {
-        toast.success("商品を公開しました");
+        toast.success(alreadyPublished ? "変更を保存しました" : "商品を公開しました");
         router.push(`/items/${result.data.id}`);
       }
     });
@@ -632,7 +645,7 @@ export function ListingForm({ userId, brands, feeRate, defaults, allowDraft }: L
             </Button>
           )}
           <Button type="submit" className="h-12 flex-1" disabled={pending}>
-            {pending ? "処理中..." : "公開する"}
+            {pending ? "処理中..." : alreadyPublished ? "変更を保存" : "公開する"}
           </Button>
         </div>
       </div>
