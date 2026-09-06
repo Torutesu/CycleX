@@ -2,13 +2,14 @@ import "server-only";
 
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { envValue } from "@/lib/env";
 import { MAIL_KINDS, shouldSend, type MailKind } from "@/lib/email/kinds";
 import { renderHtml, renderText, type MailBody } from "@/lib/email/template";
 
 let resend: Resend | null = null;
 
 function getResend(): Resend | null {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = envValue("RESEND_API_KEY");
   // ローカルやテストではキー未設定のことがある。その場合は送信をスキップする。
   if (!apiKey || apiKey === "re_dummy") return null;
   if (!resend) resend = new Resend(apiKey);
@@ -61,7 +62,7 @@ export async function sendMail(input: SendMailInput): Promise<void> {
     }
 
     const { error } = await client.emails.send({
-      from: process.env.EMAIL_FROM ?? "CycleX <noreply@example.com>",
+      from: envValue("EMAIL_FROM") ?? "CycleX <noreply@example.com>",
       to: user.email,
       subject,
       html: renderHtml(user.display_name, input.body),

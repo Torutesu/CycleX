@@ -1,5 +1,7 @@
 import "server-only";
 
+import { envValue } from "@/lib/env";
+
 /**
  * デモ決済モード。
  *
@@ -16,7 +18,7 @@ import "server-only";
  * 本物の決済が使える環境でデモ決済が動くことはない。
  */
 export function isDemoCheckout(): boolean {
-  return process.env.ALLOW_DEMO_CHECKOUT === "1" && !process.env.STRIPE_SECRET_KEY;
+  return envValue("ALLOW_DEMO_CHECKOUT") === "1" && !envValue("STRIPE_SECRET_KEY");
 }
 
 /** デモ決済で使う擬似セッション ID */

@@ -1,6 +1,7 @@
 import "server-only";
 
 import Stripe from "stripe";
+import { requireEnv } from "@/lib/env";
 
 let client: Stripe | null = null;
 
@@ -12,19 +13,10 @@ let client: Stripe | null = null;
 export function getStripe(): Stripe {
   if (client) return client;
 
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    throw new Error("STRIPE_SECRET_KEY が設定されていません");
-  }
-
-  client = new Stripe(secretKey, { typescript: true });
+  client = new Stripe(requireEnv("STRIPE_SECRET_KEY"), { typescript: true });
   return client;
 }
 
 export function getWebhookSecret(): string {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) {
-    throw new Error("STRIPE_WEBHOOK_SECRET が設定されていません");
-  }
-  return secret;
+  return requireEnv("STRIPE_WEBHOOK_SECRET");
 }

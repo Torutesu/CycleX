@@ -38,7 +38,7 @@ export function renderHtml(recipientName: string, body: MailBody): string {
 
   const cta = body.cta
     ? `<p style="margin:24px 0;">
-         <a href="${absoluteUrl(body.cta.path)}"
+         <a href="${escapeHtml(absoluteUrl(body.cta.path))}"
             style="display:inline-block;background:#0E7C6B;color:#ffffff;text-decoration:none;
                    padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;">
            ${escapeHtml(body.cta.label)}

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { publishOverdueReviews } from "@/features/review/batch";
 import { cleanupStalePendingTransactions } from "@/features/transaction/webhook";
 import { findStateMismatches } from "@/features/admin/queries";
+import { envValue } from "@/lib/env";
 
 /**
  * 日次バッチ(ADR #8)。
@@ -12,7 +13,7 @@ import { findStateMismatches } from "@/features/admin/queries";
  * 3. 取引と商品の状態ズレの検出(件数をログに残す。復旧は管理画面から手動)
  */
 export async function GET(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
+  const secret = envValue("CRON_SECRET");
   if (!secret) {
     console.error("[cron] CRON_SECRET が設定されていません");
     return NextResponse.json({ error: "設定エラー" }, { status: 500 });

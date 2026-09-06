@@ -14,6 +14,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(rootDir, "./src"),
+      // サーバー専用の印は、テストでは無効にする
+      "server-only": path.resolve(rootDir, "./test/server-only-stub.ts"),
     },
   },
 });
