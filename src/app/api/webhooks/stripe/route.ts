@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
-import { getStripe, getWebhookSecret } from "@/lib/stripe";
+import { verifyStripeEvent } from "@/lib/stripe";
 import {
   handleCheckoutCompleted,
   handleCheckoutExpired,
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
   try {
     const rawBody = await request.text();
-    event = getStripe().webhooks.constructEvent(rawBody, signature, getWebhookSecret());
+    event = verifyStripeEvent(rawBody, signature);
   } catch (error) {
     console.error("[stripe webhook] 署名検証に失敗しました", error);
     return NextResponse.json({ error: "署名の検証に失敗しました" }, { status: 400 });
