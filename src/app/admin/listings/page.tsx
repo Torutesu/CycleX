@@ -123,7 +123,7 @@ export default async function AdminListingsPage({
                     <ConfirmButton
                       label="非表示を解除"
                       confirmTitle="非表示を解除しますか?"
-                      confirmDescription="この商品は公開中に戻り、検索と一覧に表示されるようになります。"
+                      confirmDescription="この商品は取下げ中に戻ります。ふたたび公開するかどうかは出品者本人が決めるため、この操作だけでは検索に表示されません。"
                       onConfirm={async () => {
                         "use server";
                         return unsuspendListing(listing.id);

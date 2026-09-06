@@ -10,6 +10,19 @@ export function adminDb() {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 }
 
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
+/**
+ * 一般利用者としての接続。ブラウザと同じ鍵・同じ権限になるので、
+ * 行レベルの制限(RLS)が本当に効いているかを直接確かめられる。
+ */
+export async function userDb(email: string) {
+  const client = createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
+  const { error } = await client.auth.signInWithPassword({ email, password: TEST_PASSWORD });
+  if (error) throw new Error(`ログインできません: ${email} (${error.message})`);
+  return client;
+}
+
 /**
  * メール確認済みのテストユーザーを用意する。
  * `enable_confirmations = true` のままでも、admin API で確認済みとして作成できる。
