@@ -5,15 +5,10 @@
 -- テーブル・権限・インデックス・Storage・初期データがすべて入る。
 -- CLI のインストールもログインも不要。
 --
--- 内容は supabase/migrations/ の6本 + seed.sql と同一。
--- 生成元: 5eaede7
+-- 内容は supabase/migrations/ の9本 + seed.sql と同一。
+-- このファイルは scripts/build-hosted-sql.mjs が生成する。直接編集しないこと。
+-- マイグレーションを足したら node scripts/build-hosted-sql.mjs を実行する。
 -- ============================================================
-
--- 再実行できるよう、Storage のポリシーは先に落としておく
-drop policy if exists "cyclex_images_read"        on storage.objects;
-drop policy if exists "cyclex_images_insert_own"  on storage.objects;
-drop policy if exists "cyclex_images_update_own"  on storage.objects;
-drop policy if exists "cyclex_images_delete_own"  on storage.objects;
 
 
 -- ############################################################
@@ -30,7 +25,7 @@ create extension if not exists pg_trgm;
 -- =============================================================
 -- users
 -- =============================================================
-create table public.users (
+create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text unique not null,
   display_name text not null default '',
@@ -73,6 +68,7 @@ begin
   return new;
 end $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
@@ -89,6 +85,7 @@ begin
   return new;
 end $$;
 
+drop trigger if exists on_auth_user_updated on auth.users;
 create trigger on_auth_user_updated
   after update on auth.users
   for each row execute function public.handle_user_email_verified();
@@ -96,7 +93,7 @@ create trigger on_auth_user_updated
 -- =============================================================
 -- brands
 -- =============================================================
-create table public.brands (
+create table if not exists public.brands (
   id uuid primary key default gen_random_uuid(),
   name text unique not null,
   is_active boolean not null default true,
@@ -107,7 +104,7 @@ create table public.brands (
 -- =============================================================
 -- listings
 -- =============================================================
-create table public.listings (
+create table if not exists public.listings (
   id uuid primary key default gen_random_uuid(),
   seller_id uuid not null references public.users(id),
   status text not null default 'draft'
@@ -137,16 +134,16 @@ create table public.listings (
   updated_at timestamptz not null default now()
 );
 
-create index idx_listings_status_published on public.listings (status, published_at desc);
-create index idx_listings_category on public.listings (category);
-create index idx_listings_brand on public.listings (brand_id);
-create index idx_listings_price on public.listings (price);
-create index idx_listings_pref on public.listings (shipping_from_pref);
-create index idx_listings_seller on public.listings (seller_id);
-create index idx_listings_favorites on public.listings (favorites_count desc);
+create index if not exists idx_listings_status_published on public.listings (status, published_at desc);
+create index if not exists idx_listings_category on public.listings (category);
+create index if not exists idx_listings_brand on public.listings (brand_id);
+create index if not exists idx_listings_price on public.listings (price);
+create index if not exists idx_listings_pref on public.listings (shipping_from_pref);
+create index if not exists idx_listings_seller on public.listings (seller_id);
+create index if not exists idx_listings_favorites on public.listings (favorites_count desc);
 
 -- 日本語のキーワード検索は形態素解析を使わず pg_trgm の部分一致で行う
-create index idx_listings_trgm on public.listings using gin (
+create index if not exists idx_listings_trgm on public.listings using gin (
   (
     coalesce(title, '') || ' ' ||
     coalesce(description, '') || ' ' ||
@@ -155,7 +152,7 @@ create index idx_listings_trgm on public.listings using gin (
   ) gin_trgm_ops
 );
 
-create table public.listing_images (
+create table if not exists public.listing_images (
   id uuid primary key default gen_random_uuid(),
   listing_id uuid not null references public.listings(id) on delete cascade,
   path text not null,
@@ -164,20 +161,20 @@ create table public.listing_images (
   unique (listing_id, position)
 );
 
-create index idx_listing_images_listing on public.listing_images (listing_id, position);
+create index if not exists idx_listing_images_listing on public.listing_images (listing_id, position);
 
 -- =============================================================
 -- favorites
 -- =============================================================
-create table public.favorites (
+create table if not exists public.favorites (
   user_id uuid not null references public.users(id) on delete cascade,
   listing_id uuid not null references public.listings(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (user_id, listing_id)
 );
 
-create index idx_favorites_listing on public.favorites (listing_id);
-create index idx_favorites_user_created on public.favorites (user_id, created_at desc);
+create index if not exists idx_favorites_listing on public.favorites (listing_id);
+create index if not exists idx_favorites_user_created on public.favorites (user_id, created_at desc);
 
 create or replace function public.sync_favorites_count()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -190,6 +187,7 @@ begin
   return null;
 end $$;
 
+drop trigger if exists trg_favorites_count on public.favorites;
 create trigger trg_favorites_count
   after insert or delete on public.favorites
   for each row execute function public.sync_favorites_count();
@@ -197,7 +195,7 @@ create trigger trg_favorites_count
 -- =============================================================
 -- threads / messages
 -- =============================================================
-create table public.threads (
+create table if not exists public.threads (
   id uuid primary key default gen_random_uuid(),
   listing_id uuid not null references public.listings(id) on delete cascade,
   buyer_id uuid not null references public.users(id),
@@ -206,10 +204,10 @@ create table public.threads (
   unique (listing_id, buyer_id)
 );
 
-create index idx_threads_buyer on public.threads (buyer_id, last_message_at desc);
-create index idx_threads_listing on public.threads (listing_id);
+create index if not exists idx_threads_buyer on public.threads (buyer_id, last_message_at desc);
+create index if not exists idx_threads_listing on public.threads (listing_id);
 
-create table public.messages (
+create table if not exists public.messages (
   id uuid primary key default gen_random_uuid(),
   thread_id uuid not null references public.threads(id) on delete cascade,
   sender_id uuid not null references public.users(id),
@@ -218,13 +216,13 @@ create table public.messages (
   created_at timestamptz not null default now()
 );
 
-create index idx_messages_thread on public.messages (thread_id, created_at);
-create index idx_messages_unread on public.messages (thread_id, sender_id) where read_at is null;
+create index if not exists idx_messages_thread on public.messages (thread_id, created_at);
+create index if not exists idx_messages_unread on public.messages (thread_id, sender_id) where read_at is null;
 
 -- =============================================================
 -- transactions
 -- =============================================================
-create table public.transactions (
+create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
   listing_id uuid not null references public.listings(id),
   seller_id uuid not null references public.users(id),
@@ -246,14 +244,14 @@ create table public.transactions (
 );
 
 -- 1商品につき有効な取引は同時に1件(二重購入の排他制御の本体)
-create unique index uq_transactions_active on public.transactions (listing_id)
+create unique index if not exists uq_transactions_active on public.transactions (listing_id)
   where status <> 'canceled';
 
-create index idx_transactions_buyer on public.transactions (buyer_id, created_at desc);
-create index idx_transactions_seller on public.transactions (seller_id, created_at desc);
-create index idx_transactions_status on public.transactions (status);
+create index if not exists idx_transactions_buyer on public.transactions (buyer_id, created_at desc);
+create index if not exists idx_transactions_seller on public.transactions (seller_id, created_at desc);
+create index if not exists idx_transactions_status on public.transactions (status);
 
-create table public.transaction_events (
+create table if not exists public.transaction_events (
   id uuid primary key default gen_random_uuid(),
   transaction_id uuid not null references public.transactions(id) on delete cascade,
   actor_id uuid references public.users(id),
@@ -262,12 +260,12 @@ create table public.transaction_events (
   created_at timestamptz not null default now()
 );
 
-create index idx_transaction_events_tx on public.transaction_events (transaction_id, created_at);
+create index if not exists idx_transaction_events_tx on public.transaction_events (transaction_id, created_at);
 
 -- =============================================================
 -- reviews
 -- =============================================================
-create table public.reviews (
+create table if not exists public.reviews (
   id uuid primary key default gen_random_uuid(),
   transaction_id uuid not null references public.transactions(id) on delete cascade,
   reviewer_id uuid not null references public.users(id),
@@ -280,13 +278,13 @@ create table public.reviews (
   unique (transaction_id, reviewer_id)
 );
 
-create index idx_reviews_reviewee on public.reviews (reviewee_id, created_at desc)
+create index if not exists idx_reviews_reviewee on public.reviews (reviewee_id, created_at desc)
   where is_published and not is_hidden;
 
 -- =============================================================
 -- reports
 -- =============================================================
-create table public.reports (
+create table if not exists public.reports (
   id uuid primary key default gen_random_uuid(),
   reporter_id uuid not null references public.users(id),
   target_type text not null check (target_type in ('listing','user')),
@@ -301,13 +299,13 @@ create table public.reports (
   unique (reporter_id, target_type, target_id)
 );
 
-create index idx_reports_status on public.reports (status, created_at desc);
-create index idx_reports_target on public.reports (target_type, target_id);
+create index if not exists idx_reports_status on public.reports (status, created_at desc);
+create index if not exists idx_reports_target on public.reports (target_type, target_id);
 
 -- =============================================================
 -- email_logs
 -- =============================================================
-create table public.email_logs (
+create table if not exists public.email_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.users(id) on delete set null,
   kind text not null,
@@ -317,7 +315,7 @@ create table public.email_logs (
   created_at timestamptz not null default now()
 );
 
-create index idx_email_logs_dedupe on public.email_logs (user_id, kind, ref_id, created_at desc);
+create index if not exists idx_email_logs_dedupe on public.email_logs (user_id, kind, ref_id, created_at desc);
 
 -- =============================================================
 -- updated_at 自動更新
@@ -334,6 +332,8 @@ declare t text;
 begin
   foreach t in array array['users','brands','listings','transactions','reports']
   loop
+    -- 何度流しても壊れないよう、作る前に落とす
+    execute format('drop trigger if exists trg_touch_%s on public.%I', t, t);
     execute format(
       'create trigger trg_touch_%s before update on public.%I for each row execute function public.touch_updated_at()',
       t, t
@@ -376,24 +376,29 @@ alter table public.email_logs enable row level security;
 -- -------------------------------------------------------------
 -- users: プロフィールは公開情報。個人情報(email)は取得列をアプリ側で絞る。
 -- -------------------------------------------------------------
+drop policy if exists users_select on public.users;
 create policy users_select on public.users
   for select using (true);
 
+drop policy if exists users_update_self on public.users;
 create policy users_update_self on public.users
   for update using (auth.uid() = id) with check (auth.uid() = id);
 
 -- -------------------------------------------------------------
 -- brands
 -- -------------------------------------------------------------
+drop policy if exists brands_select on public.brands;
 create policy brands_select on public.brands
   for select using (true);
 
+drop policy if exists brands_admin_all on public.brands;
 create policy brands_admin_all on public.brands
   for all using (public.is_admin()) with check (public.is_admin());
 
 -- -------------------------------------------------------------
 -- listings
 -- -------------------------------------------------------------
+drop policy if exists listings_select on public.listings;
 create policy listings_select on public.listings
   for select using (
     status in ('published','trading','sold')
@@ -401,22 +406,27 @@ create policy listings_select on public.listings
     or public.is_admin()
   );
 
+drop policy if exists listings_insert_own on public.listings;
 create policy listings_insert_own on public.listings
   for insert with check (seller_id = auth.uid());
 
+drop policy if exists listings_update_own on public.listings;
 create policy listings_update_own on public.listings
   for update using (seller_id = auth.uid() and status <> 'suspended')
   with check (seller_id = auth.uid());
 
+drop policy if exists listings_admin_update on public.listings;
 create policy listings_admin_update on public.listings
   for update using (public.is_admin()) with check (public.is_admin());
 
+drop policy if exists listings_delete_draft on public.listings;
 create policy listings_delete_draft on public.listings
   for delete using (seller_id = auth.uid() and status = 'draft');
 
 -- -------------------------------------------------------------
 -- listing_images: 親 listing の可視性に追従
 -- -------------------------------------------------------------
+drop policy if exists listing_images_select on public.listing_images;
 create policy listing_images_select on public.listing_images
   for select using (
     exists (
@@ -426,6 +436,7 @@ create policy listing_images_select on public.listing_images
     )
   );
 
+drop policy if exists listing_images_write_own on public.listing_images;
 create policy listing_images_write_own on public.listing_images
   for all using (
     exists (select 1 from public.listings l where l.id = listing_id and l.seller_id = auth.uid())
@@ -436,12 +447,14 @@ create policy listing_images_write_own on public.listing_images
 -- -------------------------------------------------------------
 -- favorites: 本人のみ。件数表示は listings.favorites_count を使う。
 -- -------------------------------------------------------------
+drop policy if exists favorites_all_own on public.favorites;
 create policy favorites_all_own on public.favorites
   for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- -------------------------------------------------------------
 -- threads / messages: 参加者(出品者 or buyer)と admin
 -- -------------------------------------------------------------
+drop policy if exists threads_select on public.threads;
 create policy threads_select on public.threads
   for select using (
     buyer_id = auth.uid()
@@ -449,9 +462,11 @@ create policy threads_select on public.threads
     or public.is_admin()
   );
 
+drop policy if exists threads_insert_buyer on public.threads;
 create policy threads_insert_buyer on public.threads
   for insert with check (buyer_id = auth.uid());
 
+drop policy if exists messages_select on public.messages;
 create policy messages_select on public.messages
   for select using (
     exists (
@@ -468,11 +483,13 @@ create policy messages_select on public.messages
 -- -------------------------------------------------------------
 -- transactions: 当事者と admin(作成・更新は service role のみ)
 -- -------------------------------------------------------------
+drop policy if exists transactions_select on public.transactions;
 create policy transactions_select on public.transactions
   for select using (
     buyer_id = auth.uid() or seller_id = auth.uid() or public.is_admin()
   );
 
+drop policy if exists transaction_events_select on public.transaction_events;
 create policy transaction_events_select on public.transaction_events
   for select using (
     exists (
@@ -485,6 +502,7 @@ create policy transaction_events_select on public.transaction_events
 -- -------------------------------------------------------------
 -- reviews: 公開済みは全員。未公開は評価者本人と admin のみ(報復評価抑止)
 -- -------------------------------------------------------------
+drop policy if exists reviews_select on public.reviews;
 create policy reviews_select on public.reviews
   for select using (
     (is_published and not is_hidden)
@@ -495,18 +513,22 @@ create policy reviews_select on public.reviews
 -- -------------------------------------------------------------
 -- reports
 -- -------------------------------------------------------------
+drop policy if exists reports_select on public.reports;
 create policy reports_select on public.reports
   for select using (reporter_id = auth.uid() or public.is_admin());
 
+drop policy if exists reports_insert_own on public.reports;
 create policy reports_insert_own on public.reports
   for insert with check (reporter_id = auth.uid());
 
+drop policy if exists reports_admin_update on public.reports;
 create policy reports_admin_update on public.reports
   for update using (public.is_admin()) with check (public.is_admin());
 
 -- -------------------------------------------------------------
 -- email_logs: admin のみ閲覧可
 -- -------------------------------------------------------------
+drop policy if exists email_logs_admin_select on public.email_logs;
 create policy email_logs_admin_select on public.email_logs
   for select using (public.is_admin());
 
@@ -562,10 +584,12 @@ values
   ('avatars',        'avatars',        true, 5242880,  array['image/jpeg','image/png','image/webp'])
 on conflict (id) do nothing;
 
+drop policy if exists "cyclex_images_read" on storage.objects;
 create policy "cyclex_images_read"
   on storage.objects for select
   using (bucket_id in ('listing-images','avatars'));
 
+drop policy if exists "cyclex_images_insert_own" on storage.objects;
 create policy "cyclex_images_insert_own"
   on storage.objects for insert
   with check (
@@ -574,6 +598,7 @@ create policy "cyclex_images_insert_own"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "cyclex_images_update_own" on storage.objects;
 create policy "cyclex_images_update_own"
   on storage.objects for update
   using (
@@ -581,6 +606,7 @@ create policy "cyclex_images_update_own"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "cyclex_images_delete_own" on storage.objects;
 create policy "cyclex_images_delete_own"
   on storage.objects for delete
   using (
@@ -652,9 +678,11 @@ revoke insert, update, delete on public.brands from authenticated;
 -- -------------------------------------------------------------
 drop policy if exists favorites_all_own on public.favorites;
 
+drop policy if exists favorites_select_own on public.favorites;
 create policy favorites_select_own on public.favorites
   for select using (user_id = auth.uid());
 
+drop policy if exists favorites_insert_own on public.favorites;
 create policy favorites_insert_own on public.favorites
   for insert with check (
     user_id = auth.uid()
@@ -666,6 +694,7 @@ create policy favorites_insert_own on public.favorites
     )
   );
 
+drop policy if exists favorites_delete_own on public.favorites;
 create policy favorites_delete_own on public.favorites
   for delete using (user_id = auth.uid());
 
@@ -703,16 +732,16 @@ create policy favorites_delete_own on public.favorites
 -- -------------------------------------------------------------
 drop index if exists public.idx_listings_trgm;
 
-create index idx_listings_title_trgm
+create index if not exists idx_listings_title_trgm
   on public.listings using gin (title gin_trgm_ops);
 
-create index idx_listings_description_trgm
+create index if not exists idx_listings_description_trgm
   on public.listings using gin (description gin_trgm_ops);
 
-create index idx_listings_model_name_trgm
+create index if not exists idx_listings_model_name_trgm
   on public.listings using gin (model_name gin_trgm_ops);
 
-create index idx_listings_brand_other_trgm
+create index if not exists idx_listings_brand_other_trgm
   on public.listings using gin (brand_other gin_trgm_ops);
 
 -- -------------------------------------------------------------
@@ -730,7 +759,7 @@ create index idx_listings_brand_other_trgm
 -- 後者は status_before_suspend が null のままなので一括復帰の対象にならない。
 -- -------------------------------------------------------------
 alter table public.listings
-  add column status_before_suspend text
+  add column if not exists status_before_suspend text
     check (status_before_suspend in ('draft', 'published', 'withdrawn'));
 
 comment on column public.listings.status_before_suspend is
@@ -738,7 +767,7 @@ comment on column public.listings.status_before_suspend is
   '解除時にこの値へ戻す。運営が個別に非表示にした場合は null のままにする。';
 
 -- 一括復帰の対象を引くための部分インデックス
-create index idx_listings_suspended_restorable
+create index if not exists idx_listings_suspended_restorable
   on public.listings (seller_id)
   where status = 'suspended' and status_before_suspend is not null;
 
@@ -761,7 +790,7 @@ create index idx_listings_suspended_restorable
 alter table public.reports
   drop constraint if exists reports_reporter_id_target_type_target_id_key;
 
-create unique index uq_reports_open
+create unique index if not exists uq_reports_open
   on public.reports (reporter_id, target_type, target_id)
   where status = 'open';
 
@@ -771,7 +800,7 @@ create unique index uq_reports_open
 -- transaction_events は取引にしか残らないため、利用停止・非表示・ブランド変更
 -- といった管理操作の履歴が残っていなかった。誰が何をしたかを追えるようにする。
 -- -------------------------------------------------------------
-create table public.admin_audit_logs (
+create table if not exists public.admin_audit_logs (
   id uuid primary key default gen_random_uuid(),
   admin_id uuid not null references public.users(id),
   action text not null,
@@ -784,17 +813,222 @@ create table public.admin_audit_logs (
 comment on table public.admin_audit_logs is
   '管理画面から行われた操作の記録。閲覧は管理者のみ。書き込みは Server Action(service role)から。';
 
-create index idx_admin_audit_created on public.admin_audit_logs (created_at desc);
-create index idx_admin_audit_target on public.admin_audit_logs (target_type, target_id, created_at desc);
+create index if not exists idx_admin_audit_created on public.admin_audit_logs (created_at desc);
+create index if not exists idx_admin_audit_target on public.admin_audit_logs (target_type, target_id, created_at desc);
 
 alter table public.admin_audit_logs enable row level security;
 
+drop policy if exists admin_audit_admin_select on public.admin_audit_logs;
 create policy admin_audit_admin_select on public.admin_audit_logs
   for select using (public.is_admin());
 
 -- 20260101000002 の alter default privileges により、
 -- service_role には all、anon/authenticated には select が自動で付与される。
 -- 閲覧範囲は上記ポリシーが絞る。
+
+
+-- ############################################################
+-- 20260101000007_category_counts.sql
+-- ############################################################
+
+-- =============================================================
+-- カテゴリ別の出品件数を1回の問い合わせで返す
+--
+-- 背景:
+--   ホームのカテゴリ導線は、カテゴリごとに件数を出している。
+--   これをアプリ側で数えると、カテゴリの数だけ COUNT が飛ぶ(現状8回)。
+--   ローカルでは速いが、ホスト環境では1往復ごとに遅延が乗り、
+--   もっとも見られる画面で接続を8本も使ってしまう。
+--
+-- 方針:
+--   1回で全カテゴリぶんを返す関数にする。
+--   security invoker(既定)なので、呼び出した利用者の権限と RLS がそのまま効く。
+-- =============================================================
+
+create or replace function public.category_listing_counts()
+returns table (category text, count bigint)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select l.category, count(*)::bigint
+  from public.listings l
+  where l.status in ('published', 'trading')
+  group by l.category;
+$$;
+
+comment on function public.category_listing_counts() is
+  'カテゴリ別の公開中・取引中の件数。ホームのカテゴリ導線で使う。';
+
+grant execute on function public.category_listing_counts() to anon, authenticated, service_role;
+
+
+-- ############################################################
+-- 20260101000008_counts.sql
+-- ############################################################
+
+-- =============================================================
+-- 件数の数え上げを1回にまとめる
+--
+-- 背景:
+--   1) 出品管理のタブは状態ごとに COUNT を投げており、1画面で6往復していた。
+--   2) 未読バッジは「自分が当事者のスレッド」を全部引いてから
+--      messages?thread_id=in.(...) で数えていた。往復が3回かかるうえ、
+--      やり取りが増えると URL に ID が並び、いずれ長さの上限に当たる。
+--
+-- 方針:
+--   どちらも1回の問い合わせで済む関数にする。
+-- =============================================================
+
+-- -------------------------------------------------------------
+-- 出品者ごとの、状態別の件数
+--
+-- security invoker のままなので、他人の ID を渡しても
+-- RLS で見えるぶん(公開中・取引中)しか数えられない。
+-- -------------------------------------------------------------
+create or replace function public.listing_status_counts(seller uuid)
+returns table (status text, count bigint)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select l.status, count(*)::bigint
+  from public.listings l
+  where l.seller_id = seller
+  group by l.status;
+$$;
+
+comment on function public.listing_status_counts(uuid) is
+  '出品者の状態別の件数。出品管理のタブに出す。';
+
+grant execute on function public.listing_status_counts(uuid) to anon, authenticated, service_role;
+
+-- -------------------------------------------------------------
+-- 未読メッセージの件数
+--
+-- 相手の未読数まで数えられてしまわないよう、service role からのみ実行できる。
+-- 呼び出し側(Server Component)は本人であることを確認済み。
+-- -------------------------------------------------------------
+create or replace function public.unread_message_count(target_user uuid)
+returns bigint
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select count(*)::bigint
+  from public.messages m
+  join public.threads t on t.id = m.thread_id
+  join public.listings l on l.id = t.listing_id
+  where m.read_at is null
+    and m.sender_id <> target_user
+    and (t.buyer_id = target_user or l.seller_id = target_user);
+$$;
+
+comment on function public.unread_message_count(uuid) is
+  '未読メッセージ数。ヘッダーとタブのバッジに出す。service role からのみ実行できる。';
+
+revoke execute on function public.unread_message_count(uuid) from public, anon, authenticated;
+grant execute on function public.unread_message_count(uuid) to service_role;
+
+
+-- ############################################################
+-- 20260101000009_thread_list.sql
+-- ############################################################
+
+-- =============================================================
+-- スレッド一覧を1回の問い合わせで組み立てる
+--
+-- 背景:
+--   一覧は「自分が当事者のスレッド」を集めたあと、
+--   messages?thread_id=in.(...) で全メッセージを引いて、
+--   最終メッセージと未読数をアプリ側で数えていた。
+--   スレッドが増えるほど本文を丸ごと運ぶことになり、
+--   URL に ID が並んで長さの上限にも近づく。
+--
+-- 方針:
+--   最終メッセージと未読数はデータベース側で求め、
+--   1スレッド1行だけを返す。
+--
+--   他人の未読数まで数えられてしまわないよう、
+--   unread_message_count と同じく service role からのみ実行できる。
+--   呼び出し側(Server Component)は本人であることを確認済み。
+-- =============================================================
+create or replace function public.thread_summaries(target_user uuid)
+returns table (
+  thread_id uuid,
+  last_message_at timestamptz,
+  listing_id uuid,
+  listing_title text,
+  listing_price int,
+  listing_status text,
+  thumbnail_path text,
+  counterparty_id uuid,
+  counterparty_name text,
+  counterparty_avatar text,
+  counterparty_status text,
+  last_body text,
+  last_created_at timestamptz,
+  last_from_me boolean,
+  unread_count bigint
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    t.id,
+    t.last_message_at,
+    l.id,
+    l.title,
+    l.price,
+    l.status,
+    (
+      select li.path
+      from public.listing_images li
+      where li.listing_id = l.id
+      order by li.position
+      limit 1
+    ),
+    other.id,
+    -- 退会などで相手の行が引けない場合の表示は呼び出し側で決める
+    other.display_name,
+    other.avatar_url,
+    other.status,
+    last_message.body,
+    last_message.created_at,
+    last_message.sender_id = target_user,
+    coalesce(unread.count, 0)
+  from public.threads t
+  join public.listings l on l.id = t.listing_id
+  left join public.users other
+    on other.id = case when t.buyer_id = target_user then l.seller_id else t.buyer_id end
+  left join lateral (
+    select m.body, m.created_at, m.sender_id
+    from public.messages m
+    where m.thread_id = t.id
+    order by m.created_at desc
+    limit 1
+  ) last_message on true
+  left join lateral (
+    select count(*)::bigint as count
+    from public.messages m
+    where m.thread_id = t.id
+      and m.read_at is null
+      and m.sender_id <> target_user
+  ) unread on true
+  where t.buyer_id = target_user or l.seller_id = target_user
+  order by t.last_message_at desc nulls last;
+$$;
+
+comment on function public.thread_summaries(uuid) is
+  'メッセージ一覧に出すスレッドの要約。service role からのみ実行できる。';
+
+revoke execute on function public.thread_summaries(uuid) from public, anon, authenticated;
+grant execute on function public.thread_summaries(uuid) to service_role;
 
 
 -- ############################################################

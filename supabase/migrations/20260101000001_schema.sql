@@ -8,7 +8,7 @@ create extension if not exists pg_trgm;
 -- =============================================================
 -- users
 -- =============================================================
-create table public.users (
+create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   email text unique not null,
   display_name text not null default '',
@@ -51,6 +51,7 @@ begin
   return new;
 end $$;
 
+drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
@@ -67,6 +68,7 @@ begin
   return new;
 end $$;
 
+drop trigger if exists on_auth_user_updated on auth.users;
 create trigger on_auth_user_updated
   after update on auth.users
   for each row execute function public.handle_user_email_verified();
@@ -74,7 +76,7 @@ create trigger on_auth_user_updated
 -- =============================================================
 -- brands
 -- =============================================================
-create table public.brands (
+create table if not exists public.brands (
   id uuid primary key default gen_random_uuid(),
   name text unique not null,
   is_active boolean not null default true,
@@ -85,7 +87,7 @@ create table public.brands (
 -- =============================================================
 -- listings
 -- =============================================================
-create table public.listings (
+create table if not exists public.listings (
   id uuid primary key default gen_random_uuid(),
   seller_id uuid not null references public.users(id),
   status text not null default 'draft'
@@ -115,16 +117,16 @@ create table public.listings (
   updated_at timestamptz not null default now()
 );
 
-create index idx_listings_status_published on public.listings (status, published_at desc);
-create index idx_listings_category on public.listings (category);
-create index idx_listings_brand on public.listings (brand_id);
-create index idx_listings_price on public.listings (price);
-create index idx_listings_pref on public.listings (shipping_from_pref);
-create index idx_listings_seller on public.listings (seller_id);
-create index idx_listings_favorites on public.listings (favorites_count desc);
+create index if not exists idx_listings_status_published on public.listings (status, published_at desc);
+create index if not exists idx_listings_category on public.listings (category);
+create index if not exists idx_listings_brand on public.listings (brand_id);
+create index if not exists idx_listings_price on public.listings (price);
+create index if not exists idx_listings_pref on public.listings (shipping_from_pref);
+create index if not exists idx_listings_seller on public.listings (seller_id);
+create index if not exists idx_listings_favorites on public.listings (favorites_count desc);
 
 -- 日本語のキーワード検索は形態素解析を使わず pg_trgm の部分一致で行う
-create index idx_listings_trgm on public.listings using gin (
+create index if not exists idx_listings_trgm on public.listings using gin (
   (
     coalesce(title, '') || ' ' ||
     coalesce(description, '') || ' ' ||
@@ -133,7 +135,7 @@ create index idx_listings_trgm on public.listings using gin (
   ) gin_trgm_ops
 );
 
-create table public.listing_images (
+create table if not exists public.listing_images (
   id uuid primary key default gen_random_uuid(),
   listing_id uuid not null references public.listings(id) on delete cascade,
   path text not null,
@@ -142,20 +144,20 @@ create table public.listing_images (
   unique (listing_id, position)
 );
 
-create index idx_listing_images_listing on public.listing_images (listing_id, position);
+create index if not exists idx_listing_images_listing on public.listing_images (listing_id, position);
 
 -- =============================================================
 -- favorites
 -- =============================================================
-create table public.favorites (
+create table if not exists public.favorites (
   user_id uuid not null references public.users(id) on delete cascade,
   listing_id uuid not null references public.listings(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (user_id, listing_id)
 );
 
-create index idx_favorites_listing on public.favorites (listing_id);
-create index idx_favorites_user_created on public.favorites (user_id, created_at desc);
+create index if not exists idx_favorites_listing on public.favorites (listing_id);
+create index if not exists idx_favorites_user_created on public.favorites (user_id, created_at desc);
 
 create or replace function public.sync_favorites_count()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -168,6 +170,7 @@ begin
   return null;
 end $$;
 
+drop trigger if exists trg_favorites_count on public.favorites;
 create trigger trg_favorites_count
   after insert or delete on public.favorites
   for each row execute function public.sync_favorites_count();
@@ -175,7 +178,7 @@ create trigger trg_favorites_count
 -- =============================================================
 -- threads / messages
 -- =============================================================
-create table public.threads (
+create table if not exists public.threads (
   id uuid primary key default gen_random_uuid(),
   listing_id uuid not null references public.listings(id) on delete cascade,
   buyer_id uuid not null references public.users(id),
@@ -184,10 +187,10 @@ create table public.threads (
   unique (listing_id, buyer_id)
 );
 
-create index idx_threads_buyer on public.threads (buyer_id, last_message_at desc);
-create index idx_threads_listing on public.threads (listing_id);
+create index if not exists idx_threads_buyer on public.threads (buyer_id, last_message_at desc);
+create index if not exists idx_threads_listing on public.threads (listing_id);
 
-create table public.messages (
+create table if not exists public.messages (
   id uuid primary key default gen_random_uuid(),
   thread_id uuid not null references public.threads(id) on delete cascade,
   sender_id uuid not null references public.users(id),
@@ -196,13 +199,13 @@ create table public.messages (
   created_at timestamptz not null default now()
 );
 
-create index idx_messages_thread on public.messages (thread_id, created_at);
-create index idx_messages_unread on public.messages (thread_id, sender_id) where read_at is null;
+create index if not exists idx_messages_thread on public.messages (thread_id, created_at);
+create index if not exists idx_messages_unread on public.messages (thread_id, sender_id) where read_at is null;
 
 -- =============================================================
 -- transactions
 -- =============================================================
-create table public.transactions (
+create table if not exists public.transactions (
   id uuid primary key default gen_random_uuid(),
   listing_id uuid not null references public.listings(id),
   seller_id uuid not null references public.users(id),
@@ -224,14 +227,14 @@ create table public.transactions (
 );
 
 -- 1商品につき有効な取引は同時に1件(二重購入の排他制御の本体)
-create unique index uq_transactions_active on public.transactions (listing_id)
+create unique index if not exists uq_transactions_active on public.transactions (listing_id)
   where status <> 'canceled';
 
-create index idx_transactions_buyer on public.transactions (buyer_id, created_at desc);
-create index idx_transactions_seller on public.transactions (seller_id, created_at desc);
-create index idx_transactions_status on public.transactions (status);
+create index if not exists idx_transactions_buyer on public.transactions (buyer_id, created_at desc);
+create index if not exists idx_transactions_seller on public.transactions (seller_id, created_at desc);
+create index if not exists idx_transactions_status on public.transactions (status);
 
-create table public.transaction_events (
+create table if not exists public.transaction_events (
   id uuid primary key default gen_random_uuid(),
   transaction_id uuid not null references public.transactions(id) on delete cascade,
   actor_id uuid references public.users(id),
@@ -240,12 +243,12 @@ create table public.transaction_events (
   created_at timestamptz not null default now()
 );
 
-create index idx_transaction_events_tx on public.transaction_events (transaction_id, created_at);
+create index if not exists idx_transaction_events_tx on public.transaction_events (transaction_id, created_at);
 
 -- =============================================================
 -- reviews
 -- =============================================================
-create table public.reviews (
+create table if not exists public.reviews (
   id uuid primary key default gen_random_uuid(),
   transaction_id uuid not null references public.transactions(id) on delete cascade,
   reviewer_id uuid not null references public.users(id),
@@ -258,13 +261,13 @@ create table public.reviews (
   unique (transaction_id, reviewer_id)
 );
 
-create index idx_reviews_reviewee on public.reviews (reviewee_id, created_at desc)
+create index if not exists idx_reviews_reviewee on public.reviews (reviewee_id, created_at desc)
   where is_published and not is_hidden;
 
 -- =============================================================
 -- reports
 -- =============================================================
-create table public.reports (
+create table if not exists public.reports (
   id uuid primary key default gen_random_uuid(),
   reporter_id uuid not null references public.users(id),
   target_type text not null check (target_type in ('listing','user')),
@@ -279,13 +282,13 @@ create table public.reports (
   unique (reporter_id, target_type, target_id)
 );
 
-create index idx_reports_status on public.reports (status, created_at desc);
-create index idx_reports_target on public.reports (target_type, target_id);
+create index if not exists idx_reports_status on public.reports (status, created_at desc);
+create index if not exists idx_reports_target on public.reports (target_type, target_id);
 
 -- =============================================================
 -- email_logs
 -- =============================================================
-create table public.email_logs (
+create table if not exists public.email_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references public.users(id) on delete set null,
   kind text not null,
@@ -295,7 +298,7 @@ create table public.email_logs (
   created_at timestamptz not null default now()
 );
 
-create index idx_email_logs_dedupe on public.email_logs (user_id, kind, ref_id, created_at desc);
+create index if not exists idx_email_logs_dedupe on public.email_logs (user_id, kind, ref_id, created_at desc);
 
 -- =============================================================
 -- updated_at 自動更新
@@ -312,6 +315,8 @@ declare t text;
 begin
   foreach t in array array['users','brands','listings','transactions','reports']
   loop
+    -- 何度流しても壊れないよう、作る前に落とす
+    execute format('drop trigger if exists trg_touch_%s on public.%I', t, t);
     execute format(
       'create trigger trg_touch_%s before update on public.%I for each row execute function public.touch_updated_at()',
       t, t

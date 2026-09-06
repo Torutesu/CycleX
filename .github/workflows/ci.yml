@@ -36,6 +36,11 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # マイグレーションを足して setup-hosted.sql の作り直しを忘れると、
+      # 本番だけ古いスキーマのままになるため、ここで止める
+      - name: 本番セットアップ SQL が最新か
+        run: pnpm db:hosted:check
+
       - name: Typecheck
         run: pnpm typecheck
 

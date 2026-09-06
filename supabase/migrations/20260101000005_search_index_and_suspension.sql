@@ -12,16 +12,16 @@
 -- -------------------------------------------------------------
 drop index if exists public.idx_listings_trgm;
 
-create index idx_listings_title_trgm
+create index if not exists idx_listings_title_trgm
   on public.listings using gin (title gin_trgm_ops);
 
-create index idx_listings_description_trgm
+create index if not exists idx_listings_description_trgm
   on public.listings using gin (description gin_trgm_ops);
 
-create index idx_listings_model_name_trgm
+create index if not exists idx_listings_model_name_trgm
   on public.listings using gin (model_name gin_trgm_ops);
 
-create index idx_listings_brand_other_trgm
+create index if not exists idx_listings_brand_other_trgm
   on public.listings using gin (brand_other gin_trgm_ops);
 
 -- -------------------------------------------------------------
@@ -39,7 +39,7 @@ create index idx_listings_brand_other_trgm
 -- 後者は status_before_suspend が null のままなので一括復帰の対象にならない。
 -- -------------------------------------------------------------
 alter table public.listings
-  add column status_before_suspend text
+  add column if not exists status_before_suspend text
     check (status_before_suspend in ('draft', 'published', 'withdrawn'));
 
 comment on column public.listings.status_before_suspend is
@@ -47,6 +47,6 @@ comment on column public.listings.status_before_suspend is
   '解除時にこの値へ戻す。運営が個別に非表示にした場合は null のままにする。';
 
 -- 一括復帰の対象を引くための部分インデックス
-create index idx_listings_suspended_restorable
+create index if not exists idx_listings_suspended_restorable
   on public.listings (seller_id)
   where status = 'suspended' and status_before_suspend is not null;

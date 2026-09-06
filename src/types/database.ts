@@ -680,15 +680,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      category_listing_counts: { Args: never; Returns: { category: string; count: number }[] }
+      category_listing_counts: {
+        Args: never
+        Returns: {
+          category: string
+          count: number
+        }[]
+      }
+      is_admin: { Args: never; Returns: boolean }
       listing_status_counts: {
         Args: { seller: string }
-        Returns: { status: string; count: number }[]
+        Returns: {
+          count: number
+          status: string
+        }[]
       }
-      unread_message_count: { Args: { target_user: string }; Returns: number }
-      is_admin: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      thread_summaries: {
+        Args: { target_user: string }
+        Returns: {
+          counterparty_avatar: string
+          counterparty_id: string
+          counterparty_name: string
+          counterparty_status: string
+          last_body: string
+          last_created_at: string
+          last_from_me: boolean
+          last_message_at: string
+          listing_id: string
+          listing_price: number
+          listing_status: string
+          listing_title: string
+          thread_id: string
+          thumbnail_path: string
+          unread_count: number
+        }[]
+      }
+      unread_message_count: { Args: { target_user: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

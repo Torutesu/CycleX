@@ -12,10 +12,12 @@ values
   ('avatars',        'avatars',        true, 5242880,  array['image/jpeg','image/png','image/webp'])
 on conflict (id) do nothing;
 
+drop policy if exists "cyclex_images_read" on storage.objects;
 create policy "cyclex_images_read"
   on storage.objects for select
   using (bucket_id in ('listing-images','avatars'));
 
+drop policy if exists "cyclex_images_insert_own" on storage.objects;
 create policy "cyclex_images_insert_own"
   on storage.objects for insert
   with check (
@@ -24,6 +26,7 @@ create policy "cyclex_images_insert_own"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "cyclex_images_update_own" on storage.objects;
 create policy "cyclex_images_update_own"
   on storage.objects for update
   using (
@@ -31,6 +34,7 @@ create policy "cyclex_images_update_own"
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
+drop policy if exists "cyclex_images_delete_own" on storage.objects;
 create policy "cyclex_images_delete_own"
   on storage.objects for delete
   using (

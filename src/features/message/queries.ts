@@ -72,22 +72,6 @@ function thumbnailOf(images: { path: string; position: number }[] | null): strin
   return [...images].sort((a, b) => a.position - b.position)[0].path;
 }
 
-/** 自分が参加するスレッド ID を集める(買い手として / 自分の出品として) */
-async function getParticipatingThreads(userId: string): Promise<ThreadRow[]> {
-  const supabase = createAdminClient();
-
-  const [asBuyer, asSeller] = await Promise.all([
-    supabase.from("threads").select(THREAD_SELECT).eq("buyer_id", userId),
-    supabase.from("threads").select(THREAD_SELECT).eq("listings.seller_id", userId),
-  ]);
-
-  const merged = new Map<string, ThreadRow>();
-  for (const row of [...(asBuyer.data ?? []), ...(asSeller.data ?? [])]) {
-    merged.set(row.id, row as unknown as ThreadRow);
-  }
-  return [...merged.values()];
-}
-
 /**
  * ヘッダー・タブバーに出す未読メッセージの合計件数。
  *
@@ -106,79 +90,66 @@ export async function getUnreadCount(userId: string): Promise<number> {
   return Number(data ?? 0);
 }
 
-/** M-07: スレッド一覧。最終メッセージ日時の降順。 */
+type ThreadSummaryRow = {
+  thread_id: string;
+  last_message_at: string | null;
+  listing_id: string;
+  listing_title: string;
+  listing_price: number | null;
+  listing_status: string;
+  thumbnail_path: string | null;
+  counterparty_id: string | null;
+  counterparty_name: string | null;
+  counterparty_avatar: string | null;
+  counterparty_status: string | null;
+  last_body: string | null;
+  last_created_at: string | null;
+  last_from_me: boolean | null;
+  unread_count: number;
+};
+
+/**
+ * M-07: スレッド一覧。最終メッセージ日時の降順。
+ *
+ * 最終メッセージと未読数はデータベース側で求める。
+ * ここで全メッセージを引くと、やり取りが増えるほど本文を丸ごと運ぶことになる。
+ */
 export async function getThreadList(userId: string): Promise<ThreadSummary[]> {
-  const threads = await getParticipatingThreads(userId);
-  if (threads.length === 0) return [];
-
   const supabase = createAdminClient();
-  const threadIds = threads.map((thread) => thread.id);
+  const { data, error } = await supabase.rpc("thread_summaries", { target_user: userId });
 
-  const [{ data: messages }, { data: users }] = await Promise.all([
-    supabase
-      .from("messages")
-      .select("id, thread_id, sender_id, body, read_at, created_at")
-      .in("thread_id", threadIds)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("users")
-      .select("id, display_name, avatar_url, status")
-      .in(
-        "id",
-        // 相手は「買い手」か「出品者」のいずれか
-        [
-          ...new Set(
-            threads.flatMap((thread) =>
-              [thread.buyer_id, thread.listings?.seller_id].filter(
-                (id): id is string => Boolean(id) && id !== userId,
-              ),
-            ),
-          ),
-        ],
-      ),
-  ]);
+  if (error) {
+    console.error("[thread list failed]", error);
+    return [];
+  }
 
-  const userMap = new Map((users ?? []).map((user) => [user.id, user]));
-
-  const summaries: ThreadSummary[] = threads
-    .filter((thread) => thread.listings)
-    .map((thread) => {
-      const listing = thread.listings!;
-      const counterpartyId = thread.buyer_id === userId ? listing.seller_id : thread.buyer_id;
-      const counterparty = userMap.get(counterpartyId);
-      const threadMessages = (messages ?? []).filter((message) => message.thread_id === thread.id);
-      const latest = threadMessages[0];
-
-      return {
-        id: thread.id,
-        listing: {
-          id: listing.id,
-          title: listing.title,
-          price: listing.price,
-          status: listing.status as ListingStatus,
-          thumbnailPath: thumbnailOf(listing.listing_images),
-        },
-        counterparty: {
-          id: counterpartyId,
-          displayName: counterparty?.display_name ?? "退会済みユーザー",
-          avatarUrl: counterparty?.avatar_url ?? null,
-          status: (counterparty?.status ?? "withdrawn") as UserStatus,
-        },
-        lastMessage: latest
-          ? { body: latest.body, createdAt: latest.created_at, fromMe: latest.sender_id === userId }
-          : null,
-        unreadCount: threadMessages.filter(
-          (message) => message.sender_id !== userId && message.read_at === null,
-        ).length,
-        lastMessageAt: thread.last_message_at,
-      };
-    });
-
-  return summaries.sort((a, b) => {
-    const left = a.lastMessageAt ?? "";
-    const right = b.lastMessageAt ?? "";
-    return right.localeCompare(left);
-  });
+  return ((data ?? []) as ThreadSummaryRow[]).map((row) => ({
+    id: row.thread_id,
+    listing: {
+      id: row.listing_id,
+      title: row.listing_title,
+      price: row.listing_price,
+      status: row.listing_status as ListingStatus,
+      thumbnailPath: row.thumbnail_path,
+    },
+    counterparty: {
+      id: row.counterparty_id ?? "",
+      // 退会して行ごと消えている場合がある
+      displayName: row.counterparty_name ?? "退会済みユーザー",
+      avatarUrl: row.counterparty_avatar,
+      status: (row.counterparty_status ?? "withdrawn") as UserStatus,
+    },
+    lastMessage:
+      row.last_body === null || row.last_created_at === null
+        ? null
+        : {
+            body: row.last_body,
+            createdAt: row.last_created_at,
+            fromMe: row.last_from_me === true,
+          },
+    unreadCount: Number(row.unread_count),
+    lastMessageAt: row.last_message_at,
+  }));
 }
 
 /** M-08: スレッド詳細。参加者以外には null を返す。 */

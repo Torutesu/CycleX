@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // E2E の実行結果。生成物なので検査しない
+    // (残っていると HTML レポートの束ねられた JS が数千件の指摘になる)
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
 

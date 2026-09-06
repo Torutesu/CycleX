@@ -12,7 +12,7 @@
 alter table public.reports
   drop constraint if exists reports_reporter_id_target_type_target_id_key;
 
-create unique index uq_reports_open
+create unique index if not exists uq_reports_open
   on public.reports (reporter_id, target_type, target_id)
   where status = 'open';
 
@@ -22,7 +22,7 @@ create unique index uq_reports_open
 -- transaction_events は取引にしか残らないため、利用停止・非表示・ブランド変更
 -- といった管理操作の履歴が残っていなかった。誰が何をしたかを追えるようにする。
 -- -------------------------------------------------------------
-create table public.admin_audit_logs (
+create table if not exists public.admin_audit_logs (
   id uuid primary key default gen_random_uuid(),
   admin_id uuid not null references public.users(id),
   action text not null,
@@ -35,11 +35,12 @@ create table public.admin_audit_logs (
 comment on table public.admin_audit_logs is
   '管理画面から行われた操作の記録。閲覧は管理者のみ。書き込みは Server Action(service role)から。';
 
-create index idx_admin_audit_created on public.admin_audit_logs (created_at desc);
-create index idx_admin_audit_target on public.admin_audit_logs (target_type, target_id, created_at desc);
+create index if not exists idx_admin_audit_created on public.admin_audit_logs (created_at desc);
+create index if not exists idx_admin_audit_target on public.admin_audit_logs (target_type, target_id, created_at desc);
 
 alter table public.admin_audit_logs enable row level security;
 
+drop policy if exists admin_audit_admin_select on public.admin_audit_logs;
 create policy admin_audit_admin_select on public.admin_audit_logs
   for select using (public.is_admin());
 

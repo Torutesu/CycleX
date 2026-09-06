@@ -144,6 +144,21 @@ test("非公開の列はブラウザの鍵では読めない", async () => {
   expect((data ?? []).length).toBeGreaterThan(0);
 });
 
+test("集計用の関数はブラウザの鍵から呼べない", async () => {
+  // 未読数とスレッド一覧は、本人確認を済ませたサーバー側からしか呼べない。
+  // 呼べてしまうと、他人の ID を渡して未読数や相手の名前を引ける。
+  const db = await userDb(OWNER);
+
+  for (const fn of ["unread_message_count", "thread_summaries"]) {
+    const { error } = await db.rpc(fn as "unread_message_count", { target_user: otherId });
+    expect(error, `${fn} が呼べてはいけない`).not.toBeNull();
+  }
+
+  // 対照。RLS の範囲で答える関数は呼べる
+  const { error } = await db.rpc("listing_status_counts", { seller: ownerId });
+  expect(error, "出品の件数は呼べる").toBeNull();
+});
+
 test("画面を通さず DB を読んでも、他人のやりとりは見えない", async () => {
   const db = adminDb();
   const { data: thread } = await db

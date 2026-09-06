@@ -68,12 +68,27 @@ test("会員向けの画面が、必要以上に DB を引いていない", asyn
   expect(await queriesFor(page, "/mypage"), "マイページ").toBeLessThanOrEqual(14);
   expect(await queriesFor(page, "/mypage/favorites"), "お気に入り").toBeLessThanOrEqual(9);
   expect(await queriesFor(page, "/sell"), "出品フォーム").toBeLessThanOrEqual(9);
-  expect(await queriesFor(page, "/messages"), "メッセージ一覧").toBeLessThanOrEqual(12);
+  expect(await queriesFor(page, "/messages"), "メッセージ一覧").toBeLessThanOrEqual(8);
 });
 
 test("商品ページが、必要以上に DB を引いていない", async ({ page }) => {
   test.skip(!available || !itemId, "ローカルの Supabase か公開中の商品が無い");
   expect(await queriesFor(page, `/items/${itemId}`), "商品ページ").toBeLessThanOrEqual(13);
+});
+
+test("メッセージ一覧は、全メッセージを引かずに組み立てる", async ({ page }) => {
+  test.skip(!available, "ローカルの Supabase(Docker)が無い");
+  await login(page, USER);
+
+  await page.waitForTimeout(400);
+  const before = logLines();
+  await page.goto("/messages", { waitUntil: "domcontentloaded" });
+  const log = execSync(`docker logs ${KONG} 2>&1 | tail -n +${before + 1}`).toString();
+
+  // スレッド全部の本文を運んでから数える作りに戻っていないこと
+  const messageQueries = (log.match(/GET \/rest\/v1\/messages/g) ?? []).length;
+  expect(messageQueries, "一覧のためにメッセージ本文を引いている").toBe(0);
+  expect((log.match(/rpc\/thread_summaries/g) ?? []).length).toBeGreaterThan(0);
 });
 
 test("未読の件数は1回の問い合わせで求める", async ({ page }) => {
