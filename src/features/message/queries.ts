@@ -88,23 +88,22 @@ async function getParticipatingThreads(userId: string): Promise<ThreadRow[]> {
   return [...merged.values()];
 }
 
-/** ヘッダー・タブバーに出す未読メッセージの合計件数 */
+/**
+ * ヘッダー・タブバーに出す未読メッセージの合計件数。
+ *
+ * すべての画面で毎回引かれる。スレッドを全部集めてから
+ * `thread_id=in.(...)` で数えると往復が3回に増え、やり取りが増えるほど
+ * URL に ID が並んで、いずれ長さの上限に当たる。1回で数える。
+ */
 export async function getUnreadCount(userId: string): Promise<number> {
-  const threads = await getParticipatingThreads(userId);
-  if (threads.length === 0) return 0;
-
   const supabase = createAdminClient();
-  const { count } = await supabase
-    .from("messages")
-    .select("*", { count: "exact", head: true })
-    .in(
-      "thread_id",
-      threads.map((thread) => thread.id),
-    )
-    .neq("sender_id", userId)
-    .is("read_at", null);
+  const { data, error } = await supabase.rpc("unread_message_count", { target_user: userId });
 
-  return count ?? 0;
+  if (error) {
+    console.error("[unread count failed]", error);
+    return 0;
+  }
+  return Number(data ?? 0);
 }
 
 /** M-07: スレッド一覧。最終メッセージ日時の降順。 */

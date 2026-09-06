@@ -280,17 +280,21 @@ export const getCategoryCounts = cache(async function getCategoryCounts(): Promi
   Map<string, number>
 > {
   const supabase = await createClient();
-  const results = await Promise.all(
-    CATEGORIES.map(async (category) => {
-      const { count } = await supabase
-        .from("listings")
-        .select("*", { count: "exact", head: true })
-        .eq("category", category.value)
-        .in("status", ["published", "trading"]);
-      return [category.value, count ?? 0] as const;
-    }),
-  );
-  return new Map(results);
+
+  // カテゴリごとに COUNT を投げると、そのぶん往復が増える。
+  // 一番見られる画面なので、1回でまとめて数える。
+  const { data, error } = await supabase.rpc("category_listing_counts");
+
+  const counts = new Map<string, number>(CATEGORIES.map((category) => [category.value, 0]));
+  if (error) {
+    console.error("[category counts failed]", error);
+    return counts;
+  }
+
+  for (const row of data ?? []) {
+    if (counts.has(row.category)) counts.set(row.category, Number(row.count));
+  }
+  return counts;
 });
 
 /** 出品者が公開している商品の件数(商品ページの導線に出す) */

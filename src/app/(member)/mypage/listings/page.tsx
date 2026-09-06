@@ -43,19 +43,13 @@ export default async function MyListingsPage({
 
   const supabase = await createClient();
 
-  // タブのバッジは件数だけを引く(全件取得すると出品数の多い利用者で破綻する)
-  const countResults = await Promise.all(
-    TABS.map((tab) =>
-      supabase
-        .from("listings")
-        .select("*", { count: "exact", head: true })
-        .eq("seller_id", user.id)
-        .eq("status", tab.value),
-    ),
-  );
-  const counts = new Map<TabValue, number>(
-    TABS.map((tab, index) => [tab.value, countResults[index].count ?? 0]),
-  );
+  // タブのバッジは件数だけを引く(全件取得すると出品数の多い利用者で破綻する)。
+  // 状態ごとに数えると6往復になるため、1回でまとめて数える。
+  const { data: countRows } = await supabase.rpc("listing_status_counts", { seller: user.id });
+  const counts = new Map<TabValue, number>(TABS.map((tab) => [tab.value, 0]));
+  for (const row of countRows ?? []) {
+    if (counts.has(row.status as TabValue)) counts.set(row.status as TabValue, Number(row.count));
+  }
 
   const from = (page - 1) * PER_PAGE;
   const { data: rows } = await supabase

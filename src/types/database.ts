@@ -680,6 +680,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      category_listing_counts: { Args: never; Returns: { category: string; count: number }[] }
+      listing_status_counts: {
+        Args: { seller: string }
+        Returns: { status: string; count: number }[]
+      }
+      unread_message_count: { Args: { target_user: string }; Returns: number }
       is_admin: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
