@@ -18,7 +18,13 @@ const env = Object.fromEntries(
     .filter((line) => line.includes("=") && !line.trim().startsWith("#"))
     .map((line) => {
       const i = line.indexOf("=");
-      return [line.slice(0, i).trim(), line.slice(i + 1).trim().replace(/^"|"$/g, "")];
+      return [
+        line.slice(0, i).trim(),
+        line
+          .slice(i + 1)
+          .trim()
+          .replace(/^"|"$/g, ""),
+      ];
     }),
 );
 
@@ -145,7 +151,10 @@ const targets = (listings ?? [])
 if (REPLACE && targets.length > 0) {
   const ids = targets.map((l) => l.id);
   for (let i = 0; i < ids.length; i += 100) {
-    await db.from("listing_images").delete().in("listing_id", ids.slice(i, i + 100));
+    await db
+      .from("listing_images")
+      .delete()
+      .in("listing_id", ids.slice(i, i + 100));
   }
 }
 

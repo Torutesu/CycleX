@@ -21,7 +21,13 @@ const env = Object.fromEntries(
     .filter((line) => line.includes("=") && !line.trim().startsWith("#"))
     .map((line) => {
       const index = line.indexOf("=");
-      return [line.slice(0, index).trim(), line.slice(index + 1).trim().replace(/^"|"$/g, "")];
+      return [
+        line.slice(0, index).trim(),
+        line
+          .slice(index + 1)
+          .trim()
+          .replace(/^"|"$/g, ""),
+      ];
     }),
 );
 
@@ -42,7 +48,9 @@ function randomInt(min, max) {
 /** 値段に見合う車種を選ぶ。近いものが無ければ一番近い相場のものにする */
 function entryForPrice(price, isParts) {
   const pool = isParts ? PARTS : BIKES;
-  const fits = pool.filter((entry) => price >= entry.price[0] * 0.35 && price <= entry.price[1] * 1.1);
+  const fits = pool.filter(
+    (entry) => price >= entry.price[0] * 0.35 && price <= entry.price[1] * 1.1,
+  );
   if (fits.length > 0) return pick(fits);
   return pool.reduce((best, entry) => {
     const distance = Math.abs((entry.price[0] + entry.price[1]) / 2 - price);

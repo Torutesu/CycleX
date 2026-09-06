@@ -29,9 +29,7 @@ export function Footer() {
             </li>
           ))}
         </ul>
-        <p className="mt-6 text-xs text-muted-foreground">
-          © {jstYear()} CycleX
-        </p>
+        <p className="mt-6 text-xs text-muted-foreground">© {jstYear()} CycleX</p>
       </div>
     </footer>
   );

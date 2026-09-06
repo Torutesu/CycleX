@@ -70,13 +70,10 @@ export default async function PurchaseCompletePage({
         <>
           <CheckCircle2 className="size-12 text-primary" aria-hidden />
           <h1 className="mt-4 text-xl font-bold">ご購入ありがとうございます</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {transaction.listing.title}
-          </p>
+          <p className="mt-2 text-sm text-muted-foreground">{transaction.listing.title}</p>
           <p className="mt-1 text-lg font-bold tabular-nums">{formatPrice(transaction.price)}</p>
           <p className="mt-4 text-sm text-muted-foreground">
-            出品者からの発送・受渡のご連絡をお待ちください。
-            やり取りは取引画面から行えます。
+            出品者からの発送・受渡のご連絡をお待ちください。 やり取りは取引画面から行えます。
           </p>
           <Button asChild className="mt-8 h-11 w-full">
             <Link href={`/transactions/${transaction.id}`}>取引画面へ</Link>

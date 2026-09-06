@@ -66,10 +66,7 @@ async function discardUnusedImages(paths: string[], userId: string): Promise<voi
   if (owned.length === 0) return;
 
   const admin = createAdminClient();
-  const { data: referenced } = await admin
-    .from("listing_images")
-    .select("path")
-    .in("path", owned);
+  const { data: referenced } = await admin.from("listing_images").select("path").in("path", owned);
 
   const inUse = new Set((referenced ?? []).map((row) => row.path));
   await removeStorageObjects(

@@ -34,7 +34,11 @@ export async function publishOverdueReviews(now = new Date()): Promise<ReviewBat
     .not("received_at", "is", null)
     .lte("received_at", threshold);
 
-  const result: ReviewBatchResult = { scanned: candidates?.length ?? 0, published: 0, completed: 0 };
+  const result: ReviewBatchResult = {
+    scanned: candidates?.length ?? 0,
+    published: 0,
+    completed: 0,
+  };
   if (!candidates || candidates.length === 0) return result;
 
   for (const candidate of candidates) {

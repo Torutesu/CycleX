@@ -108,4 +108,4 @@ export const getListingDetail = cache(async function getListingDetail(
         }
       : null,
   };
-})
+});

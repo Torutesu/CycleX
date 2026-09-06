@@ -33,9 +33,7 @@ async function requireBuyerOfPending(transactionId: string) {
   return transaction;
 }
 
-export async function completeDemoPayment(
-  transactionId: string,
-): Promise<ActionResult<undefined>> {
+export async function completeDemoPayment(transactionId: string): Promise<ActionResult<undefined>> {
   try {
     await requireBuyerOfPending(transactionId);
 

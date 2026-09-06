@@ -30,7 +30,10 @@ export default async function AdminUsersPage({
 
   return (
     <>
-      <AdminHeader title="利用者管理" description="会員の検索・確認と、利用停止の操作を行います。" />
+      <AdminHeader
+        title="利用者管理"
+        description="会員の検索・確認と、利用停止の操作を行います。"
+      />
 
       <AdminFilters
         basePath="/admin/users"

@@ -89,12 +89,12 @@ export function FavoriteButton({
         )}
       >
         <Heart
-        className={cn(
-          "size-4 transition-transform duration-200",
-          optimistic.favorited && "scale-110 fill-current",
-        )}
-        aria-hidden
-      />
+          className={cn(
+            "size-4 transition-transform duration-200",
+            optimistic.favorited && "scale-110 fill-current",
+          )}
+          aria-hidden
+        />
         {label}
         {count !== undefined && (
           <span className="tabular-nums text-muted-foreground">{optimistic.count}</span>

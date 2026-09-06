@@ -72,7 +72,10 @@ test("条件を重ねるほど件数が減り、外すと戻る", async ({ page 
   for (const price of await prices(page)) expect(price).toBeLessThanOrEqual(100000);
 
   // チップから価格の条件だけを外すと、カテゴリの件数に戻る
-  await page.getByRole("button", { name: /〜.*を解除|を解除/ }).first().click();
+  await page
+    .getByRole("button", { name: /〜.*を解除|を解除/ })
+    .first()
+    .click();
   await expect.poll(() => total(page)).toBeGreaterThanOrEqual(cheapRoad);
 });
 

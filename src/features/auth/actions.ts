@@ -293,7 +293,8 @@ export async function withdraw(
       })
       .eq("id", user.id);
 
-    if (profileError) throw new AppError("退会処理に失敗しました。時間をおいて再度お試しください。");
+    if (profileError)
+      throw new AppError("退会処理に失敗しました。時間をおいて再度お試しください。");
 
     // 3. 公開中・下書きの出品を取下げる
     await admin

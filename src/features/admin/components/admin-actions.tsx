@@ -78,7 +78,13 @@ export function ReasonDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button type="button" variant={variant} size="sm" className="h-11" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        variant={variant}
+        size="sm"
+        className="h-11"
+        onClick={() => setOpen(true)}
+      >
         {trigger}
       </Button>
       <DialogContent>
@@ -156,7 +162,13 @@ export function ConfirmButton({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button type="button" variant={variant} size="sm" className="h-11" onClick={() => setOpen(true)}>
+      <Button
+        type="button"
+        variant={variant}
+        size="sm"
+        className="h-11"
+        onClick={() => setOpen(true)}
+      >
         {label}
       </Button>
       <DialogContent>

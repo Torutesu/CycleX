@@ -179,7 +179,10 @@ test("利用停止にすると出品も止まり、解除すると本人だけ�
   await login(page, ADMIN);
   await page.goto(`/admin/users/${memberId}`);
   await page.getByRole("button", { name: "利用停止を解除" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: /解除|実行/ }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: /解除|実行/ })
+    .click();
   await expect(page.getByText("利用停止を解除しました")).toBeVisible({ timeout: 20_000 });
 
   await login(page, MEMBER);

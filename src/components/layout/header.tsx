@@ -44,8 +44,16 @@ export function Header({ user, unreadCount }: HeaderProps) {
                   <Heart className="size-5" aria-hidden />
                 </Link>
               </Button>
-              <Button asChild variant="ghost" size="icon" className="relative hidden md:inline-flex">
-                <Link href="/messages" aria-label={`メッセージ${unreadCount > 0 ? `(未読${unreadCount}件)` : ""}`}>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="relative hidden md:inline-flex"
+              >
+                <Link
+                  href="/messages"
+                  aria-label={`メッセージ${unreadCount > 0 ? `(未読${unreadCount}件)` : ""}`}
+                >
                   <MessageCircle className="size-5" aria-hidden />
                   {unreadCount > 0 && (
                     <span className="absolute right-1 top-1 flex min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-semibold leading-4 text-white">

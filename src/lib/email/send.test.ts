@@ -29,7 +29,12 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
     from(table: string) {
       if (table === "email_logs") {
-        return { insert: (row: unknown) => { insertSpy(row); return Promise.resolve({}); } };
+        return {
+          insert: (row: unknown) => {
+            insertSpy(row);
+            return Promise.resolve({});
+          },
+        };
       }
       return {
         select: () => ({
@@ -60,7 +65,11 @@ describe("メールの送信", () => {
       status: "active",
       notification_prefs: null,
     };
-    process.env = { ...original, RESEND_API_KEY: "re_live_dummy", EMAIL_FROM: "CycleX <no-reply@cyclex.jp>" };
+    process.env = {
+      ...original,
+      RESEND_API_KEY: "re_live_dummy",
+      EMAIL_FROM: "CycleX <no-reply@cyclex.jp>",
+    };
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -85,12 +94,22 @@ describe("メールの送信", () => {
     expect(sent.text).toContain("取引が成立しました。");
 
     expect(insertSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: "u1", kind: "purchase_confirmed", ref_id: "tx1", status: "sent" }),
+      expect.objectContaining({
+        user_id: "u1",
+        kind: "purchase_confirmed",
+        ref_id: "tx1",
+        status: "sent",
+      }),
     );
   });
 
   it("件名は必要なら差し替えられる", async () => {
-    await sendMail({ userId: "u1", kind: "new_message", body: BODY, subject: "やまだ さんからメッセージ" });
+    await sendMail({
+      userId: "u1",
+      kind: "new_message",
+      body: BODY,
+      subject: "やまだ さんからメッセージ",
+    });
     expect(sendSpy.mock.calls[0][0].subject).toBe("やまだ さんからメッセージ");
   });
 

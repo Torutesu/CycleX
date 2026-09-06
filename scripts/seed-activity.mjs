@@ -15,7 +15,13 @@ const env = Object.fromEntries(
     .filter((line) => line.includes("=") && !line.trim().startsWith("#"))
     .map((line) => {
       const i = line.indexOf("=");
-      return [line.slice(0, i).trim(), line.slice(i + 1).trim().replace(/^"|"$/g, "")];
+      return [
+        line.slice(0, i).trim(),
+        line
+          .slice(i + 1)
+          .trim()
+          .replace(/^"|"$/g, ""),
+      ];
     }),
 );
 
@@ -40,9 +46,7 @@ async function pickListings(count, excludeSellerId) {
     .neq("seller_id", excludeSellerId)
     .limit(count * 3);
   const seen = new Set();
-  return (data ?? [])
-    .filter((l) => (seen.has(l.id) ? false : seen.add(l.id)))
-    .slice(0, count);
+  return (data ?? []).filter((l) => (seen.has(l.id) ? false : seen.add(l.id))).slice(0, count);
 }
 
 const listings = await pickListings(6, buyer.id);
@@ -50,8 +54,15 @@ if (listings.length < 6) throw new Error("ダミー商品が足りません");
 
 // ---- やりとり ----
 const talks = [
-  ["こんにちは。こちらまだ販売中でしょうか。", "はい、販売中です。ご検討よろしくお願いします。", "ありがとうございます。フレームに目立つ傷はありますか？"],
-  ["はじめまして。値下げのご相談は可能でしょうか。", "申し訳ありません、今のところ価格の変更は考えておりません。"],
+  [
+    "こんにちは。こちらまだ販売中でしょうか。",
+    "はい、販売中です。ご検討よろしくお願いします。",
+    "ありがとうございます。フレームに目立つ傷はありますか？",
+  ],
+  [
+    "はじめまして。値下げのご相談は可能でしょうか。",
+    "申し訳ありません、今のところ価格の変更は考えておりません。",
+  ],
 ];
 let threadCount = 0;
 for (const [index, listing] of listings.slice(0, 2).entries()) {
@@ -73,7 +84,10 @@ for (const [index, listing] of listings.slice(0, 2).entries()) {
       read_at: i === lines.length - 1 && !fromBuyer ? null : daysAgo(0.5),
     });
   }
-  await db.from("threads").update({ last_message_at: daysAgo(3 - index) }).eq("id", thread.id);
+  await db
+    .from("threads")
+    .update({ last_message_at: daysAgo(3 - index) })
+    .eq("id", thread.id);
   threadCount += 1;
 }
 
@@ -82,7 +96,14 @@ const plan = [
   { status: "pending_payment", listingStatus: "trading", days: 0 },
   { status: "paid", listingStatus: "trading", days: 2, paid: true },
   { status: "shipped", listingStatus: "trading", days: 5, paid: true, shipped: true },
-  { status: "completed", listingStatus: "sold", days: 12, paid: true, shipped: true, received: true },
+  {
+    status: "completed",
+    listingStatus: "sold",
+    days: 12,
+    paid: true,
+    shipped: true,
+    received: true,
+  },
 ];
 
 const transactions = [];
@@ -97,10 +118,18 @@ for (const [index, step] of plan.entries()) {
     created_at: daysAgo(step.days),
     updated_at: daysAgo(0),
     ...(step.paid ? { paid_at: daysAgo(step.days) } : {}),
-    ...(step.shipped ? { shipped_at: daysAgo(step.days - 1), shipping_note: "ヤマト運輸でお送りしました" } : {}),
-    ...(step.received ? { received_at: daysAgo(step.days - 3), completed_at: daysAgo(step.days - 3) } : {}),
+    ...(step.shipped
+      ? { shipped_at: daysAgo(step.days - 1), shipping_note: "ヤマト運輸でお送りしました" }
+      : {}),
+    ...(step.received
+      ? { received_at: daysAgo(step.days - 3), completed_at: daysAgo(step.days - 3) }
+      : {}),
   };
-  const { data: tx, error } = await db.from("transactions").insert(row).select("id, buyer_id, seller_id").single();
+  const { data: tx, error } = await db
+    .from("transactions")
+    .insert(row)
+    .select("id, buyer_id, seller_id")
+    .single();
   if (error) throw error;
 
   await db.from("listings").update({ status: step.listingStatus }).eq("id", listing.id);
@@ -149,4 +178,6 @@ await db.from("reports").insert({
   created_at: daysAgo(1),
 });
 
-console.log(`やりとり ${threadCount} 件、取引 ${transactions.length} 件、評価 2 件、通報 1 件を作成しました。`);
+console.log(
+  `やりとり ${threadCount} 件、取引 ${transactions.length} 件、評価 2 件、通報 1 件を作成しました。`,
+);

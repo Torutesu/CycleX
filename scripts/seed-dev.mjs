@@ -20,7 +20,13 @@ const env = Object.fromEntries(
     .filter((line) => line.includes("=") && !line.trim().startsWith("#"))
     .map((line) => {
       const index = line.indexOf("=");
-      return [line.slice(0, index).trim(), line.slice(index + 1).trim().replace(/^"|"$/g, "")];
+      return [
+        line.slice(0, index).trim(),
+        line
+          .slice(index + 1)
+          .trim()
+          .replace(/^"|"$/g, ""),
+      ];
     }),
 );
 
@@ -119,7 +125,10 @@ for (let i = 0; i < COUNT; i += 1) {
   const delivery = Math.random() > 0.25 ? "shipping" : "in_person";
   const year = isParts
     ? null
-    : randomInt(Math.max(2012, entry.since ?? 2012), condition === "new" ? THIS_YEAR : THIS_YEAR - 1);
+    : randomInt(
+        Math.max(2012, entry.since ?? 2012),
+        condition === "new" ? THIS_YEAR : THIS_YEAR - 1,
+      );
 
   // サイズ表記のある車種だけフレームサイズを持つ(ミニベロ・シティ・e-bike は無し)
   const hasSize = !isParts && entry.sizes === undefined;

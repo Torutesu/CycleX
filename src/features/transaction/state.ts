@@ -45,9 +45,7 @@ export function canTransition(
 /** 遷移先として指定できるステータスの一覧(管理画面の操作可否表示に使う) */
 export function allowedTransitions(from: TransactionStatus, role: TxRole): TransactionStatus[] {
   const entries = TRANSITIONS[from] ?? {};
-  return (Object.keys(entries) as TransactionStatus[]).filter((to) =>
-    entries[to]?.includes(role),
-  );
+  return (Object.keys(entries) as TransactionStatus[]).filter((to) => entries[to]?.includes(role));
 }
 
 export type NextAction = "pay" | "ship" | "receive" | "review" | "wait" | null;

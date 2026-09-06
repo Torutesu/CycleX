@@ -190,7 +190,6 @@ function isRangeOutOfBounds(error: { code?: string; message?: string }): boolean
   return error.code === "PGRST103" || /range not satisfiable/i.test(error.message ?? "");
 }
 
-
 /**
  * ILIKE のワイルドカードと、PostgREST のフィルタ構文で意味を持つ記号を無効化する。
  *

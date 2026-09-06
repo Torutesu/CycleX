@@ -13,11 +13,7 @@ import { LISTING_STATUSES, labelOf } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "メッセージ" };
 
-export default async function ThreadPage({
-  params,
-}: {
-  params: Promise<{ threadId: string }>;
-}) {
+export default async function ThreadPage({ params }: { params: Promise<{ threadId: string }> }) {
   const { threadId } = await params;
   const user = await requireUser(`/messages/${threadId}`);
 
@@ -32,9 +28,7 @@ export default async function ThreadPage({
         : undefined;
 
   const statusLabel =
-    thread.listing.status !== "published"
-      ? labelOf(LISTING_STATUSES, thread.listing.status)
-      : null;
+    thread.listing.status !== "published" ? labelOf(LISTING_STATUSES, thread.listing.status) : null;
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-8rem)] max-w-2xl flex-col px-0 md:px-4 md:py-4">

@@ -56,8 +56,8 @@ export default async function AdminTransactionsPage({
           <AlertTriangle className="size-4 shrink-0 text-destructive" aria-hidden />
           <span>
             入金済みのままキャンセルされた取引が{" "}
-            <strong className="tabular-nums">{refundPending}</strong> 件あります。
-            Stripe ダッシュボードから返金してください。
+            <strong className="tabular-nums">{refundPending}</strong> 件あります。 Stripe
+            ダッシュボードから返金してください。
           </span>
           <Link
             href="/admin/transactions?refund=pending"

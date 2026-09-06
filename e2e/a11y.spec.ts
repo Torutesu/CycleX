@@ -130,8 +130,7 @@ test("フォーカスした要素が目で見て分かる", async ({ page }) => 
   });
 
   // outline かリング(box-shadow)のどちらかで示されていること
-  const hasRing =
-    outline.boxShadow !== "none" || parseFloat(outline.outlineWidth || "0") > 0;
+  const hasRing = outline.boxShadow !== "none" || parseFloat(outline.outlineWidth || "0") > 0;
   expect(hasRing, JSON.stringify(outline)).toBe(true);
 });
 
@@ -139,11 +138,13 @@ test("見出しが h1 から始まり、飛び級しない", async ({ page }) =>
   for (const path of ["/", "/search", "/login"]) {
     await page.goto(path, { waitUntil: "networkidle" });
     // 画面に出ている見出しだけを見る(幅で隠している列は読み上げにも出ない)
-    const levels = await page.locator("h1, h2, h3, h4, h5, h6").evaluateAll((elements) =>
-      elements
-        .filter((el) => el.getClientRects().length > 0)
-        .map((el) => Number(el.tagName.slice(1))),
-    );
+    const levels = await page
+      .locator("h1, h2, h3, h4, h5, h6")
+      .evaluateAll((elements) =>
+        elements
+          .filter((el) => el.getClientRects().length > 0)
+          .map((el) => Number(el.tagName.slice(1))),
+      );
 
     expect(levels.length, path).toBeGreaterThan(0);
     expect(levels[0], `${path} の最初の見出し`).toBe(1);
@@ -157,10 +158,12 @@ test("装飾でない画像に説明が付いている", async ({ page }) => {
   test.skip(!itemId, "公開中の商品がない");
   await page.goto(`/items/${itemId}`, { waitUntil: "networkidle" });
 
-  const missing = await page.locator("img").evaluateAll((images) =>
-    images
-      .filter((image) => !image.hasAttribute("alt"))
-      .map((image) => image.getAttribute("src") ?? "(src なし)"),
-  );
+  const missing = await page
+    .locator("img")
+    .evaluateAll((images) =>
+      images
+        .filter((image) => !image.hasAttribute("alt"))
+        .map((image) => image.getAttribute("src") ?? "(src なし)"),
+    );
   expect(missing).toEqual([]);
 });

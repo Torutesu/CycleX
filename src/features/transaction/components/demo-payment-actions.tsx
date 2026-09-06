@@ -45,7 +45,8 @@ export function DemoPaymentActions({
         {pending && canceling ? "取消中..." : "支払いをやめる"}
       </Button>
       <p className="text-center text-xs text-muted-foreground">
-        カード情報の入力はありません。Stripe を設定すると、この画面は本物の決済ページに切り替わります。
+        カード情報の入力はありません。Stripe
+        を設定すると、この画面は本物の決済ページに切り替わります。
       </p>
     </div>
   );

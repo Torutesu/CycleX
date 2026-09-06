@@ -135,7 +135,10 @@ async function statusOf(transactionId: string) {
 test("正しい署名の入金完了で、取引が成立し通知が出る", async ({ request }) => {
   const { transactionId, listingId } = await pendingTransaction("paid");
 
-  const response = await sendEvent(request, checkoutEvent("checkout.session.completed", transactionId));
+  const response = await sendEvent(
+    request,
+    checkoutEvent("checkout.session.completed", transactionId),
+  );
   expect(response.status()).toBe(200);
 
   const transaction = await statusOf(transactionId);

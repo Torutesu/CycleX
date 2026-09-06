@@ -9,3 +9,7 @@ src/components/ui
 supabase/.temp
 playwright-report
 test-results
+
+# 文書は手で書いている。表の桁揃えを機械にやらせると
+# 全角を1桁と数えるため、かえって崩れて見える
+*.md

@@ -20,11 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  deleteDraft,
-  republishListing,
-  withdrawListing,
-} from "@/features/listing/actions";
+import { deleteDraft, republishListing, withdrawListing } from "@/features/listing/actions";
 import {
   canDeleteListing,
   canEditListing,
@@ -119,7 +115,8 @@ export function ListingRowActions({ listingId, status, title }: Props) {
           <DialogHeader>
             <DialogTitle>下書きを削除しますか?</DialogTitle>
             <DialogDescription>
-              「{title || "無題の下書き"}」を削除します。アップロード済みの画像も削除され、元に戻せません。
+              「{title || "無題の下書き"}
+              」を削除します。アップロード済みの画像も削除され、元に戻せません。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">

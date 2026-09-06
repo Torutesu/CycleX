@@ -62,7 +62,9 @@ export default async function DemoPaymentPage({
             />
           )}
           <div className="min-w-0">
-            <p className="break-phrase text-sm font-medium leading-snug">{transaction.listing.title}</p>
+            <p className="break-phrase text-sm font-medium leading-snug">
+              {transaction.listing.title}
+            </p>
             <p className="mt-1 text-xs text-muted-foreground">
               出品者: {transaction.counterparty.displayName}
             </p>

@@ -38,21 +38,39 @@ test.beforeAll(async () => {
 
   const { data: sold } = await db
     .from("listings")
-    .insert({ ...base, seller_id: sellerId, title: `売切れ確認 ${STAMP}`, price: 51000, status: "sold" })
+    .insert({
+      ...base,
+      seller_id: sellerId,
+      title: `売切れ確認 ${STAMP}`,
+      price: 51000,
+      status: "sold",
+    })
     .select("id")
     .single();
   soldListingId = sold!.id;
 
   const { data: race } = await db
     .from("listings")
-    .insert({ ...base, seller_id: sellerId, title: `二重購入確認 ${STAMP}`, price: 52000, status: "published" })
+    .insert({
+      ...base,
+      seller_id: sellerId,
+      title: `二重購入確認 ${STAMP}`,
+      price: 52000,
+      status: "published",
+    })
     .select("id")
     .single();
   raceListingId = race!.id;
 
   const { data: gone } = await db
     .from("listings")
-    .insert({ ...base, seller_id: goneId, title: `退会者の出品 ${STAMP}`, price: 53000, status: "published" })
+    .insert({
+      ...base,
+      seller_id: goneId,
+      title: `退会者の出品 ${STAMP}`,
+      price: 53000,
+      status: "published",
+    })
     .select("id")
     .single();
   goneListingId = gone!.id;

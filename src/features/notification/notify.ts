@@ -56,7 +56,8 @@ export async function notifyWelcome(userId: string): Promise<void> {
       intro:
         "CycleX へのご登録ありがとうございます。自転車本体からパーツまで、出品と購入がすぐに始められます。",
       cta: { label: "商品をさがす", path: "/search" },
-      outro: "出品する際は、フレームサイズやコンポーネントを入力すると見つけてもらいやすくなります。",
+      outro:
+        "出品する際は、フレームサイズやコンポーネントを入力すると見つけてもらいやすくなります。",
     },
   });
 }
@@ -91,8 +92,7 @@ export async function notifyPaid(transactionId: string): Promise<void> {
       kind: "purchase_confirmed",
       refId: tx.id,
       body: {
-        intro:
-          "お支払いが完了しました。出品者からの発送・受渡のご連絡をお待ちください。",
+        intro: "お支払いが完了しました。出品者からの発送・受渡のご連絡をお待ちください。",
         details,
         cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
       },
@@ -346,7 +346,10 @@ export async function notifyDispute(info: DisputeInfo): Promise<void> {
             "カード会社から不正利用の申し立てがありました。期限までに Stripe ダッシュボードで対応してください。",
           details,
           cta: transaction
-            ? { label: "取引を確認する", path: `/admin/transactions?q=${encodeURIComponent(transaction.listings?.title ?? "")}` }
+            ? {
+                label: "取引を確認する",
+                path: `/admin/transactions?q=${encodeURIComponent(transaction.listings?.title ?? "")}`,
+              }
             : { label: "取引管理を開く", path: "/admin/transactions" },
           outro: "期限を過ぎると自動的に申し立てが認められ、代金が引き戻されます。",
         },

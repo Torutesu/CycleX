@@ -31,7 +31,9 @@ export function canPurchase(status: ListingStatus): boolean {
 }
 
 /** 一覧カードに出すバッジ。null のときはバッジなし。 */
-export function listingBadge(status: ListingStatus): { label: string; tone: "trading" | "sold" | "muted" } | null {
+export function listingBadge(
+  status: ListingStatus,
+): { label: string; tone: "trading" | "sold" | "muted" } | null {
   switch (status) {
     case "trading":
       return { label: "取引中", tone: "trading" };

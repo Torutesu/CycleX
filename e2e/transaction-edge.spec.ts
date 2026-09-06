@@ -116,7 +116,10 @@ test("発送・受取のたびに相手へ通知が残る", async ({ page }) => 
 
   await login(page, SELLER);
   await page.goto(`/transactions/${transaction!.id}`);
-  await page.locator("textarea").first().fill("本日ヤマト便で発送しました。伝票番号は 1234-5678-9012 です。");
+  await page
+    .locator("textarea")
+    .first()
+    .fill("本日ヤマト便で発送しました。伝票番号は 1234-5678-9012 です。");
   await page.getByRole("button", { name: "発送を連絡する" }).click();
 
   // 消えるトースト頼みにせず、画面に残る状態で確かめる
@@ -201,7 +204,9 @@ test("双方が評価すると公開され、取引が完了する", async ({ pa
   await page.goto(`/users/${sellerId}`);
   await expect(page.getByText("丁寧な梱包で、状態も説明どおりでした。")).toBeVisible();
 
-  await expect.poll(() => mailKinds(transaction!.id), { timeout: 20_000 }).toContain("tx_completed");
+  await expect
+    .poll(() => mailKinds(transaction!.id), { timeout: 20_000 })
+    .toContain("tx_completed");
 });
 
 test("支払われないまま放置された取引は片付けられ、商品が戻る", async ({ request }) => {

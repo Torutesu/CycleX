@@ -71,10 +71,7 @@ export default async function MessagesPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2">
                       <p
-                        className={cn(
-                          "truncate text-sm",
-                          unread ? "font-semibold" : "font-medium",
-                        )}
+                        className={cn("truncate text-sm", unread ? "font-semibold" : "font-medium")}
                       >
                         {thread.counterparty.displayName}
                       </p>

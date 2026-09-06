@@ -13,11 +13,7 @@ import type { ListingStatus } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "出品を編集" };
 
-export default async function EditListingPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EditListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser(`/sell/${id}/edit`);
 

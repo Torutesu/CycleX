@@ -52,12 +52,7 @@ export async function suspendUser(
 
     if (!target) throw new AppError("利用者が見つかりません。");
 
-    const check = canSuspendUser(
-      target.id,
-      admin.id,
-      target.role,
-      target.status as UserStatus,
-    );
+    const check = canSuspendUser(target.id, admin.id, target.role, target.status as UserStatus);
     if (!check.allowed) throw new AppError(check.reason);
 
     // 進行中の取引を抱えたまま停止すると、本人が発送操作をできず取引が止まる
@@ -375,10 +370,7 @@ export async function renameBrand(
     }
 
     const supabase = createAdminClient();
-    const { error } = await supabase
-      .from("brands")
-      .update({ name: parsed.data })
-      .eq("id", brandId);
+    const { error } = await supabase.from("brands").update({ name: parsed.data }).eq("id", brandId);
 
     if (error) throw new AppError("ブランド名の変更に失敗しました。");
 

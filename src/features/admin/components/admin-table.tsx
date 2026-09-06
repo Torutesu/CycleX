@@ -67,9 +67,7 @@ export function AdminPagination({
 
   return (
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-      <p className="text-sm tabular-nums text-muted-foreground">
-        全 {total.toLocaleString()} 件
-      </p>
+      <p className="text-sm tabular-nums text-muted-foreground">全 {total.toLocaleString()} 件</p>
 
       {totalPages > 1 && (
         <nav aria-label="ページ送り" className="flex items-center gap-2">

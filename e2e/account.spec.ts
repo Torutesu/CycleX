@@ -122,7 +122,11 @@ test("メールアドレスの変更は、新しいアドレス宛の確認で�
   const mail = await waitForMail(nextEmail, seen);
   expect(mail.Subject.length).toBeGreaterThan(0);
 
-  const { data } = await adminDb().from("users").select("email").eq("email", EMAIL_USER).maybeSingle();
+  const { data } = await adminDb()
+    .from("users")
+    .select("email")
+    .eq("email", EMAIL_USER)
+    .maybeSingle();
   expect(data?.email).toBe(EMAIL_USER);
 });
 
@@ -146,20 +150,18 @@ test("通知設定は保存され、開き直しても残る", async ({ page }) 
 test("退会すると出品が取下げられ、以後ログインできない", async ({ page }) => {
   // 退会後に出品が取下げられることを見るため、1件だけ公開しておく
   const title = `E2E 退会確認の出品 ${STAMP}`;
-  await adminDb()
-    .from("listings")
-    .insert({
-      seller_id: withdrawId,
-      title,
-      description: "退会の確認用です。",
-      category: "road",
-      condition: "good",
-      price: 60000,
-      delivery_method: "shipping",
-      shipping_from_pref: "13",
-      status: "published",
-      published_at: new Date().toISOString(),
-    });
+  await adminDb().from("listings").insert({
+    seller_id: withdrawId,
+    title,
+    description: "退会の確認用です。",
+    category: "road",
+    condition: "good",
+    price: 60000,
+    delivery_method: "shipping",
+    shipping_from_pref: "13",
+    status: "published",
+    published_at: new Date().toISOString(),
+  });
 
   await login(page, WITHDRAW_USER);
   await page.goto("/mypage/settings");

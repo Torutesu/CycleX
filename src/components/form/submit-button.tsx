@@ -11,12 +11,7 @@ type SubmitButtonProps = ComponentProps<typeof Button> & {
 };
 
 /** 送信中に自動で disabled + スピナー表示になる送信ボタン。 */
-export function SubmitButton({
-  children,
-  pendingLabel,
-  disabled,
-  ...props
-}: SubmitButtonProps) {
+export function SubmitButton({ children, pendingLabel, disabled, ...props }: SubmitButtonProps) {
   const { pending } = useFormStatus();
 
   return (

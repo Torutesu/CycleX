@@ -87,7 +87,11 @@ async function layoutProblems(page: Page): Promise<string[]> {
 
       // 横スクロールさせる入れ物の中は、はみ出していてよい
       let inScroller = false;
-      for (let node = element.parentElement; node && node !== document.body; node = node.parentElement) {
+      for (
+        let node = element.parentElement;
+        node && node !== document.body;
+        node = node.parentElement
+      ) {
         const overflowX = getComputedStyle(node).overflowX;
         if (overflowX === "auto" || overflowX === "scroll") {
           inScroller = true;

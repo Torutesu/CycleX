@@ -37,9 +37,9 @@ describe("メール本文", () => {
   });
 
   it("利用者が書いた記号はそのまま解釈されない", () => {
-    const html = renderHtml('<script>alert(1)</script>やまだ', {
-      intro: '商品「<b>太字</b>」について',
-      details: [{ label: '<i>ラベル</i>', value: '"引用符" & 記号 <tag>' }],
+    const html = renderHtml("<script>alert(1)</script>やまだ", {
+      intro: "商品「<b>太字</b>」について",
+      details: [{ label: "<i>ラベル</i>", value: '"引用符" & 記号 <tag>' }],
       cta: { label: "<u>開く</u>", path: "/transactions/x" },
       outro: "<img src=x onerror=alert(1)>",
     });

@@ -70,7 +70,11 @@ test("画面を通さず DB を触っても、他人のものは書き換えら�
   expect(updated ?? [], "他人の出品を更新できてはいけない").toEqual([]);
 
   // 他人の出品の削除
-  const { data: deleted } = await db.from("listings").delete().eq("id", otherListingId).select("id");
+  const { data: deleted } = await db
+    .from("listings")
+    .delete()
+    .eq("id", otherListingId)
+    .select("id");
   expect(deleted ?? [], "他人の出品を削除できてはいけない").toEqual([]);
 
   // 他人になりすました出品
@@ -174,14 +178,17 @@ test("画面を通さず DB を読んでも、他人のやりとりは見えな�
   const { data: threads } = await outsider.from("threads").select("id").eq("id", thread!.id);
   expect(threads ?? [], "関係のないやりとり").toEqual([]);
 
-  const { data: messages } = await outsider.from("messages").select("body").eq("thread_id", thread!.id);
+  const { data: messages } = await outsider
+    .from("messages")
+    .select("body")
+    .eq("thread_id", thread!.id);
   expect(messages ?? [], "関係のないメッセージ").toEqual([]);
 
-  const { data: transactions } = await outsider.from("transactions").select("id").neq("buyer_id", ownerId);
-  expect(
-    (transactions ?? []).length,
-    "自分が当事者でない取引が読めてはいけない",
-  ).toBe(0);
+  const { data: transactions } = await outsider
+    .from("transactions")
+    .select("id")
+    .neq("buyer_id", ownerId);
+  expect((transactions ?? []).length, "自分が当事者でない取引が読めてはいけない").toBe(0);
 
   await db.from("messages").delete().eq("thread_id", thread!.id);
   await db.from("threads").delete().eq("id", thread!.id);
@@ -228,13 +235,17 @@ test("入力した文字列はそのまま実行されない", async ({ page }) 
 
   // 文字として表示され、実行はされない
   await expect(page.getByRole("heading", { level: 1 })).toContainText("スクリプト混入の確認");
-  expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
+  expect(
+    await page.evaluate(() => (window as unknown as { __xss?: number }).__xss),
+  ).toBeUndefined();
   // 差し込まれた img 要素が生えていない
   expect(await page.locator('img[src="x"]').count()).toBe(0);
 
   // 検索結果でも同じ
   await page.goto(`/search?q=${encodeURIComponent("スクリプト混入の確認")}`);
-  expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined();
+  expect(
+    await page.evaluate(() => (window as unknown as { __xss?: number }).__xss),
+  ).toBeUndefined();
   expect(await page.locator('img[src="x"]').count()).toBe(0);
 });
 
@@ -248,11 +259,16 @@ test("表示名やプロフィールに入れた文字列も実行されない",
     .eq("id", ownerId);
 
   await page.goto(`/users/${ownerId}`);
-  expect(await page.evaluate(() => (window as unknown as { __xss2?: number }).__xss2)).toBeUndefined();
+  expect(
+    await page.evaluate(() => (window as unknown as { __xss2?: number }).__xss2),
+  ).toBeUndefined();
   expect(await page.locator('img[src="y"]').count()).toBe(0);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("やまだ");
 
-  await adminDb().from("users").update({ display_name: "セキュリティ確認A", bio: null }).eq("id", ownerId);
+  await adminDb()
+    .from("users")
+    .update({ display_name: "セキュリティ確認A", bio: null })
+    .eq("id", ownerId);
 });
 
 test("外部サイトへ飛ばす next は無視される", async ({ page }) => {

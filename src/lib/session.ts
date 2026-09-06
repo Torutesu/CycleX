@@ -87,10 +87,13 @@ export async function requireAdmin(): Promise<SessionUser> {
 export async function requireVerifiedUser(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) throw new AppError("ログインが必要です。");
-  if (user.status === "suspended") throw new AppError("アカウントが利用停止中のため、この操作は行えません。");
+  if (user.status === "suspended")
+    throw new AppError("アカウントが利用停止中のため、この操作は行えません。");
   if (user.status === "withdrawn") throw new AppError("退会済みのアカウントです。");
   if (!user.emailVerified) {
-    throw new AppError("メールアドレスの確認が完了していません。確認メールのリンクから認証してください。");
+    throw new AppError(
+      "メールアドレスの確認が完了していません。確認メールのリンクから認証してください。",
+    );
   }
   return user;
 }
@@ -99,6 +102,7 @@ export async function requireVerifiedUser(): Promise<SessionUser> {
 export async function requireUserAction(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) throw new AppError("ログインが必要です。");
-  if (user.status === "suspended") throw new AppError("アカウントが利用停止中のため、この操作は行えません。");
+  if (user.status === "suspended")
+    throw new AppError("アカウントが利用停止中のため、この操作は行えません。");
   return user;
 }

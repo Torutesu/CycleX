@@ -16,11 +16,7 @@ import { isDemoCheckout } from "@/lib/demo";
 
 export const metadata: Metadata = { title: "購入手続き" };
 
-export default async function PurchasePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function PurchasePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireUser(`/items/${id}/purchase`);
   const listing = await getListingDetail(id);
