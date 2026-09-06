@@ -81,8 +81,8 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
     <div className="flex h-full min-h-0 flex-col">
       <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pb-4">
         {/* カテゴリ */}
-        <section>
-          <h3 className="mb-2 text-sm font-semibold">カテゴリ</h3>
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold">カテゴリ</legend>
           <ul className="space-y-1">
             <li>
               <button
@@ -150,13 +150,13 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               </ul>
             </div>
           )}
-        </section>
+        </fieldset>
 
         <Separator />
 
         {/* 価格帯 */}
-        <section>
-          <h3 className="mb-2 text-sm font-semibold">価格帯</h3>
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold">価格帯</legend>
           <ul className="flex flex-wrap gap-2">
             {PRICE_PRESETS.map((preset) => {
               const active = draft.priceMin === preset.min && draft.priceMax === preset.max;
@@ -203,13 +203,13 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               className="h-11 tabular-nums"
             />
           </div>
-        </section>
+        </fieldset>
 
         <Separator />
 
         {/* ブランド */}
-        <section>
-          <h3 className="mb-2 text-sm font-semibold">ブランド</h3>
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold">ブランド</legend>
           <Input
             type="search"
             placeholder="ブランド名で絞り込む"
@@ -235,13 +235,13 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               <li className="py-2 text-sm text-muted-foreground">該当するブランドがありません</li>
             )}
           </ul>
-        </section>
+        </fieldset>
 
         <Separator />
 
         {/* フレームサイズ */}
-        <section>
-          <h3 className="mb-2 text-sm font-semibold">フレームサイズ</h3>
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold">フレームサイズ</legend>
           <ul className="flex flex-wrap gap-2">
             {FRAME_SIZES.filter((size) => size.value !== "other").map((size) => (
               <li key={size.value}>
@@ -261,13 +261,13 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               </li>
             ))}
           </ul>
-        </section>
+        </fieldset>
 
         <Separator />
 
         {/* コンディション */}
-        <section>
-          <h3 className="mb-2 text-sm font-semibold">コンディション</h3>
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold">コンディション</legend>
           <ul className="space-y-0.5">
             {CONDITIONS.map((condition) => (
               <li key={condition.value} className="flex min-h-11 items-center gap-2.5">
@@ -285,13 +285,13 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               </li>
             ))}
           </ul>
-        </section>
+        </fieldset>
 
         <Separator />
 
         {/* 地域 */}
-        <section>
-          <h3 className="mb-2 text-sm font-semibold">地域</h3>
+        <fieldset>
+          <legend className="mb-2 text-sm font-semibold">地域</legend>
           <ul className="max-h-56 space-y-0.5 overflow-y-auto">
             {PREFECTURES.map((pref) => (
               <li key={pref.value} className="flex min-h-11 items-center gap-2.5">
@@ -306,7 +306,7 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               </li>
             ))}
           </ul>
-        </section>
+        </fieldset>
 
         <Separator />
 

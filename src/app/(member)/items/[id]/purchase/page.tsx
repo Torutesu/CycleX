@@ -28,10 +28,12 @@ export default async function PurchasePage({
   if (!listing) notFound();
 
   const isOwner = listing.sellerId === user.id;
-  // 自分の出品では支払えない。無効なボタンだけの画面を見せても行き止まりなので戻す
-  if (isOwner) redirect(`/items/${listing.id}`);
-
   const purchasable = canPurchase(listing.status);
+
+  // 支払えない商品でこの画面に留めても、無効なボタンを見せるだけで行き止まりになる。
+  // 商品ページなら SOLD や取引中がはっきり出て、他の商品への導線もある。
+  // ここへ来るのは古いリンクか、開いている間に売れた場合。
+  if (isOwner || !purchasable) redirect(`/items/${listing.id}`);
   const demo = isDemoCheckout();
 
   return (
@@ -56,16 +58,6 @@ export default async function PurchasePage({
             >
               確認メールを再送する
             </Link>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {!purchasable && (
-        <Alert variant="destructive" className="mt-5">
-          <AlertDescription>
-            {isOwner
-              ? "自分が出品した商品は購入できません。"
-              : "この商品は現在購入できません。すでに取引中か、販売が終了している可能性があります。"}
           </AlertDescription>
         </Alert>
       )}
@@ -138,7 +130,7 @@ export default async function PurchasePage({
       <div className="mt-6">
         <PurchaseButton
           listingId={listing.id}
-          disabled={!purchasable || !user.emailVerified}
+          disabled={!user.emailVerified}
           price={listing.price}
         />
       </div>

@@ -79,10 +79,14 @@ export function ImageSlider({ paths, title }: ImageSliderProps) {
   return (
     <div className="space-y-3">
       <div className="relative">
+        {/* 横スクロールする領域は、キーボードでも送れるように focus を受ける */}
         <div
           ref={trackRef}
           onScroll={(event) => onTrackScroll(event.currentTarget)}
-          className="flex snap-x snap-mandatory overflow-x-auto rounded-lg [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          tabIndex={0}
+          role="group"
+          aria-label={`${title} の画像`}
+          className="flex snap-x snap-mandatory overflow-x-auto rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {paths.map((path, i) => (
             <div key={path} className="relative aspect-square w-full shrink-0 snap-center bg-muted">

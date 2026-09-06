@@ -54,7 +54,7 @@ export function SearchPagination({ params, totalPages }: Props) {
           前へ
         </Link>
       ) : (
-        <span className="inline-flex min-h-11 items-center gap-1 rounded-md border px-3 text-sm text-muted-foreground opacity-50">
+        <span className="inline-flex min-h-11 items-center gap-1 rounded-md border border-dashed px-3 text-sm text-muted-foreground">
           <ChevronLeft className="size-4" aria-hidden />
           前へ
         </span>
@@ -101,7 +101,7 @@ export function SearchPagination({ params, totalPages }: Props) {
           <ChevronRight className="size-4" aria-hidden />
         </Link>
       ) : (
-        <span className="inline-flex min-h-11 items-center gap-1 rounded-md border px-3 text-sm text-muted-foreground opacity-50">
+        <span className="inline-flex min-h-11 items-center gap-1 rounded-md border border-dashed px-3 text-sm text-muted-foreground">
           次へ
           <ChevronRight className="size-4" aria-hidden />
         </span>

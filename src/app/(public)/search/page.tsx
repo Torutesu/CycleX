@@ -127,6 +127,8 @@ export default async function SearchPage({
                 />
               ) : (
                 <>
+                  {/* 見出しの並びを h1 → h2 → カード(h3)にそろえる */}
+                  <h2 className="sr-only">検索結果</h2>
                   <ListingGrid
                     listings={result.items}
                     favoritedIds={favoritedIds}
