@@ -66,21 +66,19 @@ select show_trgm('ロードバイク');
 
 確認用に商品を並べておきたい場合のみ。**本番運用を始めたら実行しないこと。**
 
-手元の `.env.local` を一時的に本番の値に書き換えて実行する。
+接続先はその場で渡す。`.env.local` を書き換えると、ローカル用に戻し忘れたときに
+手元の作業が本番へ向いたままになる。
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=<Project URL>
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>
-SUPABASE_SERVICE_ROLE_KEY=<service_role key>
-```
+export NEXT_PUBLIC_SUPABASE_URL=<Project URL>
+export SUPABASE_SERVICE_ROLE_KEY=<service_role key>
 
-```bash
 node scripts/seed-users.mjs      # テスト会員5名(管理者含む)
 node scripts/seed-dev.mjs 120    # ダミー商品120件
 node scripts/seed-images.mjs     # 商品画像
 ```
 
-終わったら `.env.local` をローカル用の値に戻す。
+終わったらターミナルを閉じる(渡した値はそのターミナルにしか残らない)。
 
 管理者アカウントを本番の自分のアカウントにする場合は、会員登録したあとに
 `SQL Editor` で次を実行する。
@@ -98,16 +96,21 @@ update public.users set role = 'admin' where email = '<自分のメールアド�
 3. 環境変数に以下を入れる(値は Supabase の画面からコピーする)
 
 ```
-NEXT_PUBLIC_APP_URL          https://<デプロイ後のドメイン>
-PLATFORM_FEE_RATE            0.07
-NEXT_PUBLIC_SUPABASE_URL     <Project URL>
+NEXT_PUBLIC_APP_URL           https://<デプロイ後のドメイン>
+PLATFORM_FEE_RATE             0.07
+NEXT_PUBLIC_SUPABASE_URL      <Project URL>
 NEXT_PUBLIC_SUPABASE_ANON_KEY <anon key>
-SUPABASE_SERVICE_ROLE_KEY    <service_role key>
-STRIPE_SECRET_KEY            sk_test_xxx
-STRIPE_WEBHOOK_SECRET        whsec_xxx
-RESEND_API_KEY               re_xxx
-EMAIL_FROM                   CycleX <noreply@example.com>
-CRON_SECRET                  <ランダムな文字列>
+SUPABASE_SERVICE_ROLE_KEY     <service_role key>
+CRON_SECRET                   <ランダムな文字列>
+```
+
+Stripe と Resend は、用意ができてから足す。
+
+```
+STRIPE_SECRET_KEY             sk_test_xxx
+STRIPE_WEBHOOK_SECRET         whsec_xxx
+RESEND_API_KEY                re_xxx
+EMAIL_FROM                    CycleX <noreply@example.com>
 ```
 
 `NEXT_PUBLIC_APP_URL` は初回デプロイでドメインが決まってから設定し、
@@ -119,8 +122,26 @@ CRON_SECRET                  <ランダムな文字列>
 openssl rand -hex 32
 ```
 
-Stripe / Resend をまだ用意していない場合は、上記のダミー値のままでよい。
-商品の閲覧・検索・会員登録までは動く(決済とメール送信のみ動かない)。
+### Stripe がまだ用意できていない場合
+
+**`STRIPE_SECRET_KEY` にダミーの値を入れないこと。** 入れると
+「本物の決済が構成されている」と見なされ、決済が必ず失敗する。
+変数ごと設定しないでおき、代わりに次を入れる。
+
+```
+ALLOW_DEMO_CHECKOUT           1
+```
+
+これで購入 → 支払い → 発送 → 受取確認 → 相互評価まで、
+実際にお金を動かさずに通しで触れる。取引の状態が進む道筋は本番と同じなので、
+「デモでは動くが本番では動かない」経路は増えない。
+
+Stripe のキーを入れた時点で、デモ決済は自動的に無効になる。
+本物の決済が使える環境でデモが動くことはない。
+
+Resend も同様に、`RESEND_API_KEY` を設定しなければメール送信そのものを行わない。
+送信記録には理由(「未設定のため送信をスキップ」)が残るので、あとから追える。
+商品の閲覧・検索・会員登録は、どちらが未設定でも動く。
 
 > **Vercel Marketplace に Supabase の連携がある場合はそちらが早い。**
 > プロジェクトを繋ぐと `NEXT_PUBLIC_SUPABASE_URL` などが自動で入るため、

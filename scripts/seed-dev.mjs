@@ -3,32 +3,17 @@
  *
  *   node scripts/seed-dev.mjs [件数]
  *
- * .env.local の Supabase 設定を使い、既存ユーザーの出品として作成する。
+ * Supabase の設定は .env.local か環境変数から読む。既存ユーザーの出品として作成する。
  * 車種はカタログ(seed-catalog.mjs)から取り、価格・状態・走行距離・
  * 説明文が互いに矛盾しないように組み立てる。本番の商用データではない。
  */
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "node:fs";
+import { requireSupabaseEnv } from "./env.mjs";
 import { BIKES, PARTS, SIZE_CM, buildDescription } from "./seed-catalog.mjs";
 
 const COUNT = Number(process.argv[2] ?? 500);
 
-// .env.local を読む(dotenv を足さずに済ませる)
-const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
-    .split("\n")
-    .filter((line) => line.includes("=") && !line.trim().startsWith("#"))
-    .map((line) => {
-      const index = line.indexOf("=");
-      return [
-        line.slice(0, index).trim(),
-        line
-          .slice(index + 1)
-          .trim()
-          .replace(/^"|"$/g, ""),
-      ];
-    }),
-);
+const env = requireSupabaseEnv();
 
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false },

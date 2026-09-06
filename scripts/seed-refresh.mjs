@@ -12,28 +12,14 @@
  * 実行後は `node scripts/seed-images.mjs 200 --replace` で貼り直すこと。
  */
 import { createClient } from "@supabase/supabase-js";
-import { readFileSync } from "node:fs";
+import { requireSupabaseEnv } from "./env.mjs";
 import { BIKES, PARTS, SIZE_CM, buildDescription } from "./seed-catalog.mjs";
 
-const env = Object.fromEntries(
-  readFileSync(new URL("../.env.local", import.meta.url), "utf8")
-    .split("\n")
-    .filter((line) => line.includes("=") && !line.trim().startsWith("#"))
-    .map((line) => {
-      const index = line.indexOf("=");
-      return [
-        line.slice(0, index).trim(),
-        line
-          .slice(index + 1)
-          .trim()
-          .replace(/^"|"$/g, ""),
-      ];
-    }),
-);
+const env = requireSupabaseEnv();
 
-const url = process.env.SUPABASE_URL ?? env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(url, key, { auth: { persistSession: false } });
+const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { persistSession: false },
+});
 
 console.log("対象:", url);
 

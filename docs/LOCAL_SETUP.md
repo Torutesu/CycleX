@@ -33,7 +33,7 @@ SUPABASE_SERVICE_ROLE_KEY=<service_role key>
 続けてデータを入れる。
 
 ```bash
-pnpm db:reset                       # マイグレーション6本 + ブランドの初期データ
+pnpm db:reset                       # マイグレーションとブランドの初期データ
 node scripts/seed-users.mjs         # テスト会員 5 名
 node scripts/seed-dev.mjs 120       # ダミー商品 120 件
 node scripts/seed-images.mjs        # 商品画像(自転車のシルエット)
@@ -73,6 +73,17 @@ http://localhost:3000 を開く。
 
 ## 決済まで試す場合
 
+### Stripe を用意せずに通す(既定)
+
+`.env.example` は `ALLOW_DEMO_CHECKOUT=1` を入れてある。この状態だと
+購入 → 支払い → 発送 → 受取確認 → 相互評価まで、お金を動かさずに通しで触れる。
+取引の状態が進む道筋は本番と同じものを使う。
+
+**`STRIPE_SECRET_KEY` に仮の値を入れないこと。** 入っていると
+「本物の決済が構成されている」と見なされ、デモ決済は無効になる。
+
+### 本物の Stripe で通す
+
 Stripe のテストキーが必要。`.env.local` に設定してから `pnpm dev` を再起動する。
 
 ```bash
@@ -87,6 +98,16 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
 
 テストカードは `4242 4242 4242 4242`(有効期限は未来の日付、CVC は任意の3桁)。
+
+## E2E を流す
+
+```bash
+pnpm test:e2e
+```
+
+`pnpm dev` は Playwright が必要に応じて自分で起動する。
+検索の並び順・件数・ページ送りは並んでいる商品を見て確かめるので、
+**上記のシードを入れてから流す**こと。
 
 ## メールの確認
 

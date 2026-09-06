@@ -16,7 +16,7 @@
 | 決済 | Stripe Checkout + Webhook |
 | メール | Resend |
 | ホスティング | Vercel(日次バッチは Vercel Cron) |
-| テスト | Vitest(ユニット)/ Playwright(E2E スモーク) |
+| テスト | Vitest(ユニット)/ Playwright(E2E) |
 
 ## セットアップ(ローカル)
 
@@ -41,14 +41,19 @@ pnpm dev            # http://localhost:3000
 
 ```bash
 pnpm lint           # ESLint
+pnpm format         # Prettier(整形)
 pnpm typecheck      # tsc --noEmit
 pnpm test           # Vitest(ユニット)
-pnpm test:e2e       # Playwright(E2E スモーク)
+pnpm test:e2e       # Playwright(E2E。シードを入れてから流す)
 pnpm build          # 本番ビルド
 
 pnpm db:reset       # マイグレーション再適用 + シード
 pnpm db:types       # src/types/database.ts を再生成
+pnpm db:hosted      # supabase/setup-hosted.sql を作り直す
 ```
+
+マイグレーションを足したら `pnpm db:hosted` を実行して、
+生成された `supabase/setup-hosted.sql` を一緒にコミットする(CI が確認する)。
 
 ### ローカルで使えるもの
 
