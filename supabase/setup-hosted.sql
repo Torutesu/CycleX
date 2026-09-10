@@ -13,6 +13,23 @@
 --       適用済みとして記録するので、CLI と併用しても同じマイグレーションを二重に流さない。
 -- ============================================================
 
+-- 適用済みの環境で誤って 2 回目を流したときに、何も壊さずここで止める。
+--
+-- この下で Storage のポリシーを落としているため、ガードが無いと
+-- 「ポリシーだけ消えて create table で中断」という状態になり、
+-- 出品時の画像アップロードが全利用者で失敗する。
+-- 何もせずに落ちる方が安全なので、先に検査する。
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+     where table_schema = 'public' and table_name = 'users'
+  ) then
+    raise exception
+      'CycleX のセットアップは既に適用されています。このファイルは更地に一度だけ実行してください。以後のスキーマ変更は supabase CLI の db push で適用します。';
+  end if;
+end $$;
+
 -- 再実行できるよう、Storage のポリシーは先に落としておく
 drop policy if exists "cyclex_images_read"        on storage.objects;
 drop policy if exists "cyclex_images_insert_own"  on storage.objects;
