@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  arePaymentsDisabled,
   assertProductionEnv,
   findProductionEnvProblems,
   isProductionRuntime,
@@ -51,6 +52,53 @@ describe("findProductionEnvProblems", () => {
     expect(findProductionEnvProblems({ ...complete, ALLOW_DEMO_CHECKOUT: "1" })).toEqual([
       "ALLOW_DEMO_CHECKOUT が有効です(本番では設定しない)",
     ]);
+  });
+});
+
+describe("arePaymentsDisabled", () => {
+  it("明示的に 1 のときだけ無効にする", () => {
+    expect(arePaymentsDisabled({ CYCLEX_PAYMENTS_DISABLED: "1" })).toBe(true);
+    expect(arePaymentsDisabled({ CYCLEX_PAYMENTS_DISABLED: "0" })).toBe(false);
+    expect(arePaymentsDisabled({ CYCLEX_PAYMENTS_DISABLED: "true" })).toBe(false);
+    expect(arePaymentsDisabled({})).toBe(false);
+  });
+});
+
+describe("決済を無効にして公開する場合", () => {
+  it("Stripe のキーだけを必須から外す", () => {
+    const { STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, ...withoutStripe } = complete;
+    void STRIPE_SECRET_KEY;
+    void STRIPE_WEBHOOK_SECRET;
+
+    // フラグ無しでは欠落として検出する
+    expect(findProductionEnvProblems(withoutStripe)).toEqual([
+      "STRIPE_SECRET_KEY が設定されていません",
+      "STRIPE_WEBHOOK_SECRET が設定されていません",
+    ]);
+
+    // フラグを立てれば起動できる
+    expect(findProductionEnvProblems({ ...withoutStripe, CYCLEX_PAYMENTS_DISABLED: "1" })).toEqual(
+      [],
+    );
+  });
+
+  it("Stripe 以外の欠落は見逃さない", () => {
+    const { RESEND_API_KEY, ...withoutResend } = complete;
+    void RESEND_API_KEY;
+    expect(findProductionEnvProblems({ ...withoutResend, CYCLEX_PAYMENTS_DISABLED: "1" })).toEqual([
+      "RESEND_API_KEY が設定されていません",
+    ]);
+  });
+
+  it("デモ決済の抜け道は塞いだまま", () => {
+    // 決済を無効にしても、無料で「支払い済み」を作れる状態は許さない
+    expect(
+      findProductionEnvProblems({
+        ...complete,
+        CYCLEX_PAYMENTS_DISABLED: "1",
+        ALLOW_DEMO_CHECKOUT: "1",
+      }),
+    ).toContain("ALLOW_DEMO_CHECKOUT が有効です(本番では設定しない)");
   });
 });
 

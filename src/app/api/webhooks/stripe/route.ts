@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, getWebhookSecret } from "@/lib/stripe";
+import { arePaymentsDisabled } from "@/lib/env";
 import {
   handleChargeRefunded,
   handleCheckoutCompleted,
@@ -20,6 +21,16 @@ function retryLater(reason: string) {
   return NextResponse.json({ error: "後で再試行してください", reason }, { status: 500 });
 }
 export async function POST(request: NextRequest) {
+  // 決済を無効にして公開している段階では、署名の検証もできない
+  // (STRIPE_WEBHOOK_SECRET が無い)。503 で明示的に断り、
+  // Stripe 側にも「受け取れていない」ことが残るようにする
+  if (arePaymentsDisabled()) {
+    return NextResponse.json(
+      { error: "決済は現在無効です(CYCLEX_PAYMENTS_DISABLED)" },
+      { status: 503 },
+    );
+  }
+
   const signature = request.headers.get("stripe-signature");
   if (!signature) {
     return NextResponse.json({ error: "署名がありません" }, { status: 400 });

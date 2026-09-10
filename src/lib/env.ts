@@ -14,6 +14,25 @@ export function isProductionRuntime(env: EnvLike = process.env): boolean {
   return env.VERCEL_ENV === "production";
 }
 
+/**
+ * 決済を無効にして公開するか(`CYCLEX_PAYMENTS_DISABLED=1`)。
+ *
+ * Stripe のキー発行を待たずに、閲覧・出品・メッセージ・管理までを
+ * 関係者に見せたい段階がある。そのとき Stripe のキーを必須のままにすると
+ * 起動時に落ちるし、適当な値を入れると「購入手続きへ」まで進めたうえで
+ * Checkout の作成に失敗する。どちらも良くない。
+ *
+ * このフラグを立てると Stripe のキーを必須から外し、購入の導線を
+ * 「準備中」として閉じる。決済を通さずに取引が成立することはない
+ * (デモ決済は本番では無効。`src/lib/demo.ts` 参照)。
+ */
+export function arePaymentsDisabled(env: EnvLike = process.env): boolean {
+  return env.CYCLEX_PAYMENTS_DISABLED === "1";
+}
+
+/** 決済に関わる環境変数。`CYCLEX_PAYMENTS_DISABLED=1` のときは必須から外す */
+export const PAYMENT_ENV_KEYS = ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] as const;
+
 /** 本番で必須の環境変数。値が空でも欠落とみなす */
 export const REQUIRED_IN_PRODUCTION = [
   "NEXT_PUBLIC_APP_URL",
@@ -39,8 +58,11 @@ const PLACEHOLDER_VALUES: Partial<Record<(typeof REQUIRED_IN_PRODUCTION)[number]
 /** 本番設定の不備を列挙する(純関数)。空配列なら問題なし */
 export function findProductionEnvProblems(env: EnvLike = process.env): string[] {
   const problems: string[] = [];
+  const paymentsDisabled = arePaymentsDisabled(env);
 
   for (const key of REQUIRED_IN_PRODUCTION) {
+    // 決済を無効にして公開する段階では Stripe のキーを求めない
+    if (paymentsDisabled && (PAYMENT_ENV_KEYS as readonly string[]).includes(key)) continue;
     const value = env[key];
     if (!value || value.trim() === "") {
       problems.push(`${key} が設定されていません`);
@@ -68,5 +90,11 @@ export function assertProductionEnv(env: EnvLike = process.env): void {
   const problems = findProductionEnvProblems(env);
   if (problems.length > 0) {
     throw new Error(`本番の環境変数に不備があります:\n- ${problems.join("\n- ")}`);
+  }
+  if (arePaymentsDisabled(env)) {
+    // 意図した状態でも、気づかないまま公開し続けないようログに残す
+    console.warn(
+      "[production env] CYCLEX_PAYMENTS_DISABLED=1 のため決済を無効にして起動しました。購入の導線は「準備中」として閉じています。",
+    );
   }
 }

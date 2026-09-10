@@ -13,6 +13,7 @@ import { listingImageUrl, hasVisibleImage } from "@/lib/images";
 import { formatPrice } from "@/lib/utils";
 import { DELIVERY_METHODS, PREFECTURES, labelOf } from "@/lib/constants";
 import { isDemoCheckout } from "@/lib/demo";
+import { arePaymentsDisabled } from "@/lib/env";
 
 export const metadata: Metadata = { title: "購入手続き" };
 
@@ -29,6 +30,8 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
 
   const purchasable = canPurchase(listing.status);
   const demo = isDemoCheckout();
+  // 決済の準備中は、URL を直接開かれてもここで止める
+  const paymentsDisabled = arePaymentsDisabled();
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -52,6 +55,15 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
             >
               確認メールを再送する
             </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {paymentsDisabled && (
+        <Alert className="mt-5">
+          <AlertDescription>
+            ただいま決済の準備中のため、購入手続きはご利用いただけません。
+            公開までしばらくお待ちください。
           </AlertDescription>
         </Alert>
       )}
@@ -134,7 +146,7 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
       <div className="mt-6">
         <PurchaseButton
           listingId={listing.id}
-          disabled={!purchasable || !user.emailVerified}
+          disabled={!purchasable || !user.emailVerified || paymentsDisabled}
           price={listing.price}
         />
       </div>

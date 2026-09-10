@@ -24,6 +24,7 @@ import { findThreadByListing } from "@/features/message/queries";
 import { AskSellerButton } from "@/features/message/components/ask-seller-button";
 import { ReportDialog } from "@/features/report/components/report-dialog";
 import { canEditListing, canPurchase } from "@/features/listing/rules";
+import { arePaymentsDisabled } from "@/lib/env";
 import { OwnerStatusButton } from "@/features/listing/components/owner-status-button";
 import { getCurrentUser } from "@/lib/session";
 import { listingImageUrl } from "@/lib/images";
@@ -453,6 +454,20 @@ function PrimaryAction({
       <Button disabled className="h-12 w-full">
         購入できません
       </Button>
+    );
+  }
+
+  // 決済の準備が済むまでは、進んでも行き止まりになる導線を出さない
+  if (arePaymentsDisabled()) {
+    return (
+      <div className="space-y-1.5">
+        <Button disabled className="h-12 w-full">
+          決済の準備中です
+        </Button>
+        <p className="text-center text-xs text-muted-foreground">
+          購入手続きは公開後にご利用いただけます。
+        </p>
+      </div>
     );
   }
 

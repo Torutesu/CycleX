@@ -18,6 +18,7 @@ import { absoluteUrl } from "@/lib/utils";
 import { CHECKOUT_EXPIRES_MINUTES, SHIPPING_NOTE_MAX, type ListingStatus } from "@/lib/constants";
 import { listingImageUrl } from "@/lib/images";
 import { isDemoCheckout, demoSessionId } from "@/lib/demo";
+import { arePaymentsDisabled } from "@/lib/env";
 import { getTransaction, recordEvent, transitionTransaction } from "@/features/transaction/service";
 import { cancelPendingTransaction } from "@/features/transaction/cancel";
 import { notifyShipped, notifyReceived } from "@/features/notification/notify";
@@ -33,6 +34,14 @@ export async function startPurchase(listingId: string): Promise<ActionResult<und
   let checkoutUrl = "";
 
   try {
+    // 決済を無効にして公開している段階では、取引の行を作らせない。
+    // 画面側でも導線を閉じているが、Action を直接叩かれても通らないようにする
+    if (arePaymentsDisabled()) {
+      throw new AppError(
+        "ただいま決済の準備中のため、購入手続きはご利用いただけません。公開までしばらくお待ちください。",
+      );
+    }
+
     const user = await requireVerifiedUser();
     const supabase = createAdminClient();
 

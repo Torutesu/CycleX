@@ -93,6 +93,17 @@ CRON_SECRET                  <ランダムな文字列>
 NEXT_PUBLIC_NOINDEX          1(関係者限定で検証している間だけ。一般公開時に外す)
 ```
 
+**Stripe をまだ用意していない場合**は、上の 2 行(`STRIPE_SECRET_KEY` /
+`STRIPE_WEBHOOK_SECRET`)を入れず、代わりに次を入れる。
+
+```
+CYCLEX_PAYMENTS_DISABLED     1
+```
+
+購入の導線が「決済の準備中です」になり、それ以外(閲覧・会員登録・出品・
+メッセージ・管理)はすべて動く。決済を始めるときにキー 2 つを入れて
+**このフラグを消す**。詳細は [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) §2。
+
 `ALLOW_DEMO_CHECKOUT` は本番に入れない(入っていると起動時に止まる)。Preview 環境で
 Stripe 未構成のまま購入まで通したいときだけ Preview の環境変数として設定する。
 
@@ -105,8 +116,9 @@ Stripe 未構成のまま購入まで通したいときだけ Preview の環境�
 openssl rand -hex 32
 ```
 
-Stripe / Resend をまだ用意していない場合、本番ではダミー値のままにできない(起動時の検証で止まる)。
-先に Preview 環境で確認し、本番は両方が揃ってから公開する。
+本番ではダミー値のままにできない(起動時の検証で止まる。**ビルドは通るので、
+気づくのは全ページが 500 になったとき**)。Stripe は上のフラグで後回しにできるが、
+`RESEND_API_KEY` と `EMAIL_FROM` は必須なので、Resend の用意は先に済ませておく。
 
 > **Vercel Marketplace に Supabase の連携がある場合はそちらが早い。**
 > プロジェクトを繋ぐと `NEXT_PUBLIC_SUPABASE_URL` などが自動で入るため、

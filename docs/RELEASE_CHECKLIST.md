@@ -47,21 +47,46 @@ E2E_BASE_URL=http://localhost:3000 pnpm test:e2e
 欠けていれば `src/instrumentation.ts` が起動時に落とすので、
 「動いているのに設定が抜けている」状態にはならない。
 
-| 変数                            | 用途                       | 備考                                   |
-| ------------------------------- | -------------------------- | -------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase 接続              |                                        |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 接続(公開可)      |                                        |
-| `SUPABASE_SERVICE_ROLE_KEY`     | サーバー側の管理操作       | **共有しない**                         |
-| `STRIPE_SECRET_KEY`             | Checkout の作成・失効      | 本番キー。テストキーと取り違えないこと |
-| `STRIPE_WEBHOOK_SECRET`         | Webhook の署名検証         | Webhook 登録後に発行される値           |
-| `RESEND_API_KEY`                | メール送信                 | 未設定だと送信せず `skipped` ログのみ  |
-| `EMAIL_FROM`                    | 送信元                     | 🅰 甲のドメイン                         |
-| `CRON_SECRET`                   | 日次バッチの認証           | 推測されない値                         |
-| `NEXT_PUBLIC_APP_URL`           | メール内リンク・OGP の基準 | 設定後に**再デプロイが必要**           |
+| 変数                            | 用途                       | 備考                                        |
+| ------------------------------- | -------------------------- | ------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase 接続              |                                             |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 接続(公開可)      |                                             |
+| `SUPABASE_SERVICE_ROLE_KEY`     | サーバー側の管理操作       | **共有しない**                              |
+| `STRIPE_SECRET_KEY`             | Checkout の作成・失効      | 本番キー。テストキーと取り違えないこと      |
+| `STRIPE_WEBHOOK_SECRET`         | Webhook の署名検証         | Webhook 登録後に発行される値                |
+| `RESEND_API_KEY`                | メール送信                 | 未設定だと送信せず `skipped` ログのみ       |
+| `EMAIL_FROM`                    | 送信元                     | 🅰 甲のドメイン                              |
+| `CRON_SECRET`                   | 日次バッチの認証           | 推測されない値                              |
+| `CYCLEX_PAYMENTS_DISABLED`      | 決済を閉じて公開する       | Stripe を後回しにする場合のみ `1`。下記参照 |
+| `NEXT_PUBLIC_APP_URL`           | メール内リンク・OGP の基準 | 設定後に**再デプロイが必要**                |
 
 - `ALLOW_DEMO_CHECKOUT` は**本番では絶対に設定しない**(決済を通さず取引が成立する)。
   `src/lib/env.ts` が本番で立っていたら起動を止める
 - 検証公開なら `NEXT_PUBLIC_NOINDEX=1`(`robots.txt` が全面拒否になる)
+
+### Stripe を後回しにする場合(`CYCLEX_PAYMENTS_DISABLED=1`)
+
+Stripe のキー発行を待たずに、閲覧・会員登録・出品・メッセージ・管理までを
+関係者に見せたいときは `CYCLEX_PAYMENTS_DISABLED=1` を入れる。
+`STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` が必須から外れ、代わりに
+
+- 商品詳細の CTA が「決済の準備中です」になる(押せない)
+- 購入手続き画面を直接開いても案内が出て、支払いボタンが押せない
+- `startPurchase` が Action を直接叩かれても断る(取引の行を作らない)
+- `/api/webhooks/stripe` が 503 で明示的に断る
+- 起動ログに「決済を無効にして起動しました」と残る
+
+**このフラグを入れずに Stripe のキーを空で本番デプロイすると、ビルドは通るが
+起動時に落ちて全ページが 500 になる**(検証は `instrumentation.ts` の起動時)。
+逆に適当な値を入れると「購入手続きへ」まで進めたうえで Checkout の作成に失敗する。
+どちらも避けるためのフラグなので、決済を後回しにするなら必ず入れる。
+
+決済を有効にするときは、Stripe のキー 2 つを入れて**このフラグを消す**。
+フラグが残っていると決済は閉じたままになる(起動ログで気づける)。
+
+この挙動はローカルで `VERCEL_ENV=production` + `next start` を使って確認済み
+(2026-09-10)。フラグ無しでは全ルートが 500、フラグ有りでは主要ルートが 200 で
+上記 5 点すべてが期待どおりだった。
 
 ---
 
@@ -112,7 +137,11 @@ E2E_BASE_URL=http://localhost:3000 pnpm test:e2e
 
 ---
 
-## 5. 決済(⬜ 本番で確認)
+## 5. 決済(⬜ 本番で確認 / 後回しなら §2 のフラグ)
+
+> Stripe を後回しにする場合、この節は `CYCLEX_PAYMENTS_DISABLED=1` を外して
+> キーを入れる段階でまとめて実施する。それまでは購入の導線が閉じているため、
+> 5-1 以降は確認できない(確認しようとしても「決済の準備中です」で止まる)。
 
 Webhook に登録するイベント(6 種):
 
