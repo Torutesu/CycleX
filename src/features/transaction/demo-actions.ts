@@ -66,9 +66,11 @@ export async function cancelDemoPayment(transactionId: string): Promise<ActionRe
     const transaction = await requireBuyerOfPending(transactionId);
     listingId = transaction.listingId;
 
+    // 自分でやめたのに「決済の有効期限が切れました」と出るのはおかしい(監査 L-7)。
+    // 本番の cancel_url と同じ理由コードにする
     await handleCheckoutExpired(
       { id: demoSessionId(transactionId), metadata: { transaction_id: transactionId } },
-      "payment_expired",
+      "canceled_by_buyer",
     );
   } catch (error) {
     return fail(toUserMessage(error));

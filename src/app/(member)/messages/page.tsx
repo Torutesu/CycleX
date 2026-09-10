@@ -24,9 +24,17 @@ export const metadata: Metadata = { title: "メッセージ" };
  * 一覧の読み込みは軽いので、骨組みより 404 の正しさを取る。
  */
 
-export default async function MessagesPage() {
+export default async function MessagesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const user = await requireUser("/messages");
-  const threads = await getThreadList(user.id);
+  const { page: rawPage } = await searchParams;
+  // 件数が増えても古いやり取りが黙って消えないよう、50 件ずつ積み上げる(監査 M-6)
+  const parsedPage = Number(rawPage);
+  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? Math.min(parsedPage, 40) : 1;
+  const { threads, hasMore } = await getThreadList(user.id, page);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -34,7 +42,7 @@ export default async function MessagesPage() {
         <h1 className="text-xl font-bold">メッセージ</h1>
         {/* リアルタイム同期は行わないため、手動更新の導線を置く(FR-07) */}
         <Link
-          href="/messages"
+          href={page > 1 ? `/messages?page=${page}` : "/messages"}
           aria-label="最新の状態に更新"
           className="flex size-11 items-center justify-center rounded-md hover:bg-accent"
         >
@@ -146,6 +154,14 @@ export default async function MessagesPage() {
             );
           })}
         </ul>
+      )}
+
+      {hasMore && (
+        <div className="mt-6">
+          <Button asChild variant="outline" className="h-12 w-full">
+            <Link href={`/messages?page=${page + 1}`}>さらに読み込む</Link>
+          </Button>
+        </div>
       )}
     </div>
   );

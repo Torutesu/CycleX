@@ -30,6 +30,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -67,6 +69,13 @@
   --accent: oklch(0.955 0.018 176);
   --accent-foreground: oklch(0.38 0.07 176);
   --destructive: oklch(0.577 0.245 27.325);
+  /*
+   * 「取引中」バッジや動作確認バナーで使う注意色。
+   * 生の amber-500 に白文字を載せると 2.15:1 で、12px の通常テキストに
+   * 必要な 4.5:1 に届かない(監査 M-4)。文字色を暗い茶に取り、7:1 前後にする。
+   */
+  --warning: oklch(0.79 0.155 74);
+  --warning-foreground: oklch(0.29 0.06 60);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);

@@ -79,19 +79,21 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
         hint="対面での受渡や、地域での絞り込みに使われます。"
         errors={fieldErrors?.prefecture}
       >
-        <Select name="prefecture" defaultValue={defaultValues.prefecture || NO_PREFECTURE}>
-          <SelectTrigger id="prefecture" className="h-11 w-full">
-            <SelectValue placeholder="選択してください" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={NO_PREFECTURE}>選択しない</SelectItem>
-            {PREFECTURES.map((pref) => (
-              <SelectItem key={pref.value} value={pref.value}>
-                {pref.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {(control) => (
+          <Select name="prefecture" defaultValue={defaultValues.prefecture || NO_PREFECTURE}>
+            <SelectTrigger id="prefecture" {...control} className="h-11 w-full">
+              <SelectValue placeholder="選択してください" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_PREFECTURE}>選択しない</SelectItem>
+              {PREFECTURES.map((pref) => (
+                <SelectItem key={pref.value} value={pref.value}>
+                  {pref.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </Field>
 
       <SubmitButton className="h-11 w-full sm:w-auto" pendingLabel="保存中...">

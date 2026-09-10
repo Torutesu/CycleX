@@ -424,12 +424,16 @@ export async function markRefunded(transactionId: string): Promise<ActionResult<
       throw new AppError("返金対象の取引ではありません。");
     }
 
-    const { error } = await createAdminClient()
+    const { data: updated, error } = await createAdminClient()
       .from("transactions")
       .update({ refunded_at: new Date().toISOString() })
       .eq("id", transactionId)
-      .is("refunded_at", null);
+      .is("refunded_at", null)
+      .select("id")
+      .maybeSingle();
     if (error) throw new AppError("更新に失敗しました。");
+    // 0 行更新を成功として扱うと、二重クリックのたびに監査ログが増える(監査 L-2)
+    if (!updated) throw new AppError("この取引はすでに返金済みとして記録されています。");
 
     await recordAdminAction(admin.id, "mark_refunded", "transaction", transactionId);
     revalidatePath("/admin/transactions");

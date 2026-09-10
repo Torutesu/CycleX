@@ -8,6 +8,8 @@ type ListingGridProps = {
   isLoggedIn?: boolean;
   /** ログイン中の利用者。自分の出品にはハートを出さない */
   currentUserId?: string | null;
+  /** 詳細を開けない商品でもお気に入りの解除だけはできるようにする(お気に入り一覧) */
+  allowUnfavorite?: boolean;
   className?: string;
 };
 
@@ -24,6 +26,7 @@ export function ListingGrid({
   favoritedIds,
   isLoggedIn = false,
   currentUserId = null,
+  allowUnfavorite = false,
   className,
 }: ListingGridProps) {
   return (
@@ -36,6 +39,7 @@ export function ListingGrid({
             isLoggedIn={isLoggedIn}
             isOwn={currentUserId !== null && listing.sellerId === currentUserId}
             priority={index < EAGER_COUNT}
+            allowUnfavorite={allowUnfavorite}
           />
         </li>
       ))}

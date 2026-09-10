@@ -132,7 +132,7 @@ export async function handleCheckoutCompleted(session: CompletedSession): Promis
  */
 export async function handleCheckoutExpired(
   session: Pick<Stripe.Checkout.Session, "id" | "metadata">,
-  reason: "payment_expired" | "payment_failed" = "payment_expired",
+  reason: "payment_expired" | "payment_failed" | "canceled_by_buyer" = "payment_expired",
 ): Promise<WebhookOutcome> {
   const transactionId = session.metadata?.transaction_id;
   const transaction = transactionId ? await getTransaction(transactionId) : null;

@@ -2,6 +2,19 @@ import { cloneElement, isValidElement, type ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+/**
+ * `Field` が入力要素へ渡す ARIA 属性。
+ *
+ * 直下が Radix の `Select` のように DOM を持たないコンポーネントだと
+ * `cloneElement` で渡しても捨てられてしまうため、
+ * 呼び出し側が実体(`SelectTrigger` など)へ自分で広げられるようにする。
+ */
+export type FieldControlProps = {
+  "aria-describedby"?: string;
+  "aria-invalid"?: true;
+  "aria-required"?: true;
+};
+
 type FieldProps = {
   /** input の id と紐づける */
   id: string;
@@ -14,7 +27,11 @@ type FieldProps = {
   /** サーバー/クライアント双方のエラーメッセージ */
   errors?: string[];
   className?: string;
-  children: ReactNode;
+  /**
+   * 入力要素。関数を渡すと ARIA 属性を受け取れる。
+   * `input` / `textarea` のように直下が DOM 要素なら、そのまま渡せば自動で付く。
+   */
+  children: ReactNode | ((control: FieldControlProps) => ReactNode);
 };
 
 /**
@@ -39,13 +56,18 @@ export function Field({
   const describedBy = [hint && !hasError ? hintId : null, hasError ? errorId : null]
     .filter(Boolean)
     .join(" ");
-  const control = isValidElement<Record<string, unknown>>(children)
-    ? cloneElement(children, {
-        ...(describedBy ? { "aria-describedby": describedBy } : {}),
-        ...(hasError ? { "aria-invalid": true } : {}),
-        ...(required ? { "aria-required": true } : {}),
-      })
-    : children;
+  const controlProps: FieldControlProps = {
+    ...(describedBy ? { "aria-describedby": describedBy } : {}),
+    ...(hasError ? { "aria-invalid": true as const } : {}),
+    ...(required ? { "aria-required": true as const } : {}),
+  };
+
+  const control =
+    typeof children === "function"
+      ? children(controlProps)
+      : isValidElement<Record<string, unknown>>(children)
+        ? cloneElement(children, controlProps)
+        : children;
 
   return (
     <div className={cn("space-y-1.5", className)}>

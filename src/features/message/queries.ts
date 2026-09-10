@@ -72,13 +72,34 @@ function thumbnailOf(images: { path: string; position: number }[] | null): strin
   return [...images].sort((a, b) => a.position - b.position)[0].path;
 }
 
-/** 自分が参加するスレッド ID を集める(買い手として / 自分の出品として) */
-async function getParticipatingThreads(userId: string): Promise<ThreadRow[]> {
+/** スレッド一覧の 1 ページ分。RPC 側の上限(200)に収める */
+export const THREAD_PAGE_SIZE = 50;
+
+/**
+ * 自分が参加するスレッドを集める(買い手として / 自分の出品として)。
+ *
+ * 順序も上限も付けずに引くと、PostgREST の行上限(既定 1,000)を超えた分が
+ * 黙って落ちる。しかも順序が不定なのでどれが落ちるかも分からない(監査 M-6)。
+ * 両方を最終メッセージの新しい順で `take` 件だけ取り、合わせてから並べ直す。
+ * 片側ごとの上位 take 件の和集合には、全体の上位 take 件が必ず含まれる。
+ */
+async function getParticipatingThreads(userId: string, take: number): Promise<ThreadRow[]> {
   const supabase = createAdminClient();
+  const order = { ascending: false, nullsFirst: false } as const;
 
   const [asBuyer, asSeller] = await Promise.all([
-    supabase.from("threads").select(THREAD_SELECT).eq("buyer_id", userId),
-    supabase.from("threads").select(THREAD_SELECT).eq("listings.seller_id", userId),
+    supabase
+      .from("threads")
+      .select(THREAD_SELECT)
+      .eq("buyer_id", userId)
+      .order("last_message_at", order)
+      .limit(take),
+    supabase
+      .from("threads")
+      .select(THREAD_SELECT)
+      .eq("listings.seller_id", userId)
+      .order("last_message_at", order)
+      .limit(take),
   ]);
 
   const merged = new Map<string, ThreadRow>();
@@ -99,21 +120,32 @@ export async function getUnreadCount(userId: string): Promise<number> {
   return Number(data ?? 0);
 }
 
+export type ThreadListPage = {
+  threads: ThreadSummary[];
+  /** まだ続きがあるか(「さらに読み込む」の出し分け) */
+  hasMore: boolean;
+};
+
 /**
  * M-07: スレッド一覧。最終メッセージ日時の降順。
  *
  * 最終メッセージと未読数は `thread_summaries` 関数で集計する。
  * アプリ側で全メッセージを数える方式は PostgREST の 1,000 行上限を超えると
  * 古いスレッドの本文・未読が黙って欠落していた。
+ *
+ * 一覧そのものも同じ上限に当たるため、`page` ページ目までをまとめて返す
+ * (1 ページ 50 件の積み上げ式。監査 M-6)。
  */
-export async function getThreadList(userId: string): Promise<ThreadSummary[]> {
-  const threads = await getParticipatingThreads(userId);
-  if (threads.length === 0) return [];
+export async function getThreadList(userId: string, page = 1): Promise<ThreadListPage> {
+  const wanted = Math.max(1, page) * THREAD_PAGE_SIZE;
+  // 続きがあるかを知るために 1 件だけ多く取る
+  const threads = await getParticipatingThreads(userId, wanted + 1);
+  if (threads.length === 0) return { threads: [], hasMore: false };
 
   const supabase = createAdminClient();
 
   const [{ data: summaries, error }, { data: users }] = await Promise.all([
-    supabase.rpc("thread_summaries", { p_user: userId }),
+    supabase.rpc("thread_summaries", { p_user: userId, p_limit: wanted + 1, p_offset: 0 }),
     supabase
       .from("users")
       .select("id, display_name, avatar_url, status")
@@ -172,11 +204,14 @@ export async function getThreadList(userId: string): Promise<ThreadSummary[]> {
       };
     });
 
-  return result.sort((a, b) => {
+  const sorted = result.sort((a, b) => {
     const left = a.lastMessageAt ?? "";
     const right = b.lastMessageAt ?? "";
-    return right.localeCompare(left);
+    // 同着はスレッド ID で安定させる(SQL 側の並びと揃える)
+    return right.localeCompare(left) || a.id.localeCompare(b.id);
   });
+
+  return { threads: sorted.slice(0, wanted), hasMore: sorted.length > wanted };
 }
 
 /** M-08: スレッド詳細。参加者以外には null を返す。 */

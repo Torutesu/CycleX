@@ -16,6 +16,13 @@ type ListingCardProps = {
   isOwn?: boolean;
   /** 一覧の先頭など、画面に最初から見えている画像を先に読み込む */
   priority?: boolean;
+  /**
+   * 詳細を開けない商品(取下げ・非表示・下書き)でもお気に入りボタンを出す。
+   *
+   * お気に入り一覧で使う。ここで出さないと、出品者が取下げた商品が
+   * 件数に残ったまま片付けられなくなる(監査 M-1)。
+   */
+  allowUnfavorite?: boolean;
 };
 
 /** FR-04-5: 一覧に並ぶ商品カード。スマホ2列/PC4列のグリッド内で使う。 */
@@ -25,6 +32,7 @@ export function ListingCard({
   isLoggedIn = false,
   isOwn = false,
   priority = false,
+  allowUnfavorite = false,
 }: ListingCardProps) {
   const badge = listingBadge(listing.status);
   // 対面は受渡地域、配送は発送元(商品詳細と同じ規則)
@@ -39,89 +47,101 @@ export function ListingCard({
   const posted = timeAgo(listing.publishedAt);
   // 取下げ・非表示・下書きは本人以外に詳細を見せられない(お気に入り一覧で「その旨」を示す)
   const reachable = ["published", "trading", "sold"].includes(listing.status);
-  const Body = reachable ? Link : "div";
+  const bodyClass = cn(
+    "block transition-transform duration-150",
+    reachable ? "active:scale-[0.98]" : "opacity-70",
+  );
 
-  return (
-    <article className="group relative">
-      <Body
-        href={`/items/${listing.id}`}
-        className={cn(
-          "block transition-transform duration-150",
-          reachable ? "active:scale-[0.98]" : "opacity-70",
+  const body = (
+    <>
+      <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+        {listing.thumbnailPath && hasVisibleImage(listing.status) ? (
+          <Image
+            src={listingImageUrl(listing.thumbnailPath)}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            priority={priority}
+            className="object-cover transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground">
+            <ImageOff className="size-6" aria-hidden />
+            <span className="text-xs">
+              {hasVisibleImage(listing.status) ? "画像なし" : "画像は非公開"}
+            </span>
+          </div>
         )}
-        aria-disabled={reachable ? undefined : true}
-      >
-        <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
-          {listing.thumbnailPath && hasVisibleImage(listing.status) ? (
-            <Image
-              src={listingImageUrl(listing.thumbnailPath)}
-              alt=""
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              priority={priority}
-              className="object-cover transition-transform group-hover:scale-105"
-            />
-          ) : (
-            <div className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground">
-              <ImageOff className="size-6" aria-hidden />
-              <span className="text-xs">
-                {hasVisibleImage(listing.status) ? "画像なし" : "画像は非公開"}
-              </span>
-            </div>
-          )}
 
-          {/* 売れた商品を一覧で見分けられるよう、バッジではなく画像全体を覆う */}
-          {badge && badge.tone === "sold" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-foreground/55">
-              <span className="rounded-sm border-2 border-background px-3 py-1 text-sm font-bold tracking-wider text-background">
-                SOLD
-              </span>
-            </div>
-          )}
+        {/* 売れた商品を一覧で見分けられるよう、バッジではなく画像全体を覆う */}
+        {badge && badge.tone === "sold" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-foreground/55">
+            <span className="rounded-sm border-2 border-background px-3 py-1 text-sm font-bold tracking-wider text-background">
+              SOLD
+            </span>
+          </div>
+        )}
 
-          {badge && badge.tone !== "sold" && (
-            <span
-              className={cn(
-                "absolute left-2 top-2 rounded px-2 py-0.5 text-xs font-semibold",
-                badge.tone === "trading" && "bg-amber-500 text-white",
-                badge.tone === "muted" && "bg-muted-foreground text-background",
-              )}
-            >
-              {badge.label}
+        {badge && badge.tone !== "sold" && (
+          <span
+            className={cn(
+              "absolute left-2 top-2 rounded px-2 py-0.5 text-xs font-semibold",
+              badge.tone === "trading" && "bg-warning text-warning-foreground",
+              badge.tone === "muted" && "bg-muted-foreground text-background",
+            )}
+          >
+            {badge.label}
+          </span>
+        )}
+      </div>
+
+      <div className="mt-2 space-y-1">
+        <h3 className="line-clamp-2 break-phrase text-sm leading-snug">{listing.title}</h3>
+        <p className="font-bold tabular-nums">{formatPrice(listing.price)}</p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+          {category && <span>{category}</span>}
+          {listing.brandName && <span className="truncate">{listing.brandName}</span>}
+          {showFrameSize && <span>サイズ {listing.frameSize}</span>}
+          {region && (
+            <span className="inline-flex items-center gap-0.5">
+              <MapPin className="size-3" aria-hidden />
+              {region}
             </span>
           )}
         </div>
-
-        <div className="mt-2 space-y-1">
-          <h3 className="line-clamp-2 break-phrase text-sm leading-snug">{listing.title}</h3>
-          <p className="font-bold tabular-nums">{formatPrice(listing.price)}</p>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-            {category && <span>{category}</span>}
-            {listing.brandName && <span className="truncate">{listing.brandName}</span>}
-            {showFrameSize && <span>サイズ {listing.frameSize}</span>}
-            {region && (
+        {/* 出品の新しさと注目度。中古品はこの2つで見比べられることが多い */}
+        {(posted || listing.favoritesCount > 0) && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {posted && <span>{posted}</span>}
+            {listing.favoritesCount > 0 && (
               <span className="inline-flex items-center gap-0.5">
-                <MapPin className="size-3" aria-hidden />
-                {region}
+                <Heart className="size-3" aria-hidden />
+                <span className="tabular-nums">{listing.favoritesCount}</span>
               </span>
             )}
           </div>
-          {/* 出品の新しさと注目度。中古品はこの2つで見比べられることが多い */}
-          {(posted || listing.favoritesCount > 0) && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {posted && <span>{posted}</span>}
-              {listing.favoritesCount > 0 && (
-                <span className="inline-flex items-center gap-0.5">
-                  <Heart className="size-3" aria-hidden />
-                  <span className="tabular-nums">{listing.favoritesCount}</span>
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-      </Body>
+        )}
+      </div>
+    </>
+  );
 
-      {!isOwn && reachable && (
+  return (
+    <article className="group relative">
+      {/*
+        詳細を開けない商品は div で包む。
+        `<div href>` は不正な HTML になるので、href はリンクのときだけ渡す。
+      */}
+      {reachable ? (
+        <Link href={`/items/${listing.id}`} className={bodyClass}>
+          {body}
+        </Link>
+      ) : (
+        <div className={bodyClass} aria-disabled>
+          {body}
+        </div>
+      )}
+
+      {!isOwn && (reachable || allowUnfavorite) && (
         <FavoriteButton
           listingId={listing.id}
           favorited={favorited}

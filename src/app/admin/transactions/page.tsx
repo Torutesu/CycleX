@@ -75,6 +75,17 @@ export default async function AdminTransactionsPage({
         </div>
       )}
 
+      {/* 候補 ID の上限を超えた検索は取りこぼす。黙って落とさず絞り込みを促す(監査 L-5) */}
+      {result.truncated && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border bg-muted/40 p-3 text-sm">
+          <AlertTriangle className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span>
+            この検索語に当てはまる商品・利用者が多すぎるため、一部の取引が結果に含まれていません。
+            検索語を長くするか、期間やステータスを併せて絞り込んでください。
+          </span>
+        </div>
+      )}
+
       <AdminFilters
         basePath="/admin/transactions"
         searchPlaceholder="商品名・当事者の表示名・メールで検索"

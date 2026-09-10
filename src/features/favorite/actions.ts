@@ -22,6 +22,30 @@ export async function toggleFavorite(listingId: string): Promise<FavoriteResult>
 
   const supabase = await createClient();
 
+  const { data: existing } = await supabase
+    .from("favorites")
+    .select("user_id")
+    .eq("user_id", user.id)
+    .eq("listing_id", listingId)
+    .maybeSingle();
+
+  // 解除は商品の状態を見ない(監査 M-1)。
+  // 取下げ・非表示・下書きの商品は RLS の listings_select に当たらないため、
+  // 先に listings を引くと「商品が見つかりません」で解除もできなくなる。
+  // favorites の行は本人のものなので、その RLS だけで足りる。
+  if (existing) {
+    const { error } = await supabase
+      .from("favorites")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("listing_id", listingId);
+    if (error) return fail("お気に入りの解除に失敗しました。");
+
+    revalidatePath("/mypage/favorites");
+    revalidatePath(`/items/${listingId}`);
+    return ok({ favorited: false });
+  }
+
   const { data: listing } = await supabase
     .from("listings")
     .select("seller_id")
@@ -33,29 +57,13 @@ export async function toggleFavorite(listingId: string): Promise<FavoriteResult>
     return fail("自分が出品した商品はお気に入りに登録できません。");
   }
 
-  const { data: existing } = await supabase
+  const { error } = await supabase
     .from("favorites")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .eq("listing_id", listingId)
-    .maybeSingle();
-
-  if (existing) {
-    const { error } = await supabase
-      .from("favorites")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("listing_id", listingId);
-    if (error) return fail("お気に入りの解除に失敗しました。");
-  } else {
-    const { error } = await supabase
-      .from("favorites")
-      .insert({ user_id: user.id, listing_id: listingId });
-    if (error) return fail("お気に入りの登録に失敗しました。");
-  }
+    .insert({ user_id: user.id, listing_id: listingId });
+  if (error) return fail("お気に入りの登録に失敗しました。");
 
   revalidatePath("/mypage/favorites");
   revalidatePath(`/items/${listingId}`);
 
-  return ok({ favorited: !existing });
+  return ok({ favorited: true });
 }

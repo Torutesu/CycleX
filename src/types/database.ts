@@ -713,7 +713,7 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       thread_summaries: {
-        Args: { p_user: string }
+        Args: { p_limit?: number; p_offset?: number; p_user: string }
         Returns: {
           last_body: string
           last_created_at: string

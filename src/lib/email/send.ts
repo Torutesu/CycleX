@@ -47,6 +47,9 @@ export async function sendMail(input: SendMailInput): Promise<void> {
 
     const prefs = (user.notification_prefs ?? {}) as Record<string, unknown>;
     if (!shouldSend(input.kind, prefs, user.status as "active" | "suspended" | "withdrawn")) {
+      // 送らなかったことも残す。ログが無いと findLastSentAt が常に null を返し、
+      // 催促の対象として毎日数えられ続けて cron の件数が実態と合わなくなる(監査 L-3)
+      await logMail(input, "skipped", "通知設定により送信せず");
       return;
     }
 

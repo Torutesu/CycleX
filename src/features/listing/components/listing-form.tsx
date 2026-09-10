@@ -151,6 +151,15 @@ export function ListingForm({
 
   function set<K extends keyof ListingFormDefaults>(key: K, value: ListingFormDefaults[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
+    // 直したのに赤字が残ると「何を直せばいいのか」が分からなくなる。
+    // Radix の Select は選択後に trigger へフォーカスを戻すため focusout が起きず、
+    // blur 側の検証だけではこのエラーが消えない(監査 M-3)
+    setFieldErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   }
 
   // 上部にまとめて出す「足りない項目」。フォームの並び順に揃える
@@ -248,7 +257,16 @@ export function ListingForm({
       className="space-y-8 pb-28 md:pb-8"
       // Enter キーの暗黙送信で公開されないよう、送信はボタンからのみ行う
       onSubmit={(event) => event.preventDefault()}
-      onBlur={(event) => validateField((event.target as HTMLElement).id)}
+      // React の onBlur は focusout なのでバブルする。Radix の Select が
+      // ドロップダウンを開いてポータルへフォーカスを移すと trigger の focusout が
+      // 発火し、まだ何も選んでいないのに必須エラーが出てしまう(監査 M-3)。
+      // 打ち終わりが判定できる input / textarea だけを対象にする。
+      // Select は onValueChange のあとに個別に検証する。
+      onBlur={(event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) return;
+        validateField(target.id);
+      }}
     >
       {hasBackup && (
         <Alert>
@@ -315,18 +333,20 @@ export function ListingForm({
         <h2 className="text-base font-semibold">基本情報</h2>
 
         <Field id="category" label="カテゴリ" required errors={fieldErrors.category}>
-          <Select value={values.category} onValueChange={(v) => set("category", v)}>
-            <SelectTrigger id="category" className="h-11 w-full">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {(control) => (
+            <Select value={values.category} onValueChange={(v) => set("category", v)}>
+              <SelectTrigger id="category" {...control} className="h-11 w-full">
+                <SelectValue placeholder="選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </Field>
 
         {isParts && (
@@ -336,21 +356,23 @@ export function ListingForm({
             required
             errors={fieldErrors.partsSubcategory}
           >
-            <Select
-              value={values.partsSubcategory}
-              onValueChange={(v) => set("partsSubcategory", v)}
-            >
-              <SelectTrigger id="partsSubcategory" className="h-11 w-full">
-                <SelectValue placeholder="選択してください" />
-              </SelectTrigger>
-              <SelectContent>
-                {PARTS_SUBCATEGORIES.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {(control) => (
+              <Select
+                value={values.partsSubcategory}
+                onValueChange={(v) => set("partsSubcategory", v)}
+              >
+                <SelectTrigger id="partsSubcategory" {...control} className="h-11 w-full">
+                  <SelectValue placeholder="選択してください" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PARTS_SUBCATEGORIES.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </Field>
         )}
 
@@ -372,19 +394,21 @@ export function ListingForm({
         </Field>
 
         <Field id="brandId" label="ブランド" required errors={fieldErrors.brandId}>
-          <Select value={values.brandId} onValueChange={(v) => set("brandId", v)}>
-            <SelectTrigger id="brandId" className="h-11 w-full">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              {brands.map((brand) => (
-                <SelectItem key={brand.id} value={brand.id}>
-                  {brand.name}
-                </SelectItem>
-              ))}
-              <SelectItem value={BRAND_OTHER}>その他(自由入力)</SelectItem>
-            </SelectContent>
-          </Select>
+          {(control) => (
+            <Select value={values.brandId} onValueChange={(v) => set("brandId", v)}>
+              <SelectTrigger id="brandId" {...control} className="h-11 w-full">
+                <SelectValue placeholder="選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                {brands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </SelectItem>
+                ))}
+                <SelectItem value={BRAND_OTHER}>その他(自由入力)</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </Field>
 
         {values.brandId === BRAND_OTHER && (
@@ -417,38 +441,42 @@ export function ListingForm({
         <h2 className="text-base font-semibold">スペック</h2>
 
         <Field id="modelYear" label="年式" errors={fieldErrors.modelYear}>
-          <Select value={values.modelYear} onValueChange={(v) => set("modelYear", v)}>
-            <SelectTrigger id="modelYear" className="h-11 w-full">
-              <SelectValue placeholder="不明" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>不明</SelectItem>
-              {years.map((year) => (
-                <SelectItem key={year} value={String(year)}>
-                  {year}年
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {(control) => (
+            <Select value={values.modelYear} onValueChange={(v) => set("modelYear", v)}>
+              <SelectTrigger id="modelYear" {...control} className="h-11 w-full">
+                <SelectValue placeholder="不明" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>不明</SelectItem>
+                {years.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}年
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </Field>
 
         {showBikeFields && (
           <>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field id="frameSize" label="フレームサイズ" errors={fieldErrors.frameSize}>
-                <Select value={values.frameSize} onValueChange={(v) => set("frameSize", v)}>
-                  <SelectTrigger id="frameSize" className="h-11 w-full">
-                    <SelectValue placeholder="選択してください" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>指定しない</SelectItem>
-                    {FRAME_SIZES.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {(control) => (
+                  <Select value={values.frameSize} onValueChange={(v) => set("frameSize", v)}>
+                    <SelectTrigger id="frameSize" {...control} className="h-11 w-full">
+                      <SelectValue placeholder="選択してください" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>指定しない</SelectItem>
+                      {FRAME_SIZES.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </Field>
 
               <Field
@@ -472,37 +500,41 @@ export function ListingForm({
             </div>
 
             <Field id="mileage" label="走行距離の目安" errors={fieldErrors.mileage}>
-              <Select value={values.mileage} onValueChange={(v) => set("mileage", v)}>
-                <SelectTrigger id="mileage" className="h-11 w-full">
-                  <SelectValue placeholder="選択してください" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NONE}>指定しない</SelectItem>
-                  {MILEAGES.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {(control) => (
+                <Select value={values.mileage} onValueChange={(v) => set("mileage", v)}>
+                  <SelectTrigger id="mileage" {...control} className="h-11 w-full">
+                    <SelectValue placeholder="選択してください" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>指定しない</SelectItem>
+                    {MILEAGES.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </Field>
           </>
         )}
 
         <Field id="component" label="コンポーネント" errors={fieldErrors.component}>
-          <Select value={values.component} onValueChange={(v) => set("component", v)}>
-            <SelectTrigger id="component" className="h-11 w-full">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE}>指定しない</SelectItem>
-              {COMPONENTS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {(control) => (
+            <Select value={values.component} onValueChange={(v) => set("component", v)}>
+              <SelectTrigger id="component" {...control} className="h-11 w-full">
+                <SelectValue placeholder="選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>指定しない</SelectItem>
+                {COMPONENTS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </Field>
 
         <Field
@@ -521,18 +553,20 @@ export function ListingForm({
         </Field>
 
         <Field id="condition" label="コンディション" required errors={fieldErrors.condition}>
-          <Select value={values.condition} onValueChange={(v) => set("condition", v)}>
-            <SelectTrigger id="condition" className="h-11 w-full">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              {CONDITIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {(control) => (
+            <Select value={values.condition} onValueChange={(v) => set("condition", v)}>
+              <SelectTrigger id="condition" {...control} className="h-11 w-full">
+                <SelectValue placeholder="選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                {CONDITIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </Field>
       </section>
 
@@ -604,18 +638,20 @@ export function ListingForm({
         )}
 
         <Field id="deliveryMethod" label="受渡方法" required errors={fieldErrors.deliveryMethod}>
-          <Select value={values.deliveryMethod} onValueChange={(v) => set("deliveryMethod", v)}>
-            <SelectTrigger id="deliveryMethod" className="h-11 w-full">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              {DELIVERY_METHODS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {(control) => (
+            <Select value={values.deliveryMethod} onValueChange={(v) => set("deliveryMethod", v)}>
+              <SelectTrigger id="deliveryMethod" {...control} className="h-11 w-full">
+                <SelectValue placeholder="選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                {DELIVERY_METHODS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </Field>
 
         <Field
@@ -624,24 +660,12 @@ export function ListingForm({
           required
           errors={fieldErrors.shippingFromPref}
         >
-          <Select value={values.shippingFromPref} onValueChange={(v) => set("shippingFromPref", v)}>
-            <SelectTrigger id="shippingFromPref" className="h-11 w-full">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              {PREFECTURES.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
-
-        {values.deliveryMethod === "in_person" && (
-          <Field id="meetupPref" label="受渡地域" required errors={fieldErrors.meetupPref}>
-            <Select value={values.meetupPref} onValueChange={(v) => set("meetupPref", v)}>
-              <SelectTrigger id="meetupPref" className="h-11 w-full">
+          {(control) => (
+            <Select
+              value={values.shippingFromPref}
+              onValueChange={(v) => set("shippingFromPref", v)}
+            >
+              <SelectTrigger id="shippingFromPref" {...control} className="h-11 w-full">
                 <SelectValue placeholder="選択してください" />
               </SelectTrigger>
               <SelectContent>
@@ -652,6 +676,25 @@ export function ListingForm({
                 ))}
               </SelectContent>
             </Select>
+          )}
+        </Field>
+
+        {values.deliveryMethod === "in_person" && (
+          <Field id="meetupPref" label="受渡地域" required errors={fieldErrors.meetupPref}>
+            {(control) => (
+              <Select value={values.meetupPref} onValueChange={(v) => set("meetupPref", v)}>
+                <SelectTrigger id="meetupPref" {...control} className="h-11 w-full">
+                  <SelectValue placeholder="選択してください" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PREFECTURES.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </Field>
         )}
       </section>

@@ -9,7 +9,7 @@ export function DemoBanner() {
   if (!isDemoCheckout()) return null;
 
   return (
-    <div className="flex items-center justify-center gap-2 bg-amber-500 px-4 py-1.5 text-center text-xs font-medium text-amber-950">
+    <div className="flex items-center justify-center gap-2 bg-warning px-4 py-1.5 text-center text-xs font-medium text-warning-foreground">
       <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
       <span>デモ環境です。実際の支払いは発生しません。</span>
     </div>

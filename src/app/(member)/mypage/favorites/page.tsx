@@ -65,6 +65,7 @@ export default async function FavoritesPage({
             favoritedIds={favoritedIds}
             isLoggedIn
             currentUserId={user.id}
+            allowUnfavorite
             className="mt-5"
           />
           <Pagination

@@ -85,8 +85,9 @@ export async function TransactionTabsPage({
 
       <h1 className="text-xl font-bold">{view.heading}</h1>
 
-      <nav className="mt-5">
-        <ul className="flex gap-2">
+      <nav className="-mx-4 mt-5">
+        {/* 320px 幅では 3 つのチップが収まらず、ページ全体が横スクロールしていた(監査 L-8) */}
+        <ul className="flex gap-2 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {TABS.map((item) => {
             const active = item.value === activeTab;
             return (

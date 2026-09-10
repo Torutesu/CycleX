@@ -29,7 +29,7 @@ const { data: seller } = await db
   .single();
 
 // 会員向けの画面は sato で撮る。本人が当事者のものを選ばないと 404 になる
-const { data: buyer } = await db
+const { data: buyerRow } = await db
   .from("users")
   .select("id")
   .eq("email", "sato@cyclex.test")
@@ -37,25 +37,30 @@ const { data: buyer } = await db
 const { data: thread } = await db
   .from("threads")
   .select("id")
-  .eq("buyer_id", buyer.id)
+  .eq("buyer_id", buyerRow.id)
   .limit(1)
   .maybeSingle();
 const { data: txDone } = await db
   .from("transactions")
   .select("id")
-  .eq("buyer_id", buyer.id)
+  .eq("buyer_id", buyerRow.id)
   .eq("status", "completed")
   .limit(1)
   .maybeSingle();
 const { data: txActive } = await db
   .from("transactions")
   .select("id")
-  .eq("buyer_id", buyer.id)
+  .eq("buyer_id", buyerRow.id)
   .in("status", ["paid", "shipped", "received"])
   .limit(1)
   .maybeSingle();
 
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch({
+  // 実行環境に同梱の Chromium を使う。未指定なら Playwright の既定を使う
+  ...(process.env.PLAYWRIGHT_CHROMIUM_PATH
+    ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
+    : {}),
+});
 
 async function session(email, width) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 2 });

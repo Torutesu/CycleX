@@ -10,7 +10,7 @@ import { ok, fail, type ActionResult, toUserMessage, AppError } from "@/lib/erro
 import { absoluteUrl, safeRedirectPath } from "@/lib/utils";
 import { ACTIVE_TRANSACTION_STATUSES } from "@/lib/constants";
 import { IMAGE_BUCKETS } from "@/lib/images";
-import { removeUserFolder } from "@/lib/storage";
+import { hideListingImages, removeUserFolder } from "@/lib/storage";
 import { canWithdraw, resolvePostLoginPath } from "@/features/auth/rules";
 import { formValue } from "@/lib/form";
 import {
@@ -357,14 +357,30 @@ export async function withdraw(
     //    avatar_url を null にするだけでは、公開 URL を知っていれば退会後も閲覧できてしまう。
     await removeUserFolder(IMAGE_BUCKETS.avatar, user.id);
 
-    // 5. 以降ログインできないようにする
+    // 5. 出品画像も非公開バケットへ退避する(監査 L-6)。
+    //    取下げただけでは実体と公開 URL が残り、非表示商品と同じ穴が退会経路に残る。
+    //    取引中・売却済みの商品は運営が取引を追う必要があるため、そのまま残す。
+    const { data: ownListings } = await admin
+      .from("listings")
+      .select("id")
+      .eq("seller_id", user.id)
+      .in("status", ["withdrawn", "draft", "suspended"]);
+    const hideResult = await hideListingImages((ownListings ?? []).map((row) => row.id));
+    if (hideResult.failed > 0) {
+      // 退会そのものは止めない(本人の意思を妨げない)。運用で拾えるようログに残す
+      console.error(
+        `[withdraw] 出品画像 ${hideResult.failed} 件の退避に失敗しました。公開 URL から見える可能性があります: user=${user.id}`,
+      );
+    }
+
+    // 6. 以降ログインできないようにする
     const { error: banError } = await admin.auth.admin.updateUserById(user.id, {
       ban_duration: "876000h",
       app_metadata: { status: "withdrawn" },
     });
     if (banError) throw new AppError("退会処理に失敗しました。時間をおいて再度お試しください。");
 
-    // 6. メールアドレスと Google の identity を解放し、同じメールで再登録できるようにする
+    // 7. メールアドレスと Google の identity を解放し、同じメールで再登録できるようにする
     const { error: releaseError } = await admin.rpc("release_withdrawn_account", {
       target: user.id,
     });

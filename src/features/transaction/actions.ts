@@ -220,6 +220,9 @@ export async function markShipped(
     await notifyShipped(transactionId);
 
     revalidatePath(`/transactions/${transactionId}`);
+    // 取引一覧は sales / purchases の 2 画面。片方だけだと相手側に古い状態が出る(監査 L-4)
+    revalidatePath("/mypage/sales");
+    revalidatePath("/mypage/purchases");
     revalidatePath("/mypage/listings");
     return ok();
   } catch (error) {
@@ -243,6 +246,7 @@ export async function markReceived(transactionId: string): Promise<ActionResult<
 
     revalidatePath(`/transactions/${transactionId}`);
     revalidatePath("/mypage/purchases");
+    revalidatePath("/mypage/sales");
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));

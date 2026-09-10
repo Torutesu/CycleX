@@ -21,7 +21,16 @@ export type Paged<T> = {
   total: number;
   page: number;
   totalPages: number;
+  /**
+   * 検索語の候補が多すぎて絞りきれなかったか(監査 L-5)。
+   * 当事者検索は候補 ID をいったん引いてから絞るため上限があり、
+   * それを黙って超えると「無いはずの取引が出てこない」ように見える。
+   */
+  truncated?: boolean;
 };
+
+/** 当事者検索で先に引く候補 ID の上限。これを超えたら絞り込みを促す */
+const CANDIDATE_LIMIT = 200;
 
 function range(page: number): [number, number] {
   const from = (page - 1) * ADMIN_PAGE_SIZE;
@@ -292,20 +301,28 @@ export async function listTransactions(options: {
     )
     .order("created_at", { ascending: false });
 
+  let truncated = false;
   if (options.query) {
     // FR-12: 商品名だけでなく当事者(表示名・メール)でも探せる。
     // 埋め込み先の列を or に混ぜられないので、先に候補 ID を引いてから絞る
     const pattern = `%${escapeLike(options.query)}%`;
+    // 上限に達したかを知るために 1 件だけ多く引く
     const [{ data: listings }, { data: users }] = await Promise.all([
-      supabase.from("listings").select("id").ilike("title", pattern).limit(200),
+      supabase
+        .from("listings")
+        .select("id")
+        .ilike("title", pattern)
+        .limit(CANDIDATE_LIMIT + 1),
       supabase
         .from("users")
         .select("id")
         .or(`display_name.ilike.${pattern},email.ilike.${pattern}`)
-        .limit(200),
+        .limit(CANDIDATE_LIMIT + 1),
     ]);
-    const listingIds = (listings ?? []).map((row) => row.id);
-    const userIds = (users ?? []).map((row) => row.id);
+    // 超えた分は無言で落とさず、呼び出し側へ「絞り込んでほしい」と伝える
+    truncated = (listings ?? []).length > CANDIDATE_LIMIT || (users ?? []).length > CANDIDATE_LIMIT;
+    const listingIds = (listings ?? []).slice(0, CANDIDATE_LIMIT).map((row) => row.id);
+    const userIds = (users ?? []).slice(0, CANDIDATE_LIMIT).map((row) => row.id);
     const conditions: string[] = [];
     if (listingIds.length > 0) conditions.push(`listing_id.in.(${listingIds.join(",")})`);
     if (userIds.length > 0) {
@@ -358,7 +375,7 @@ export async function listTransactions(options: {
     seller: row.seller ? { id: row.seller.id, displayName: row.seller.display_name } : null,
   }));
 
-  return paged(items, count ?? 0, options.page);
+  return { ...paged(items, count ?? 0, options.page), truncated };
 }
 
 export type AdminTransactionDetail = {
