@@ -76,7 +76,15 @@ export default async function SearchPage({
         <div className="lg:flex lg:gap-8">
           {/* PC: サイドバー / スマホ: ボトムシート(FR-04-2) */}
           <aside className="hidden w-64 shrink-0 lg:block">
-            <div className="sticky top-24 max-h-[calc(100dvh-8rem)] overflow-hidden">
+            {/*
+              高さを max-h ではなく h で確定させる。
+              FilterPanel は h-full + min-h-0 + 内側 overflow-y-auto で組んであり、
+              親の高さが auto のままだと内側のスクロールが働かない。
+              実測では中身 2,056px に対して枠が 772px しか無く、
+              ブランド・都道府県・コンディションの絞り込みに PC から一切
+              辿り着けなくなっていた。
+            */}
+            <div className="sticky top-24 h-[calc(100dvh-8rem)] overflow-hidden">
               {/* URL が変わったら描き直す。内部状態が古い検索語・並び順を持ち続けないように */}
               <FilterPanel key={toQueryString(params)} params={params} brands={brands} />
             </div>

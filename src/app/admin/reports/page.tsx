@@ -60,7 +60,7 @@ export default async function AdminReportsPage({
       ) : (
         <ul className="space-y-3">
           {result.items.map((report) => (
-            <li key={report.id} className="rounded-xl border bg-background p-4">
+            <li key={report.id} className="rounded-xl border bg-card p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={report.status === "open" ? "destructive" : "secondary"}>
                   {labelOf(REPORT_STATUSES, report.status)}

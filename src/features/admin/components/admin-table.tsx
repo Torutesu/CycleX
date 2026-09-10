@@ -27,7 +27,7 @@ export function AdminHeader({
 /** 横スクロール可能なテーブルの枠 */
 export function AdminTableShell({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-xl border bg-background">
+    <div className="overflow-x-auto rounded-xl border bg-card">
       <table className="w-full min-w-[720px] text-sm">{children}</table>
     </div>
   );
@@ -35,7 +35,7 @@ export function AdminTableShell({ children }: { children: ReactNode }) {
 
 export function AdminEmpty({ message }: { message: string }) {
   return (
-    <div className="rounded-xl border bg-background py-14 text-center text-sm text-muted-foreground">
+    <div className="rounded-xl border bg-card py-14 text-center text-sm text-muted-foreground">
       {message}
     </div>
   );

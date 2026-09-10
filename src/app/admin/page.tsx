@@ -78,7 +78,7 @@ export default async function AdminDashboardPage() {
           <li key={card.label}>
             <Link
               href={card.href}
-              className="block rounded-xl border bg-background p-4 transition-colors hover:border-primary"
+              className="block rounded-xl border bg-card p-4 transition-colors hover:border-primary"
             >
               <p className="text-xs text-muted-foreground">{card.label}</p>
               <p className="mt-1.5 text-xl font-bold tabular-nums lg:text-2xl">{card.value}</p>
@@ -87,7 +87,7 @@ export default async function AdminDashboardPage() {
         ))}
       </ul>
 
-      <section className="mt-6 rounded-xl border bg-background p-4">
+      <section className="mt-6 rounded-xl border bg-card p-4">
         <h2 className="mb-4 text-sm font-semibold">直近30日の推移</h2>
         <TrendChart
           labels={stats.daily.map((d) => d.date)}
@@ -115,7 +115,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-xl border bg-background">
+        <section className="overflow-hidden rounded-xl border bg-card">
           <h2 className="flex items-center justify-between border-b bg-muted/40 px-4 py-2.5 text-sm font-semibold">
             最近の通報
             <Link
@@ -149,7 +149,7 @@ export default async function AdminDashboardPage() {
           )}
         </section>
 
-        <section className="overflow-hidden rounded-xl border bg-background">
+        <section className="overflow-hidden rounded-xl border bg-card">
           <h2 className="flex items-center justify-between border-b bg-muted/40 px-4 py-2.5 text-sm font-semibold">
             最近の取引
             <Link

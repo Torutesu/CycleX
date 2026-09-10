@@ -105,7 +105,13 @@ export function ListingCard({
         フレームサイズだけはタイトルに無いこともあり、選ぶ決め手になるので残す。
       */}
       <div className="space-y-1 px-2.5 pb-2.5 pt-2">
-        <h3 className="line-clamp-2 break-phrase text-sm leading-snug">{listing.title}</h3>
+        {/*
+          2 行分の高さを常に確保する。1 行のタイトルが混ざると
+          同じ行のカードだけ背が低くなり、並びの下端がそろわない
+        */}
+        <h3 className="line-clamp-2 min-h-[2.375rem] break-phrase text-sm leading-snug">
+          {listing.title}
+        </h3>
         <p className="text-[0.9375rem] font-bold leading-tight tabular-nums">
           {formatPrice(listing.price)}
         </p>

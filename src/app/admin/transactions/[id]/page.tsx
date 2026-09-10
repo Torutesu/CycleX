@@ -142,7 +142,7 @@ export default async function AdminTransactionDetailPage({
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-xl border bg-background p-4">
+        <section className="rounded-xl border bg-card p-4">
           <h2 className="mb-3 text-sm font-semibold">取引</h2>
           <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
             <dt className="text-muted-foreground">ステータス</dt>
@@ -231,7 +231,7 @@ export default async function AdminTransactionDetailPage({
           </dl>
         </section>
 
-        <section className="rounded-xl border bg-background p-4">
+        <section className="rounded-xl border bg-card p-4">
           <h2 className="mb-3 text-sm font-semibold">Stripe</h2>
           <p className="mb-3 text-xs text-muted-foreground">
             ダッシュボードで照合・返金する際に使う ID。全文をそのままコピーできます。
@@ -273,7 +273,7 @@ export default async function AdminTransactionDetailPage({
         </section>
       </div>
 
-      <section className="mt-4 rounded-xl border bg-background p-4">
+      <section className="mt-4 rounded-xl border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">履歴(transaction_events)</h2>
         {tx.events.length === 0 ? (
           <p className="text-sm text-muted-foreground">履歴はありません。</p>
@@ -297,7 +297,7 @@ export default async function AdminTransactionDetailPage({
         )}
       </section>
 
-      <section className="mt-4 rounded-xl border bg-background p-4">
+      <section className="mt-4 rounded-xl border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">管理操作の履歴</h2>
         <AuditLogList logs={auditLogs} />
       </section>

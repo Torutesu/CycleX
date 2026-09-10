@@ -99,7 +99,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
       )}
 
       {/* 基本情報 */}
-      <section className="rounded-xl border bg-background p-4">
+      <section className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">基本情報</h2>
         <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
           <Row label="利用者 ID" value={<code className="text-xs">{user.id}</code>} />
@@ -257,7 +257,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-6 overflow-hidden rounded-xl border bg-background">
+    <section className="mt-6 overflow-hidden rounded-xl border bg-card">
       <h2 className="border-b bg-muted/40 px-4 py-2.5 text-sm font-semibold">
         {title}
         <span className="ml-2 font-normal tabular-nums text-muted-foreground">{count}</span>

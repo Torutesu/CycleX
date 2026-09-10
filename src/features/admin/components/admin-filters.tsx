@@ -58,7 +58,7 @@ export function AdminFilters({
   return (
     <form
       action={submit}
-      className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border bg-background p-3"
+      className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border bg-card p-3"
     >
       {searchPlaceholder && (
         <div className="relative min-w-48 flex-1">

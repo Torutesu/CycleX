@@ -60,7 +60,7 @@ export function StatusTimeline({ status }: { status: TransactionStatus }) {
                   "flex size-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold tabular-nums",
                   done
                     ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-background text-muted-foreground",
+                    : "border-border bg-card text-muted-foreground",
                   current && "ring-2 ring-primary/30",
                 )}
               >

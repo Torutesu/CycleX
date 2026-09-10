@@ -48,7 +48,7 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
 
   return (
     <div className="space-y-5">
-      <form action={handleCreate} className="rounded-xl border bg-background p-4">
+      <form action={handleCreate} className="rounded-xl border bg-card p-4">
         <h2 className="mb-3 text-sm font-semibold">ブランドを追加</h2>
         {createError && (
           <Alert variant="destructive" className="mb-3">
@@ -70,7 +70,7 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
         </div>
       </form>
 
-      <div className="overflow-hidden rounded-xl border bg-background">
+      <div className="overflow-hidden rounded-xl border bg-card">
         <h2 className="border-b bg-muted/40 px-4 py-2.5 text-sm font-semibold">
           登録済みブランド
           <span className="ml-2 font-normal tabular-nums text-muted-foreground">
