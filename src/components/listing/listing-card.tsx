@@ -4,7 +4,7 @@ import { Heart, ImageOff, MapPin } from "lucide-react";
 import { FavoriteButton } from "@/components/listing/favorite-button";
 import { hasVisibleImage, listingImageUrl } from "@/lib/images";
 import { formatPrice, timeAgo, cn } from "@/lib/utils";
-import { CATEGORIES, labelOf, PREFECTURES, isBikeCategory } from "@/lib/constants";
+import { labelOf, PREFECTURES, isBikeCategory } from "@/lib/constants";
 import { listingBadge } from "@/features/listing/rules";
 import type { ListingCardData } from "@/features/search/queries";
 
@@ -42,19 +42,20 @@ export function ListingCard({
       ? (listing.meetupPref ?? listing.shippingFromPref)
       : (listing.shippingFromPref ?? listing.meetupPref),
   );
-  const category = labelOf(CATEGORIES, listing.category);
   const showFrameSize = isBikeCategory(listing.category) && listing.frameSize;
   const posted = timeAgo(listing.publishedAt);
   // 取下げ・非表示・下書きは本人以外に詳細を見せられない(お気に入り一覧で「その旨」を示す)
   const reachable = ["published", "trading", "sold"].includes(listing.status);
+  // 地色の上に載る「面」として組む。以前は透明な塊で、
+  // どこまでが 1 つの商品なのかが並びの間隔だけで示されていた
   const bodyClass = cn(
-    "block transition-transform duration-150",
-    reachable ? "active:scale-[0.98]" : "opacity-70",
+    "block overflow-hidden rounded-xl border bg-card shadow-xs transition-all duration-150",
+    reachable ? "hover:border-primary/30 hover:shadow-sm active:scale-[0.98]" : "opacity-70",
   );
 
   const body = (
     <>
-      <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+      <div className="relative aspect-square overflow-hidden bg-muted">
         {listing.thumbnailPath && hasVisibleImage(listing.status) ? (
           <Image
             src={listingImageUrl(listing.thumbnailPath)}
@@ -95,32 +96,39 @@ export function ListingCard({
         )}
       </div>
 
-      <div className="mt-2 space-y-1">
+      {/*
+        添える情報を絞る。
+        タイトルには出品者が「Bianchi OLTRE XR4 2017年モデル Sサイズ」のように
+        ブランド・モデル・年式・サイズを書くので、その下に同じ内容を並べると
+        2 列のスマホ幅では「Bian…」まで削れた灰色の文字列になり、価格より目立っていた。
+        カードに残すのは、タイトルからは読み取れない「どこから・いつ・どれだけ見られたか」。
+        フレームサイズだけはタイトルに無いこともあり、選ぶ決め手になるので残す。
+      */}
+      <div className="space-y-1 px-2.5 pb-2.5 pt-2">
         <h3 className="line-clamp-2 break-phrase text-sm leading-snug">{listing.title}</h3>
-        <p className="font-bold tabular-nums">{formatPrice(listing.price)}</p>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-          {category && <span>{category}</span>}
-          {listing.brandName && <span className="truncate">{listing.brandName}</span>}
-          {showFrameSize && <span>サイズ {listing.frameSize}</span>}
+        <p className="text-[0.9375rem] font-bold leading-tight tabular-nums">
+          {formatPrice(listing.price)}
+        </p>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          {showFrameSize && (
+            <span className="shrink-0 rounded border px-1 font-medium leading-4">
+              {listing.frameSize}
+            </span>
+          )}
           {region && (
-            <span className="inline-flex items-center gap-0.5">
-              <MapPin className="size-3" aria-hidden />
-              {region}
+            <span className="inline-flex min-w-0 items-center gap-0.5">
+              <MapPin className="size-3 shrink-0" aria-hidden />
+              <span className="truncate">{region}</span>
+            </span>
+          )}
+          {posted && <span className="shrink-0">{posted}</span>}
+          {listing.favoritesCount > 0 && (
+            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5">
+              <Heart className="size-3" aria-hidden />
+              <span className="tabular-nums">{listing.favoritesCount}</span>
             </span>
           )}
         </div>
-        {/* 出品の新しさと注目度。中古品はこの2つで見比べられることが多い */}
-        {(posted || listing.favoritesCount > 0) && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {posted && <span>{posted}</span>}
-            {listing.favoritesCount > 0 && (
-              <span className="inline-flex items-center gap-0.5">
-                <Heart className="size-3" aria-hidden />
-                <span className="tabular-nums">{listing.favoritesCount}</span>
-              </span>
-            )}
-          </div>
-        )}
       </div>
     </>
   );
@@ -147,7 +155,7 @@ export function ListingCard({
           favorited={favorited}
           listingTitle={listing.title}
           isLoggedIn={isLoggedIn}
-          className="absolute right-1 top-1"
+          className="absolute right-1.5 top-1.5"
         />
       )}
     </article>

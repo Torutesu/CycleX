@@ -111,7 +111,8 @@ export function FavoriteButton({
       aria-label={iconLabel}
       aria-pressed={optimistic.favorited}
       className={cn(
-        "flex size-11 items-center justify-center rounded-full bg-background/85 backdrop-blur transition-[background-color,transform] active:scale-90",
+        // 画像の上に載るので、明るい写真でも輪郭が消えないよう影と細い縁を付ける
+        "flex size-11 items-center justify-center rounded-full bg-background/90 shadow-sm ring-1 ring-foreground/10 backdrop-blur transition-[background-color,transform] active:scale-90",
         disabled ? "cursor-not-allowed opacity-40" : "hover:bg-background",
         className,
       )}
@@ -121,7 +122,7 @@ export function FavoriteButton({
           "size-5 transition-transform duration-200 ease-out",
           optimistic.favorited
             ? "scale-115 fill-destructive text-destructive"
-            : "text-muted-foreground",
+            : "text-foreground/70",
         )}
         aria-hidden
       />
