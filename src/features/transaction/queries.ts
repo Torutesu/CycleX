@@ -15,6 +15,8 @@ export type TransactionDetail = {
   completedAt: string | null;
   canceledAt: string | null;
   canceledReason: string | null;
+  /** 返金済みとして記録された日時。キャンセル後に入金があった取引で使う */
+  refundedAt: string | null;
   buyerId: string;
   sellerId: string;
   listing: {
@@ -44,6 +46,7 @@ type TransactionRow = {
   completed_at: string | null;
   canceled_at: string | null;
   canceled_reason: string | null;
+  refunded_at: string | null;
   buyer_id: string;
   seller_id: string;
   listings: {
@@ -57,7 +60,7 @@ type TransactionRow = {
 };
 
 const TX_SELECT = `id, status, price, shipping_note, created_at, paid_at, shipped_at, received_at,
-   completed_at, canceled_at, canceled_reason, buyer_id, seller_id,
+   completed_at, canceled_at, canceled_reason, refunded_at, buyer_id, seller_id,
    listings!inner(id, title, price, status, delivery_method, listing_images(path, position))`;
 
 function thumbnailOf(images: { path: string; position: number }[] | null): string | null {
@@ -105,6 +108,7 @@ export async function getTransactionDetail(
     completedAt: row.completed_at,
     canceledAt: row.canceled_at,
     canceledReason: row.canceled_reason,
+    refundedAt: row.refunded_at,
     buyerId: row.buyer_id,
     sellerId: row.seller_id,
     listing: {
@@ -130,7 +134,8 @@ export type TransactionListItem = {
   status: TransactionStatus;
   price: number;
   createdAt: string;
-  listing: { id: string; title: string; thumbnailPath: string | null };
+  /** status は画像を出してよいかの判定に使う(非表示になった商品の画像は 404 になる) */
+  listing: { id: string; title: string; status: ListingStatus; thumbnailPath: string | null };
   counterparty: { id: string; displayName: string };
   role: "buyer" | "seller";
 };
@@ -179,6 +184,7 @@ export async function getTransactionsFor(
         listing: {
           id: row.listings!.id,
           title: row.listings!.title,
+          status: row.listings!.status as ListingStatus,
           thumbnailPath: thumbnailOf(row.listings!.listing_images),
         },
         counterparty: {

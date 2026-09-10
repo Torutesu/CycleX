@@ -121,6 +121,9 @@ export default async function SearchPage({
                 />
               ) : (
                 <SearchResultsList
+                  // URL が変わったら描き直す。「もっと見る」で積んだ一覧が
+                  // 絞り込み・並び替え・ページ送りのあとも残り続けないように
+                  key={toQueryString(params)}
                   params={params}
                   initialItems={result.items}
                   initialFavoritedIds={[...favoritedIds]}

@@ -549,17 +549,17 @@ export type Database = {
           canceled_reason: string | null
           completed_at: string | null
           created_at: string
+          dispute_id: string | null
+          disputed_at: string | null
           id: string
           listing_id: string
           paid_at: string | null
           price: number
           received_at: string | null
+          refunded_at: string | null
           seller_id: string
           shipped_at: string | null
           shipping_note: string | null
-          refunded_at: string | null
-          disputed_at: string | null
-          dispute_id: string | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
@@ -571,17 +571,17 @@ export type Database = {
           canceled_reason?: string | null
           completed_at?: string | null
           created_at?: string
+          dispute_id?: string | null
+          disputed_at?: string | null
           id?: string
           listing_id: string
           paid_at?: string | null
           price: number
           received_at?: string | null
+          refunded_at?: string | null
           seller_id: string
           shipped_at?: string | null
           shipping_note?: string | null
-          refunded_at?: string | null
-          disputed_at?: string | null
-          dispute_id?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -593,17 +593,17 @@ export type Database = {
           canceled_reason?: string | null
           completed_at?: string | null
           created_at?: string
+          dispute_id?: string | null
+          disputed_at?: string | null
           id?: string
           listing_id?: string
           paid_at?: string | null
           price?: number
           received_at?: string | null
+          refunded_at?: string | null
           seller_id?: string
           shipped_at?: string | null
           shipping_note?: string | null
-          refunded_at?: string | null
-          disputed_at?: string | null
-          dispute_id?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -689,27 +689,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_user_counts: {
+        Args: { ids: string[] }
+        Returns: {
+          listing_count: number
+          transaction_count: number
+          user_id: string
+        }[]
+      }
       is_active_user: { Args: never; Returns: boolean }
-      release_withdrawn_account: { Args: { target: string }; Returns: undefined }
+      is_admin: { Args: never; Returns: boolean }
+      listing_category_counts: {
+        Args: never
+        Returns: {
+          category: string
+          count: number
+        }[]
+      }
+      release_withdrawn_account: {
+        Args: { target: string }
+        Returns: undefined
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       thread_summaries: {
         Args: { p_user: string }
         Returns: {
+          last_body: string
+          last_created_at: string
+          last_sender_id: string
           thread_id: string
-          last_body: string | null
-          last_created_at: string | null
-          last_sender_id: string | null
           unread_count: number
         }[]
       }
       unread_message_count: { Args: { p_user: string }; Returns: number }
-      listing_category_counts: { Args: never; Returns: { category: string; count: number }[] }
-      admin_user_counts: {
-        Args: { ids: string[] }
-        Returns: { user_id: string; listing_count: number; transaction_count: number }[]
-      }
-      is_admin: { Args: never; Returns: boolean }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never

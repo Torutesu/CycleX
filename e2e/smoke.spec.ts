@@ -103,12 +103,12 @@ test("シートを開かずにカテゴリと価格帯で絞り込める", async
   expect(roadOnly).toBeLessThan(all);
 
   // 価格帯は重ねて効く
-  await page.getByRole("link", { name: "15〜30万円" }).click();
-  await expect(page).toHaveURL(/category=road.*price_min=150000/);
+  await page.getByRole("link", { name: "10〜30万円" }).click();
+  await expect(page).toHaveURL(/category=road.*price_min=100000/);
   expect(await countOf()).toBeLessThanOrEqual(roadOnly);
 
   // 同じ価格帯をもう一度押すと解除される
-  await page.getByRole("link", { name: "15〜30万円" }).click();
+  await page.getByRole("link", { name: "10〜30万円" }).click();
   await expect(page).not.toHaveURL(/price_min/);
   expect(await countOf()).toBe(roadOnly);
 
@@ -288,15 +288,30 @@ test("写真を拡大して前後に送れる", async ({ page }) => {
   await expect(slider.locator("span.tabular-nums")).toHaveText(new RegExp(`^${total - 1} /`));
 });
 
-test("ページを送ると、見ている件数の範囲が変わる", async ({ page }) => {
+test("「もっと見る」で続きが追加され、URL にも残る", async ({ page }) => {
   await page.goto("/search");
   const heading = page.getByRole("heading", { level: 1 });
-  const next = page.getByRole("link", { name: "次へ" });
-  test.skip((await next.count()) === 0, "全件が1ページに収まっていて確認できない");
-
   await expect(heading).toContainText(/件中 1〜\d+件/);
-  await next.click();
-  await expect(page).toHaveURL(/page=2/);
-  await expect(heading).toContainText(/件中 \d+〜\d+件/);
-  await expect(heading).not.toContainText(/件中 1〜/);
+
+  // FR-04-4: スマホ幅は「もっと見る」で追加読み込み(PC のページ番号式は lg 以上だけ)
+  const more = page.getByRole("button", { name: /もっと見る/ });
+  test.skip((await more.count()) === 0, "全件が1ページに収まっていて確認できない");
+  await expect(page.getByRole("link", { name: "次へ" })).toBeHidden();
+
+  const cards = page.locator('a[href^="/items/"]');
+  const firstPageCount = await cards.count();
+  expect(firstPageCount).toBeGreaterThan(0);
+
+  await more.click();
+
+  // 置き換えではなく追加。積み上げた範囲が URL に載る
+  await expect(cards).not.toHaveCount(firstPageCount);
+  const loadedCount = await cards.count();
+  expect(loadedCount).toBeGreaterThan(firstPageCount);
+  await expect(page).toHaveURL(/pages=2/);
+
+  // その URL を開き直しても同じ範囲が出る(前半が抜けない)
+  await page.reload();
+  await expect(cards).toHaveCount(loadedCount);
+  await expect(heading).toContainText(new RegExp(`件中 1〜${loadedCount}件`));
 });

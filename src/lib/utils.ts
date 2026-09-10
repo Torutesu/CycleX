@@ -81,8 +81,17 @@ export function formatTime(value: string | Date | null | undefined): string {
   }).format(date);
 }
 
-/** ログイン後の戻り先として使わないパス(ループや無意味な遷移を避ける) */
-const REDIRECT_DENY_PREFIXES = ["/login", "/signup", "/auth/", "/reset-password", "/verify-email"];
+/**
+ * 戻り先として使わないパス。
+ *
+ * ここに載せるのは「そこへ飛ばすと必ずループする」ものだけにする。
+ * `/login` `/signup` は認証済みなら弾かれて戻ってくるだけで、
+ * `/auth/` はコールバックをもう一度走らせてしまう。
+ * 一方 `/reset-password/update` はパスワード再設定の着地点そのもので、
+ * `/auth/callback?next=/reset-password/update` として実際に使う。
+ * ここに `/reset-password` を入れると再設定が既定値(`/mypage`)へ流れて完了できない。
+ */
+const REDIRECT_DENY_PREFIXES = ["/login", "/signup", "/auth/"];
 
 /**
  * オープンリダイレクトを防ぐため、同一オリジン内の相対パスのみを許可する。

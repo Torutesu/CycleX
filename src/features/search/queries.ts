@@ -166,8 +166,10 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
   // 同じ価格・同じ日時が 1 ページ分を超えると、ページ間で重複や欠落が出るので id で安定させる
   query = query.order("id", { ascending: true });
 
+  // 「もっと見る」で積み上げた分は、再訪でも同じ範囲が出るようまとめて取る
   const from = (params.page - 1) * SEARCH_PAGE_SIZE;
-  const { data, count, error } = await query.range(from, from + SEARCH_PAGE_SIZE - 1);
+  const size = params.pages * SEARCH_PAGE_SIZE;
+  const { data, count, error } = await query.range(from, from + size - 1);
 
   if (error) {
     console.error("[search failed]", error);

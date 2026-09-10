@@ -34,7 +34,19 @@ export type SearchParams = {
   includeSold: boolean;
   sort: SortOption;
   page: number;
+  /**
+   * `page` から数えて何ページ分を続けて表示しているか(スマホの「もっと見る」)。
+   *
+   * 追加読み込みは URL に載せないと共有・再訪で表示が食い違う。
+   * `page` だけを書き換える方式だと、3 ページ目まで読んだ URL を開いた人には
+   * 49〜72 件目だけが出て前半に戻る導線が無くなる(スマホにページ送りは出ない)。
+   * 「どこから何ページ分か」を持たせて、URL と画面を一致させる。
+   */
+  pages: number;
 };
+
+/** 「もっと見る」で積める上限。URL を書き換えられても 1 クエリが太らないようにする */
+export const MAX_LOADED_PAGES = 20;
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -71,6 +83,7 @@ export function parseSearchParams(raw: RawSearchParams): SearchParams {
   const sub = single(raw.sub);
   const sort = single(raw.sort);
   const page = toPositiveInt(single(raw.page)) ?? 1;
+  const pages = toPositiveInt(single(raw.pages)) ?? 1;
 
   let priceMin = toPositiveInt(single(raw.price_min), PRICE_MAX);
   let priceMax = toPositiveInt(single(raw.price_max), PRICE_MAX);
@@ -93,6 +106,7 @@ export function parseSearchParams(raw: RawSearchParams): SearchParams {
     includeSold: single(raw.include_sold) === "1",
     sort: (sort && SORT_VALUES.includes(sort) ? sort : "new") as SortOption,
     page: Math.max(1, page),
+    pages: Math.min(MAX_LOADED_PAGES, Math.max(1, pages)),
   };
 }
 
@@ -277,6 +291,10 @@ export function partsSubcategoriesForKeyword(word: string): string[] {
 /** 検索条件を URL クエリ文字列へ戻す(ページ指定は上書き可能) */
 export function toQueryString(params: SearchParams, overrides: Partial<SearchParams> = {}): string {
   const merged = { ...params, ...overrides };
+  // page を明示的に動かしたら「もっと見る」の積み上げは畳む。
+  // 絞り込み・並び替え・ページ送りはどれも page を上書きするので、
+  // 呼び出し側が個別に気をつけなくても pages が引き継がれない。
+  if (overrides.page !== undefined && overrides.pages === undefined) merged.pages = 1;
   const query = new URLSearchParams();
 
   if (merged.q) query.set("q", merged.q);
@@ -291,6 +309,7 @@ export function toQueryString(params: SearchParams, overrides: Partial<SearchPar
   if (merged.includeSold) query.set("include_sold", "1");
   if (merged.sort !== "new") query.set("sort", merged.sort);
   if (merged.page > 1) query.set("page", String(merged.page));
+  if (merged.pages > 1) query.set("pages", String(merged.pages));
 
   return query.toString();
 }

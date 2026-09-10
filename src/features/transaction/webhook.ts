@@ -5,7 +5,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { STALE_PAYMENT_CLEANUP_MINUTES } from "@/lib/constants";
 import { getTransaction, recordEvent, transitionTransaction } from "@/features/transaction/service";
 import { cancelPendingTransaction } from "@/features/transaction/cancel";
-import { notifyDispute, notifyLatePayment, notifyPaid } from "@/features/notification/notify";
+import {
+  notifyDispute,
+  notifyLatePayment,
+  notifyPaid,
+  notifyPaidAfterCancel,
+  notifyRefundedWhileActive,
+} from "@/features/notification/notify";
 import {
   amountMatches,
   decideCompleted,
@@ -23,7 +29,9 @@ export type WebhookOutcome =
         | "already_processed"
         | "awaiting_payment"
         | "dispute_notified"
-        | "refund_recorded";
+        | "refund_recorded"
+        | "partial_refund_recorded"
+        | "refund_needs_review";
     }
   /** retry が true のときは 500 を返して Stripe に再送させる */
   | { handled: false; reason: string; retry: boolean };
@@ -85,6 +93,9 @@ export async function handleCheckoutCompleted(session: CompletedSession): Promis
       "キャンセル後に支払いが完了しました。返金対応が必要です",
     );
     await notifyLatePayment(transaction!.id);
+    // 購入者にも必ず知らせる。運営あてだけだと、代金を払った本人が
+    // 何が起きたのか・返金されるのかを知る手段が無い(監査 C-2)
+    await notifyPaidAfterCancel(transaction!.id);
     return { handled: true, action: "late_payment_recorded" };
   }
 
@@ -191,10 +202,51 @@ export async function handleChargeRefunded(
     return { handled: true, action: "already_processed" };
   }
 
-  const { error } = await createAdminClient()
+  const supabase = createAdminClient();
+  const { data: target, error: fetchError } = await supabase
+    .from("transactions")
+    .select("id, status, refunded_at")
+    .eq("stripe_payment_intent_id", paymentIntentId)
+    .maybeSingle();
+  if (fetchError) throw new Error(`返金対象の取得に失敗しました: ${fetchError.message}`);
+  if (!target) {
+    return { handled: false, reason: "該当する取引がありません", retry: false };
+  }
+  if (target.refunded_at) {
+    return { handled: true, action: "already_processed" };
+  }
+
+  // 部分返金は「返金済み」と同じ扱いにできない。全額かどうかで分ける
+  const fullyRefunded = charge.refunded === true;
+
+  // 進行中の取引に返金が来たら、勝手にキャンセルはしない。
+  // 実物がもう発送されている可能性があり、判断は運営に委ねる必要がある。
+  // ここで refunded_at を立てると「要返金」一覧からも消えて誰も気づけなくなる。
+  if (target.status !== "canceled") {
+    await recordEvent(
+      target.id,
+      "refunded_while_active",
+      null,
+      `進行中(${target.status})の取引に返金が届きました。返金額 ${charge.amount_refunded} 円`,
+    );
+    await notifyRefundedWhileActive(target.id);
+    return { handled: true, action: "refund_needs_review" };
+  }
+
+  if (!fullyRefunded) {
+    await recordEvent(
+      target.id,
+      "partially_refunded",
+      null,
+      `一部返金 ${charge.amount_refunded} 円を受け取りました`,
+    );
+    return { handled: true, action: "partial_refund_recorded" };
+  }
+
+  const { error } = await supabase
     .from("transactions")
     .update({ refunded_at: new Date().toISOString() })
-    .eq("stripe_payment_intent_id", paymentIntentId)
+    .eq("id", target.id)
     .is("refunded_at", null);
   if (error) throw new Error(`返金の記録に失敗しました: ${error.message}`);
 
@@ -230,6 +282,7 @@ export async function cleanupStalePendingTransactions(
   if (!data || data.length === 0) return 0;
 
   let canceled = 0;
+  const failed: string[] = [];
   for (const row of data) {
     try {
       const transaction = await getTransaction(row.id);
@@ -241,8 +294,18 @@ export async function cleanupStalePendingTransactions(
       });
       if (result.outcome === "canceled") canceled += 1;
     } catch (error) {
+      failed.push(row.id);
       console.error("[cleanup failed]", row.id, error);
     }
+  }
+
+  // 同じ取引が毎日ここで失敗し続けると、その商品は誰も買えないまま固まる。
+  // 件数をまとめて出し、ログを見れば気づけるようにする(監査 C-1)
+  if (failed.length > 0) {
+    console.error(
+      `[cleanup] ${failed.length}/${data.length} 件の未決済取引を片付けられませんでした。` +
+        `該当商品は購入できないままです。管理画面から強制キャンセルしてください: ${failed.join(", ")}`,
+    );
   }
 
   return canceled;

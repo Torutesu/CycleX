@@ -83,7 +83,7 @@ test("購入 → 支払い → 発送 → 受取確認 → 相互評価", async 
   // --- 購入者にはお届け先を伝える案内が出る ---
   await page.goto(txPath);
   await expect(page.getByRole("heading", { name: "お届け先をお伝えください" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "メッセージを開く" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "メッセージを開く" })).toBeVisible();
 
   // --- 出品者が発送を連絡する ---
   await login(page, SELLER);

@@ -20,11 +20,26 @@ import {
   SUSPENDABLE_LISTING_STATUSES,
 } from "@/features/admin/rules";
 import { recordAdminAction } from "@/features/admin/audit";
-import { hideListingImages, restoreListingImages } from "@/lib/storage";
+import { hideListingImages, restoreListingImages, type MoveImagesResult } from "@/lib/storage";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
 import { cancelPendingTransaction } from "@/features/transaction/cancel";
 import { notifyCanceled, notifyCompleted, notifyReceived } from "@/features/notification/notify";
 import { formValue } from "@/lib/form";
+
+/**
+ * 画像の退避・復帰が一部失敗したときの案内文(監査 H-3)。
+ *
+ * 退避に失敗した画像は公開バケットに残るので、URL を知っている人には見え続ける。
+ * 復帰に失敗した画像は非公開バケットに取り残され、商品ページで 404 になる。
+ * どちらもステータス変更自体は成功しているため、成功と伝えるわけにはいかない。
+ * `null` を返したときだけ完全な成功。
+ */
+function imageMoveWarning(result: MoveImagesResult, direction: "hide" | "restore"): string | null {
+  if (result.failed === 0) return null;
+  return direction === "hide"
+    ? `非表示にしましたが、画像 ${result.failed} 件の退避に失敗しました。画像がまだ公開URLから見える可能性があります。ログを確認してください。`
+    : `非表示を解除しましたが、画像 ${result.failed} 件の復帰に失敗しました。商品ページで画像が表示されない可能性があります。ログを確認してください。`;
+}
 
 const reasonSchema = z
   .string()
@@ -106,13 +121,16 @@ export async function suspendUser(
       .eq("seller_id", userId)
       .eq("status", "suspended")
       .not("status_before_suspend", "is", null);
-    await hideListingImages((hidden ?? []).map((row) => row.id));
+    const hideResult = await hideListingImages((hidden ?? []).map((row) => row.id));
 
     await recordAdminAction(admin.id, "suspend_user", "user", userId, parsed.data);
 
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${userId}`);
     revalidatePath("/search");
+
+    const warning = imageMoveWarning(hideResult, "hide");
+    if (warning) return fail(warning);
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));
@@ -155,7 +173,7 @@ export async function unsuspendUser(userId: string): Promise<ActionResult<undefi
       .eq("seller_id", userId)
       .eq("status", "suspended")
       .not("status_before_suspend", "is", null);
-    await restoreListingImages((toRestore ?? []).map((row) => row.id));
+    const restoreResult = await restoreListingImages((toRestore ?? []).map((row) => row.id));
 
     for (const status of SUSPENDABLE_LISTING_STATUSES) {
       await supabase
@@ -171,6 +189,9 @@ export async function unsuspendUser(userId: string): Promise<ActionResult<undefi
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${userId}`);
     revalidatePath("/search");
+
+    const warning = imageMoveWarning(restoreResult, "restore");
+    if (warning) return fail(warning);
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));
@@ -258,13 +279,16 @@ export async function suspendListing(
     if (error) throw new AppError("非表示化に失敗しました。");
 
     // 画像は公開バケットに残ると URL を知っていれば見られる。非公開バケットへ退避する
-    await hideListingImages([listingId]);
+    const hideResult = await hideListingImages([listingId]);
 
     await recordAdminAction(admin.id, "suspend_listing", "listing", listingId, parsed.data);
 
     revalidatePath("/admin/listings");
     revalidatePath(`/items/${listingId}`);
     revalidatePath("/search");
+
+    const warning = imageMoveWarning(hideResult, "hide");
+    if (warning) return fail(warning);
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));
@@ -275,8 +299,11 @@ export async function suspendListing(
  * 非表示の解除。
  *
  * 停止前の状態を控えてある場合はそこへ戻す。控えが無い(運営が個別に非表示にした)
- * 場合は「取下げ中」へ戻し、公開するかどうかは出品者本人に委ねる。
+ * 場合は「下書き」へ戻し、公開するかどうかは出品者本人に委ねる。
  * 一律で公開中に戻すと、元が下書き・取下げ中だった商品まで公開されてしまう。
+ *
+ * 既定を「取下げ中」にすると、必須項目が埋まっていない下書きが再公開の対象になり、
+ * 価格も画像も無い商品を公開できてしまう(監査 M-5)。下書きは下書きへ戻す。
  */
 export async function unsuspendListing(listingId: string): Promise<ActionResult<undefined>> {
   try {
@@ -292,7 +319,7 @@ export async function unsuspendListing(listingId: string): Promise<ActionResult<
     if (!listing) throw new AppError("商品が見つかりません。");
     if (listing.status !== "suspended") throw new AppError("非表示の商品ではありません。");
 
-    const restored = (listing.status_before_suspend as ListingStatus | null) ?? "withdrawn";
+    const restored = (listing.status_before_suspend as ListingStatus | null) ?? "draft";
 
     const { error } = await supabase
       .from("listings")
@@ -302,13 +329,16 @@ export async function unsuspendListing(listingId: string): Promise<ActionResult<
 
     if (error) throw new AppError("非表示の解除に失敗しました。");
 
-    await restoreListingImages([listingId]);
+    const restoreResult = await restoreListingImages([listingId]);
 
     await recordAdminAction(admin.id, "unsuspend_listing", "listing", listingId, `→ ${restored}`);
 
     revalidatePath("/admin/listings");
     revalidatePath(`/items/${listingId}`);
     revalidatePath("/search");
+
+    const warning = imageMoveWarning(restoreResult, "restore");
+    if (warning) return fail(warning);
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));
@@ -337,12 +367,17 @@ export async function cancelTransaction(
     const transaction = await getTransaction(transactionId);
     if (!transaction) throw new AppError("取引が見つかりません。");
 
+    // Stripe が応答しないと通常のキャンセルは必ず失敗し、その商品は誰も買えなくなる。
+    // 管理者だけは状態未確認を承知でキャンセルできる(監査 C-1)
+    const force = formValue(formData, "force") === "1";
+
     if (transaction.status === "pending_payment") {
       // 未決済は Stripe の決済画面を先に閉じる(A-1)。閉じる前に支払われていたら paid にする
       const result = await cancelPendingTransaction(transaction, "admin", {
         reason: parsed.data,
         actorId: admin.id,
         note: parsed.data,
+        force,
       });
       if (result.outcome === "paid") {
         revalidatePath("/admin/transactions");
@@ -365,7 +400,7 @@ export async function cancelTransaction(
       "cancel_transaction",
       "transaction",
       transactionId,
-      parsed.data,
+      force ? `${parsed.data}(決済セッション未確認のまま強制キャンセル)` : parsed.data,
     );
 
     revalidatePath("/admin/transactions");

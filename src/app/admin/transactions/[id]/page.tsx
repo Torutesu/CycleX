@@ -29,6 +29,9 @@ const EVENT_LABELS: Record<string, string> = {
   completed: "取引完了",
   canceled: "キャンセル",
   payment_after_cancel: "キャンセル後に入金(要返金)",
+  canceled_without_expire: "決済セッション未確認のまま強制キャンセル",
+  refunded_while_active: "進行中の取引に返金(要確認)",
+  partially_refunded: "一部返金",
 };
 
 export default async function AdminTransactionDetailPage({
@@ -115,6 +118,23 @@ export default async function AdminTransactionDetailPage({
                 action={cancelTransaction}
                 successMessage="取引をキャンセルしました"
                 warning="返金はこの操作では行われません。必要な場合は Stripe ダッシュボードから別途実施してください。"
+              />
+            )}
+            {/*
+              Stripe が応答しないと通常のキャンセルは必ず失敗し、
+              その商品は誰も買えないまま固まる。最後の手段を用意しておく(監査 C-1)
+            */}
+            {status === "pending_payment" && (
+              <ReasonDialog
+                trigger="強制キャンセル"
+                title="決済セッションを確認せずにキャンセルしますか?"
+                description="Stripe の障害やキーの設定ミスで決済セッションを照会できないときの最後の手段です。通常のキャンセルが「決済セッションの状態を確認できなかった」で失敗する場合にのみ使用してください。"
+                reasonLabel="キャンセル理由(双方に通知されます)"
+                reasonRequired
+                hidden={{ transactionId: tx.id, force: "1" }}
+                action={cancelTransaction}
+                successMessage="取引を強制キャンセルしました"
+                warning="購入者の決済画面が開いたままの可能性があります。この操作のあとに入金が届いた場合は「要返金」として運営と購入者の双方へ通知されます。"
               />
             )}
           </div>

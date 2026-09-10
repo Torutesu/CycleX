@@ -405,6 +405,84 @@ export async function notifyLatePayment(transactionId: string): Promise<void> {
   );
 }
 
+/**
+ * キャンセル済みの取引に支払いが届いたことを購入者へ知らせる(A-1 / 監査 C-2)。
+ *
+ * 運営あての `notifyLatePayment` だけでは、購入者は代金を払った直後に
+ * 「キャンセルされました」しか見えず、返金されるのかどうかも分からない。
+ * 取引は復活させられないので、何が起きたか・これからどうなるかを本人に伝える。
+ */
+export async function notifyPaidAfterCancel(transactionId: string): Promise<void> {
+  const tx = await loadTransaction(transactionId);
+  if (!tx) return;
+
+  await sendMail({
+    userId: tx.buyerId,
+    kind: "tx_paid_after_cancel",
+    refId: tx.id,
+    body: {
+      intro:
+        "お支払いを受領しましたが、この取引はお支払いの確定より先にキャンセルされていたため成立していません。商品はお届けされません。お預かりした代金は全額返金いたします。",
+      details: [
+        { label: "商品", value: tx.listingTitle },
+        { label: "お支払い金額", value: formatPrice(tx.price) },
+        { label: "取引 ID", value: tx.id },
+      ],
+      cta: { label: "取引の状況を確認する", path: `/transactions/${tx.id}` },
+      outro:
+        "返金はご利用のカード会社を通じて行われ、明細への反映まで数日〜2週間ほどかかります。ご不明な点はお問い合わせください。",
+    },
+  });
+}
+
+/**
+ * 機械的に処理できない返金を運営へ知らせる(監査 H-4)。
+ *
+ * 進行中の取引への返金と一部返金は、取引をどう扱うべきかが状況次第で、
+ * 自動でキャンセルすると発送済みの商品が回収できなくなる。
+ * 取引には手を付けず、人が判断できるように通知だけ出す。
+ */
+export async function notifyRefundedWhileActive(transactionId: string): Promise<void> {
+  const supabase = createAdminClient();
+  const transaction = await loadTransaction(transactionId);
+
+  const { data: admins } = await supabase
+    .from("users")
+    .select("id")
+    .eq("role", "admin")
+    .eq("status", "active");
+
+  if (!admins || admins.length === 0) {
+    console.error("[refund review] 通知先の管理者が見つかりません", transactionId);
+    return;
+  }
+
+  const details = transaction
+    ? [
+        { label: "商品", value: transaction.listingTitle },
+        { label: "取引金額", value: formatPrice(transaction.price) },
+        { label: "取引 ID", value: transaction.id },
+      ]
+    : [{ label: "取引 ID", value: transactionId }];
+
+  await Promise.all(
+    admins.map((admin) =>
+      sendMail({
+        userId: admin.id,
+        kind: "admin_refund_review",
+        refId: transactionId,
+        body: {
+          intro:
+            "進行中の取引に対して返金が行われました。取引のステータスは変更していません。発送状況を確認し、取引をキャンセルするかどうかを判断してください。",
+          details,
+          cta: { label: "取引管理を開く", path: "/admin/transactions" },
+          outro: "この通知は通知設定に関わらず管理者全員へ送られます。",
+        },
+      }),
+    ),
+  );
+}
+
 /** 発送されないまま止まっている取引を出品者へ催促する */
 export async function notifyShipReminder(transactionId: string, days: number): Promise<void> {
   const tx = await loadTransaction(transactionId);

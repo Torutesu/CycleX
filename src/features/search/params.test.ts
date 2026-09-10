@@ -4,6 +4,7 @@ import {
   parseSearchParams,
   splitKeywords,
   toQueryString,
+  MAX_LOADED_PAGES,
   brandIdsForKeyword,
   brandNamesForKeyword,
   categoriesForKeyword,
@@ -71,6 +72,14 @@ describe("parseSearchParams", () => {
     expect(parseSearchParams({ page: "3" }).page).toBe(3);
   });
 
+  it("積み上げページ数は上限で丸める", () => {
+    expect(parseSearchParams({}).pages).toBe(1);
+    expect(parseSearchParams({ pages: "0" }).pages).toBe(1);
+    expect(parseSearchParams({ pages: "4" }).pages).toBe(4);
+    // URL を書き換えられても 1 クエリが太らないように
+    expect(parseSearchParams({ pages: "9999" }).pages).toBe(MAX_LOADED_PAGES);
+  });
+
   it("キーワードは100文字で切り詰める", () => {
     expect(parseSearchParams({ q: "あ".repeat(200) }).q).toHaveLength(100);
   });
@@ -120,6 +129,19 @@ describe("toQueryString", () => {
   it("overrides でページを差し替えられる", () => {
     const params = parseSearchParams({ q: "TREK", page: "5" });
     expect(toQueryString(params, { page: 1 })).toBe("q=TREK");
+  });
+
+  it("page を動かすと「もっと見る」の積み上げは畳まれる", () => {
+    // 3 ページ分を積んだ状態から絞り込み・並び替え・ページ送りをした場合
+    const params = parseSearchParams({ q: "TREK", pages: "3" });
+    expect(params.pages).toBe(3);
+    expect(toQueryString(params, { page: 2 })).toBe("q=TREK&page=2");
+    expect(toQueryString(params, { page: 1, category: "road" })).toBe("q=TREK&category=road");
+  });
+
+  it("積み上げ数を明示したときだけ pages が残る", () => {
+    const params = parseSearchParams({ q: "TREK" });
+    expect(toQueryString(params, { page: 1, pages: 3 })).toBe("q=TREK&pages=3");
   });
 });
 

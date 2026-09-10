@@ -68,8 +68,16 @@ describe("MAIL_KINDS", () => {
     const alwaysSend = (Object.keys(MAIL_KINDS) as MailKind[]).filter(
       (kind) => MAIL_KINDS[kind].category === null,
     );
-    // 認証系・トラブル対応・運営あての通知は設定で止められない
-    expect(alwaysSend.sort()).toEqual(["admin_dispute", "admin_late_payment", "welcome"]);
+    // 認証系・トラブル対応・運営あての通知は設定で止められない。
+    // 入金済みなのに取引が成立していないことの購入者あて通知も、
+    // 代金の行き先の話なので設定で止めさせない(監査 C-2)
+    expect(alwaysSend.sort()).toEqual([
+      "admin_dispute",
+      "admin_late_payment",
+      "admin_refund_review",
+      "tx_paid_after_cancel",
+      "welcome",
+    ]);
   });
 });
 

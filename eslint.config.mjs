@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright の生成物。中身は minify 済みのレポート用バンドルで、
+    // E2E を流したあとに lint を走らせると数千件の指摘になる
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
 

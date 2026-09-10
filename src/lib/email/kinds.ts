@@ -18,8 +18,10 @@ export type MailKind =
   | "new_message"
   | "tx_ship_reminder"
   | "tx_receive_reminder"
+  | "tx_paid_after_cancel"
   | "admin_dispute"
-  | "admin_late_payment";
+  | "admin_late_payment"
+  | "admin_refund_review";
 
 type MailKindMeta = {
   subject: string;
@@ -42,10 +44,18 @@ export const MAIL_KINDS: Record<MailKind, MailKindMeta> = {
   // 止まったままの取引の催促(FR-08 の運用補助)。取引の通知として扱う
   tx_ship_reminder: { subject: "発送・受渡のご連絡をお願いします", category: "transaction" },
   tx_receive_reminder: { subject: "商品は届きましたか?", category: "transaction" },
+  // キャンセル済みの取引に入金が届いたことの購入者あて通知。
+  // 代金だけが預かりになっている状態なので、設定に関わらず必ず送る
+  tx_paid_after_cancel: {
+    subject: "【重要】お支払いを受領しましたが取引は成立していません",
+    category: null,
+  },
   // 運営あて。応答期限があるため設定に関わらず必ず送る
   admin_dispute: { subject: "【要対応】チャージバックの申し立てがありました", category: null },
   // 運営あて。キャンセル済みの取引に支払いが届いたので返金が必要
   admin_late_payment: { subject: "【要対応】キャンセル済み取引に入金がありました", category: null },
+  // 運営あて。進行中の取引に返金が届いた・一部返金など、機械的に判断できないもの
+  admin_refund_review: { subject: "【要対応】進行中の取引に返金がありました", category: null },
 };
 
 /**

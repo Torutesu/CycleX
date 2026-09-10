@@ -9,7 +9,7 @@ import { requireUser } from "@/lib/session";
 import { getListingDetail } from "@/features/listing/queries";
 import { PurchaseButton } from "@/features/transaction/components/purchase-button";
 import { canPurchase } from "@/features/listing/rules";
-import { listingImageUrl } from "@/lib/images";
+import { listingImageUrl, hasVisibleImage } from "@/lib/images";
 import { formatPrice } from "@/lib/utils";
 import { DELIVERY_METHODS, PREFECTURES, labelOf } from "@/lib/constants";
 import { isDemoCheckout } from "@/lib/demo";
@@ -69,7 +69,7 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
       {/* 商品の確認 */}
       <section className="mt-6 rounded-xl border bg-card p-4">
         <div className="flex gap-3">
-          {listing.imagePaths[0] && (
+          {listing.imagePaths[0] && hasVisibleImage(listing.status) && (
             <Image
               src={listingImageUrl(listing.imagePaths[0])}
               alt=""

@@ -15,8 +15,8 @@ import { nextActionFor, describeCancelReason } from "@/features/transaction/stat
 import { waitingNotice } from "@/features/transaction/guidance";
 import { StatusTimeline } from "@/features/transaction/components/status-timeline";
 import { ShipForm, ReceiveButton } from "@/features/transaction/components/transaction-actions";
-import { avatarImageUrl, listingImageUrl } from "@/lib/images";
-import { formatPrice, formatDateTime } from "@/lib/utils";
+import { avatarImageUrl, listingImageUrl, hasVisibleImage } from "@/lib/images";
+import { formatPrice, formatDate, formatDateTime } from "@/lib/utils";
 import { TRANSACTION_STATUSES, labelOf } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "取引画面" };
@@ -171,6 +171,19 @@ export default async function TransactionPage({
                 理由: {describeCancelReason(transaction.canceledReason)}
               </p>
             )}
+            {/*
+              キャンセルとお支払いの確定が入れ違うと、代金だけを預かった状態になる。
+              購入者が「払ったのにキャンセル」としか分からないままにしない(監査 C-2)
+            */}
+            {transaction.status === "canceled" && transaction.paidAt && (
+              <Alert variant={transaction.refundedAt ? "default" : "destructive"} className="mt-4">
+                <AlertDescription>
+                  {transaction.refundedAt
+                    ? `お支払いいただいた代金は ${formatDate(transaction.refundedAt)} に返金処理を行いました。カード会社の明細への反映まで数日〜2週間ほどかかります。`
+                    : "キャンセルの確定より先にお支払いが完了していたため、代金をお預かりしています。全額返金いたしますので、そのままお待ちください。"}
+                </AlertDescription>
+              </Alert>
+            )}
             {transaction.status === "completed" && !transaction.hasReviewed && (
               <Button asChild variant="outline" className="mt-4 h-11 w-full">
                 <Link href={`/transactions/${transaction.id}/review`}>評価を登録する</Link>
@@ -187,7 +200,7 @@ export default async function TransactionPage({
           href={`/items/${transaction.listing.id}`}
           className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-accent/40"
         >
-          {transaction.listing.thumbnailPath && (
+          {transaction.listing.thumbnailPath && hasVisibleImage(transaction.listing.status) && (
             <Image
               src={listingImageUrl(transaction.listing.thumbnailPath)}
               alt=""

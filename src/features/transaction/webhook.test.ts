@@ -28,6 +28,7 @@ vi.mock("@/lib/supabase/admin", () => {
         return builder;
       },
       lt: () => builder,
+      is: () => builder,
       update: (p: Row) => {
         patch = p;
         return builder;
@@ -39,7 +40,13 @@ vi.mock("@/lib/supabase/admin", () => {
       maybeSingle: async () => {
         if (state.selectError) return { data: null, error: state.selectError };
         if (name !== "transactions") return { data: null, error: null };
-        const row = state.transactions.get(String(filters.id));
+        const row =
+          filters.id !== undefined
+            ? state.transactions.get(String(filters.id))
+            : [...state.transactions.values()].find(
+                (candidate) =>
+                  candidate.stripe_payment_intent_id === filters.stripe_payment_intent_id,
+              );
         if (patch) {
           if (!row || (filters.status && row.status !== filters.status)) {
             return { data: null, error: null };
@@ -75,6 +82,8 @@ vi.mock("@/lib/supabase/admin", () => {
 const notify = vi.hoisted(() => ({
   notifyPaid: vi.fn(async () => {}),
   notifyLatePayment: vi.fn(async () => {}),
+  notifyPaidAfterCancel: vi.fn(async () => {}),
+  notifyRefundedWhileActive: vi.fn(async () => {}),
   notifyDispute: vi.fn(async () => {}),
 }));
 vi.mock("@/features/notification/notify", () => notify);
@@ -91,7 +100,7 @@ vi.mock("stripe", () => ({
 }));
 process.env.STRIPE_SECRET_KEY = "sk_test_mock";
 
-import { handleCheckoutCompleted } from "./webhook";
+import { handleChargeRefunded, handleCheckoutCompleted } from "./webhook";
 import { cancelPendingTransaction } from "./cancel";
 import { getTransaction } from "./service";
 
@@ -142,7 +151,7 @@ describe("handleCheckoutCompleted", () => {
     expect(notify.notifyPaid).toHaveBeenCalledWith("tx-1");
   });
 
-  it("キャンセル済みの取引に入金が届いたら、復活させずに支払いを記録して運営へ知らせる", async () => {
+  it("キャンセル済みの取引に入金が届いたら、復活させずに支払いを記録して双方へ知らせる", async () => {
     seed("tx-2", "canceled", { canceled_at: "2026-01-01T01:00:00Z" });
     const outcome = await handleCheckoutCompleted({
       id: "cs_test_2",
@@ -157,6 +166,8 @@ describe("handleCheckoutCompleted", () => {
     expect(row.stripe_payment_intent_id).toBe("pi_2");
     expect(state.events.some((e) => e.event === "payment_after_cancel")).toBe(true);
     expect(notify.notifyLatePayment).toHaveBeenCalledWith("tx-2");
+    // 代金を払った本人にも必ず届く(監査 C-2)
+    expect(notify.notifyPaidAfterCancel).toHaveBeenCalledWith("tx-2");
     expect(notify.notifyPaid).not.toHaveBeenCalled();
   });
 
@@ -251,5 +262,103 @@ describe("cancelPendingTransaction", () => {
     const result = await cancelPendingTransaction(tx, "system", { reason: "payment_expired" });
     expect(stripeMock.expire).not.toHaveBeenCalled();
     expect(result.outcome).toBe("canceled");
+  });
+
+  // 監査 C-1: Stripe が応答しないと、この関数を通る 3 経路すべてが失敗し、
+  // 部分ユニーク索引のせいでその商品は誰も買えなくなる。管理者だけは抜け出せる
+  it("force なら Stripe の状態が未確認でもキャンセルできる", async () => {
+    seed("tx-14", "pending_payment");
+    stripeMock.expire.mockRejectedValue(new Error("network"));
+    stripeMock.retrieve.mockRejectedValue(new Error("network"));
+    const tx = (await getTransaction("tx-14"))!;
+
+    const result = await cancelPendingTransaction(tx, "admin", {
+      reason: "canceled_by_admin",
+      actorId: "admin-1",
+      force: true,
+    });
+
+    expect(result.outcome).toBe("canceled");
+    expect(result.outcome === "canceled" && result.stripeStateUnknown).toBe(true);
+    expect(state.transactions.get("tx-14")?.status).toBe("canceled");
+    // 未確認であることを履歴に残す(後から入金が届いたときの手掛かりになる)
+    expect(state.events.some((e) => e.event === "canceled_without_expire")).toBe(true);
+  });
+
+  it("通常のキャンセルでは stripeStateUnknown は立たない", async () => {
+    seed("tx-15", "pending_payment");
+    stripeMock.expire.mockResolvedValue({});
+    const tx = (await getTransaction("tx-15"))!;
+    const result = await cancelPendingTransaction(tx, "system", { reason: "payment_timeout" });
+    expect(result.outcome === "canceled" && result.stripeStateUnknown).toBe(false);
+    expect(state.events.some((e) => e.event === "canceled_without_expire")).toBe(false);
+  });
+});
+
+// 監査 H-4: 進行中の取引に返金が来たときに refunded_at を立てると、
+// 「要返金」一覧から消えて誰も気づけなくなる
+describe("handleChargeRefunded", () => {
+  it("キャンセル済みの全額返金は返金済みとして記録する", async () => {
+    seed("tx-20", "canceled", {
+      stripe_payment_intent_id: "pi_20",
+      paid_at: "2026-01-01T01:00:00Z",
+    });
+    const outcome = await handleChargeRefunded({
+      id: "ch_20",
+      payment_intent: "pi_20",
+      refunded: true,
+      amount_refunded: 15000,
+    });
+    expect(outcome).toEqual({ handled: true, action: "refund_recorded" });
+    expect(state.transactions.get("tx-20")?.refunded_at).toBeTruthy();
+  });
+
+  it("進行中の取引への返金は記録せず運営へ確認を促す", async () => {
+    seed("tx-21", "shipped", {
+      stripe_payment_intent_id: "pi_21",
+      paid_at: "2026-01-01T01:00:00Z",
+    });
+    const outcome = await handleChargeRefunded({
+      id: "ch_21",
+      payment_intent: "pi_21",
+      refunded: true,
+      amount_refunded: 15000,
+    });
+    expect(outcome).toEqual({ handled: true, action: "refund_needs_review" });
+    // 発送済みの商品が回収できるとは限らないので、取引には手を付けない
+    expect(state.transactions.get("tx-21")?.status).toBe("shipped");
+    expect(state.transactions.get("tx-21")?.refunded_at).toBeFalsy();
+    expect(state.events.some((e) => e.event === "refunded_while_active")).toBe(true);
+    expect(notify.notifyRefundedWhileActive).toHaveBeenCalledWith("tx-21");
+  });
+
+  it("一部返金は全額返金と同じ扱いにしない", async () => {
+    seed("tx-22", "canceled", {
+      stripe_payment_intent_id: "pi_22",
+      paid_at: "2026-01-01T01:00:00Z",
+    });
+    const outcome = await handleChargeRefunded({
+      id: "ch_22",
+      payment_intent: "pi_22",
+      refunded: false,
+      amount_refunded: 5000,
+    });
+    expect(outcome).toEqual({ handled: true, action: "partial_refund_recorded" });
+    expect(state.transactions.get("tx-22")?.refunded_at).toBeFalsy();
+    expect(state.events.some((e) => e.event === "partially_refunded")).toBe(true);
+  });
+
+  it("記録済みなら再送で二重に記録しない", async () => {
+    seed("tx-23", "canceled", {
+      stripe_payment_intent_id: "pi_23",
+      refunded_at: "2026-01-02T00:00:00Z",
+    });
+    const outcome = await handleChargeRefunded({
+      id: "ch_23",
+      payment_intent: "pi_23",
+      refunded: true,
+      amount_refunded: 15000,
+    });
+    expect(outcome).toEqual({ handled: true, action: "already_processed" });
   });
 });

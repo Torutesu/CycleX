@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { listingImageUrl } from "@/lib/images";
+import { hasVisibleImage, listingImageUrl } from "@/lib/images";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { TRANSACTION_STATUSES, labelOf } from "@/lib/constants";
 import type { TransactionListItem } from "@/features/transaction/queries";
@@ -17,7 +17,7 @@ export function TransactionList({ transactions }: { transactions: TransactionLis
             className="flex items-center gap-3 p-3 transition-colors hover:bg-accent/40"
           >
             <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">
-              {transaction.listing.thumbnailPath ? (
+              {transaction.listing.thumbnailPath && hasVisibleImage(transaction.listing.status) ? (
                 <Image
                   src={listingImageUrl(transaction.listing.thumbnailPath)}
                   alt=""

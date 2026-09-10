@@ -149,39 +149,72 @@ async function listingImagePaths(listingIds: string[]): Promise<string[]> {
 }
 
 /**
+ * 画像の退避・復帰の結果。
+ *
+ * 「移動元に無い」と「移動に失敗した」を必ず分ける。
+ * 前者は再実行しただけ(冪等)だが、後者はバケット未作成・権限不足・容量超過で、
+ * 退避なら画像が公開されたまま・復帰なら商品の画像が全部 404 になる。
+ * 呼び出し側が気づけるように件数を返す。
+ */
+export type MoveImagesResult = {
+  /** 移せた件数 */
+  moved: number;
+  /** 移動元に無かった件数(すでに移動済み) */
+  missing: number;
+  /** 移動に失敗した件数 */
+  failed: number;
+};
+
+/**
+ * Storage のエラーが「対象が無い」かどうか。
+ *
+ * `StorageError` の型には status が無いが、実体(`StorageApiError`)は
+ * `status` / `statusCode` を持つ。型に現れない分はメッセージで補う。
+ */
+function isMissingObject(error: { message: string }): boolean {
+  const extra = error as unknown as { status?: unknown; statusCode?: unknown };
+  const status = Number(extra.statusCode ?? extra.status ?? 0);
+  if (status === 404) return true;
+  return /not\s*found|does not exist/i.test(error.message);
+}
+
+/**
  * バケット間でオブジェクトを移す。
  *
- * 1 件ずつ移し、失敗しても残りを続ける(すでに移動済みのものは失敗するが、
- * 再実行できるようにしておきたい)。
- *
- * @returns 移せた件数
+ * 1 件ずつ移し、失敗しても残りを続ける(途中で止めると中途半端な状態が残る)。
  */
-async function moveObjects(from: string, to: string, paths: string[]): Promise<number> {
-  if (paths.length === 0) return 0;
+async function moveObjects(from: string, to: string, paths: string[]): Promise<MoveImagesResult> {
+  const result: MoveImagesResult = { moved: 0, missing: 0, failed: 0 };
+  if (paths.length === 0) return result;
   const supabase = createAdminClient();
-  let moved = 0;
 
   for (const path of paths) {
     const { error } = await supabase.storage.from(from).move(path, path, { destinationBucket: to });
-    if (error) {
-      // 見つからない = すでに移動済み。それ以外は記録して次へ
+    if (!error) {
+      result.moved += 1;
+      continue;
+    }
+    if (isMissingObject(error)) {
+      // すでに移動済み。再実行では毎回ここに来る
+      result.missing += 1;
       console.warn("[storage move skipped]", from, "->", to, path, error.message);
       continue;
     }
-    moved += 1;
+    result.failed += 1;
+    console.error("[storage move failed]", from, "->", to, path, error.message);
   }
 
-  return moved;
+  return result;
 }
 
 /** 非表示にした商品の画像を非公開バケットへ退避する */
-export async function hideListingImages(listingIds: string[]): Promise<number> {
+export async function hideListingImages(listingIds: string[]): Promise<MoveImagesResult> {
   const paths = await listingImagePaths(listingIds);
   return moveObjects(LISTING_BUCKET, HIDDEN_LISTING_BUCKET, paths);
 }
 
 /** 非表示を解除した商品の画像を公開バケットへ戻す */
-export async function restoreListingImages(listingIds: string[]): Promise<number> {
+export async function restoreListingImages(listingIds: string[]): Promise<MoveImagesResult> {
   const paths = await listingImagePaths(listingIds);
   return moveObjects(HIDDEN_LISTING_BUCKET, LISTING_BUCKET, paths);
 }

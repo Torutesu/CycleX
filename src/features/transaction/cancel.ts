@@ -4,6 +4,7 @@ import { expireCheckoutSession } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getTransaction,
+  recordEvent,
   transitionTransaction,
   type TransactionRecord,
   type TransitionOptions,
@@ -13,7 +14,12 @@ import { notifyPaid } from "@/features/notification/notify";
 
 export type CancelPendingOutcome =
   /** 未決済のままキャンセルできた */
-  | { outcome: "canceled"; transaction: TransactionRecord }
+  | {
+      outcome: "canceled";
+      transaction: TransactionRecord;
+      /** Stripe 側の状態を確認できないまま(force で)キャンセルした */
+      stripeStateUnknown: boolean;
+    }
   /** Stripe 側ではすでに支払いが完了していたため、キャンセルせず paid にした */
   | { outcome: "paid"; transaction: TransactionRecord };
 
@@ -26,23 +32,42 @@ export type CancelPendingOutcome =
  *
  * 失効しようとして「もう支払い済み」と分かった場合はキャンセルせず、
  * 通常の決済確定と同じく paid へ遷移させる。
+ *
+ * `force` は運営専用の逃げ道(監査 C-1)。Stripe が応答しない・キーを取り違えた
+ * などでセッションを照会すらできないと、この関数を通る 3 経路(日次バッチ・
+ * 購入者の再購入・管理者キャンセル)がすべて失敗し、`uq_transactions_active`
+ * のせいでその商品は誰も買えないまま固まる。管理者だけは Stripe の状態が
+ * 未確認であることを承知でキャンセルできるようにし、履歴にその旨を残す。
+ * 後から入金が届いた場合は `late_payment` の経路で購入者と運営の双方に通知される。
  */
 export async function cancelPendingTransaction(
   transaction: TransactionRecord,
   role: TxRole,
-  options: TransitionOptions & { reason: string },
+  options: TransitionOptions & { reason: string; force?: boolean },
 ): Promise<CancelPendingOutcome> {
   if (transaction.status !== "pending_payment") {
     throw new Error(`未決済の取引ではありません: ${transaction.id} (${transaction.status})`);
   }
 
+  let stripeStateUnknown = false;
+
   if (transaction.stripeSessionId) {
     const result = await expireCheckoutSession(transaction.stripeSessionId);
 
-    if (result.status === "error") {
+    if (result.status === "error" && !options.force) {
       // Stripe の状態が分からないままキャンセルすると A-1 の事故になる。
       // 取引は残し、期限切れ Webhook か次回のバッチに任せる
       throw new Error("決済セッションの状態を確認できなかったため、キャンセルを見送りました。");
+    }
+
+    if (result.status === "error") {
+      stripeStateUnknown = true;
+      await recordEvent(
+        transaction.id,
+        "canceled_without_expire",
+        options.actorId ?? null,
+        "Stripe の決済セッションを確認できないままキャンセルしました。入金が届いた場合は要返金として通知されます。",
+      );
     }
 
     if (result.status === "already_paid") {
@@ -59,7 +84,7 @@ export async function cancelPendingTransaction(
     ...options,
     patch: { canceled_reason: options.reason, ...options.patch },
   });
-  return { outcome: "canceled", transaction: canceled };
+  return { outcome: "canceled", transaction: canceled, stripeStateUnknown };
 }
 
 /**

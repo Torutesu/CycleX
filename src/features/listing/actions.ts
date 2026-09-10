@@ -17,6 +17,7 @@ import {
   toListingRow,
   type ListingFormValues,
 } from "@/features/listing/schema";
+import { toFormDefaults } from "@/features/listing/defaults";
 import {
   canDeleteListing,
   canEditListing,
@@ -327,13 +328,58 @@ export async function withdrawListing(listingId: string): Promise<ActionResult<u
   );
 }
 
+/**
+ * 取下げ中の商品を再公開する。
+ *
+ * `status` を書き換えるだけだと、必須項目が欠けた商品まで公開できてしまう
+ * (監査 M-5)。公開のときと同じ検証をここでも通し、足りなければ編集へ促す。
+ */
 export async function republishListing(listingId: string): Promise<ActionResult<undefined>> {
+  try {
+    const incomplete = await findIncompletePublishFields(listingId);
+    if (incomplete) {
+      return fail(
+        "公開に必要な項目が入力されていません。編集画面から内容を整えてから再公開してください。",
+      );
+    }
+  } catch (error) {
+    return fail(toUserMessage(error));
+  }
+
   return changeStatus(
     listingId,
     "published",
     canRepublishListing,
     "取下げ中の商品のみ再公開できます。",
   );
+}
+
+/**
+ * 保存済みの商品が公開の必須項目を満たしているか、公開時と同じスキーマで確かめる。
+ * 満たしていれば null、足りなければ足りない項目名を返す。
+ */
+async function findIncompletePublishFields(listingId: string): Promise<string[] | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("listings")
+    .select(
+      `id, category, parts_subcategory, title, brand_id, brand_other, model_name,
+       model_year, frame_size, frame_size_cm, component, component_note, mileage, condition,
+       description, price, delivery_method, shipping_from_pref, meetup_pref,
+       listing_images(path, position)`,
+    )
+    .eq("id", listingId)
+    .maybeSingle();
+
+  if (!data) throw new AppError("商品が見つかりません。");
+
+  const imagePaths = [...(data.listing_images ?? [])]
+    .sort((a, b) => a.position - b.position)
+    .map((image) => image.path);
+
+  const parsed = publishSchema.safeParse(toFormDefaults(data, imagePaths));
+  if (parsed.success) return null;
+  return Object.keys(fieldErrorsOf(parsed.error));
 }
 
 /** 下書きの削除。Storage の画像も併せて片付ける。 */
