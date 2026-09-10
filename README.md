@@ -113,7 +113,8 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 
 ## デプロイ手順
 
-詳細は [docs/DEPLOY.md](docs/DEPLOY.md)。要点は次のとおり。
+手順は [docs/DEPLOY.md](docs/DEPLOY.md)、公開前に何を確認すれば済むかは
+[docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) にまとめてあります。要点は次のとおり。
 
 1. **Supabase**(本番プロジェクト・Tokyo リージョン)
    - `supabase/setup-hosted.sql` を SQL Editor に貼って一度だけ実行する(`scripts/gen-setup-hosted.mjs` で生成。手で編集しない)。以後の変更は `supabase link` → `pnpm db:push`
@@ -176,6 +177,13 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 | [ACCEPTANCE_RESULT.md](docs/plan/ACCEPTANCE_RESULT.md)                                                             | 受入テストの実施結果              |
 | [RESPONSIVE_CHECK.md](docs/plan/RESPONSIVE_CHECK.md)                                                               | レスポンシブ点検の結果            |
 | [BACKLOG.md](docs/plan/BACKLOG.md)                                                                                 | スコープ外の改善候補              |
+
+### リリース
+
+| ドキュメント                                      | 内容                                                     |
+| ------------------------------------------------- | -------------------------------------------------------- |
+| [DEPLOY.md](docs/DEPLOY.md)                       | Supabase / Vercel への載せ方                             |
+| [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | 公開前チェックリスト(済 / 本番待ち / 甲の支給待ちの区別) |
 
 ### レビュー(`docs/review/`)
 
