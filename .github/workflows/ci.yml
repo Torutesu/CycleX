@@ -108,3 +108,47 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # issue #15: iOS Safari(WebKit)での主要導線スモーク。
+  # 全件を 3 ブラウザで回すと時間が増えるため、@cross-browser を付けた導線だけ。
+  e2e-webkit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps webkit
+
+      - name: Start Supabase
+        run: pnpm supabase start -x studio,logflare,vector,supavisor,edge-runtime,realtime,postgres-meta
+
+      - name: Run WebKit smoke
+        run: |
+          export NEXT_PUBLIC_SUPABASE_URL=$(pnpm supabase status -o json | jq -r '.API_URL')
+          export NEXT_PUBLIC_SUPABASE_ANON_KEY=$(pnpm supabase status -o json | jq -r '.ANON_KEY')
+          export SUPABASE_SERVICE_ROLE_KEY=$(pnpm supabase status -o json | jq -r '.SERVICE_ROLE_KEY')
+          export NEXT_PUBLIC_APP_URL=http://localhost:3000
+          export PLATFORM_FEE_RATE=0.07
+          export ALLOW_DEMO_CHECKOUT=1
+          export STRIPE_WEBHOOK_SECRET=whsec_dummy
+          export RESEND_API_KEY=re_dummy
+          export EMAIL_FROM="CycleX <noreply@example.com>"
+          export CRON_SECRET=dummy-cron-secret
+          node scripts/seed-users.mjs
+          node scripts/seed-dev.mjs 30
+          pnpm exec playwright test --project=mobile-webkit
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-webkit
+          path: playwright-report/
+          retention-days: 7

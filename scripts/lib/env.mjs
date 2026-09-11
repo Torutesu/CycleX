@@ -1,6 +1,25 @@
 import { readFileSync } from "node:fs";
 
 /**
+ * Node のバージョンを確かめる(issue #12)。
+ *
+ * seed スクリプトは supabase-js を通じて Realtime を読み込むため、
+ * ネイティブ WebSocket が無い Node 20 では
+ * 「Node.js detected but native WebSocket not found」で落ちる。
+ * 原因が分かりにくいので、先に理由を出して止める。
+ */
+export function assertNodeVersion(minimum = 22) {
+  const major = Number(process.versions.node.split(".")[0]);
+  if (Number.isFinite(major) && major < minimum) {
+    console.error(
+      `Node ${minimum} 以上が必要です(現在 ${process.versions.node})。\n` +
+        `.nvmrc に ${minimum} を置いてあります。nvm なら \`nvm use\` で切り替えてください。`,
+    );
+    process.exit(1);
+  }
+}
+
+/**
  * scripts/ 共通の .env.local 読み込み。
  *
  * これらのスクリプトは service role で DB を書き換える。DEPLOY.md の旧手順に
@@ -9,6 +28,7 @@ import { readFileSync } from "node:fs";
  * 接続先がローカル以外なら、明示的なフラグが無い限り実行を止める。
  */
 export function loadEnv(url = new URL("../../.env.local", import.meta.url)) {
+  assertNodeVersion();
   let text = "";
   try {
     text = readFileSync(url, "utf8");

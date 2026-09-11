@@ -2,7 +2,7 @@ import "server-only";
 
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { STALE_PAYMENT_CLEANUP_MINUTES } from "@/lib/constants";
+import { BATCH_LIMIT_PER_RUN, STALE_PAYMENT_CLEANUP_MINUTES } from "@/lib/constants";
 import { getTransaction, recordEvent, transitionTransaction } from "@/features/transaction/service";
 import { cancelPendingTransaction } from "@/features/transaction/cancel";
 import {
@@ -269,6 +269,7 @@ export async function handleChargeRefunded(
  */
 export async function cleanupStalePendingTransactions(
   olderThanMinutes = STALE_PAYMENT_CLEANUP_MINUTES,
+  limit = BATCH_LIMIT_PER_RUN,
 ): Promise<number> {
   const supabase = createAdminClient();
   const threshold = new Date(Date.now() - olderThanMinutes * 60 * 1000).toISOString();
@@ -277,7 +278,10 @@ export async function cleanupStalePendingTransactions(
     .from("transactions")
     .select("id")
     .eq("status", "pending_payment")
-    .lt("created_at", threshold);
+    .lt("created_at", threshold)
+    // 古いものから順に、1 回あたりの上限まで(残りは次回。冪等なので問題ない)
+    .order("created_at", { ascending: true })
+    .limit(limit);
 
   if (!data || data.length === 0) return 0;
 

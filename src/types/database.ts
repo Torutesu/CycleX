@@ -346,6 +346,27 @@ export type Database = {
           },
         ]
       }
+      rate_limit_hits: {
+        Row: {
+          bucket: string
+          created_at: string
+          id: number
+          key: string
+        }
+        Insert: {
+          bucket: string
+          created_at?: string
+          id?: number
+          key: string
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          id?: number
+          key?: string
+        }
+        Relationships: []
+      }
       reports: {
         Row: {
           created_at: string
@@ -454,6 +475,38 @@ export type Database = {
           },
           {
             foreignKeyName: "reviews_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_events: {
+        Row: {
+          event_id: string
+          outcome: string | null
+          received_at: string
+          transaction_id: string | null
+          type: string
+        }
+        Insert: {
+          event_id: string
+          outcome?: string | null
+          received_at?: string
+          transaction_id?: string | null
+          type: string
+        }
+        Update: {
+          event_id?: string
+          outcome?: string | null
+          received_at?: string
+          transaction_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_events_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "transactions"
@@ -697,6 +750,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      consume_rate_limit: {
+        Args: {
+          p_bucket: string
+          p_key: string
+          p_limit: number
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
       is_active_user: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
       listing_category_counts: {
@@ -705,6 +767,10 @@ export type Database = {
           category: string
           count: number
         }[]
+      }
+      prune_rate_limit_hits: {
+        Args: { p_older_than_hours?: number }
+        Returns: number
       }
       release_withdrawn_account: {
         Args: { target: string }

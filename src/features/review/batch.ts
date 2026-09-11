@@ -4,12 +4,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
 import { resolveReviewPublication } from "@/features/review/rules";
 import { notifyCompleted, notifyReviewReceived } from "@/features/notification/notify";
-import { REVIEW_AUTO_PUBLISH_DAYS } from "@/lib/constants";
+import { BATCH_LIMIT_PER_RUN, REVIEW_AUTO_PUBLISH_DAYS } from "@/lib/constants";
 
 export type ReviewBatchResult = {
   scanned: number;
   published: number;
   completed: number;
+  /** 上限に達したため、残りを次回に回した */
+  capped: boolean;
 };
 
 /**
@@ -20,7 +22,10 @@ export type ReviewBatchResult = {
  *
  * 冪等に実行できるよう、対象は常に status='received' の取引に限定する。
  */
-export async function publishOverdueReviews(now = new Date()): Promise<ReviewBatchResult> {
+export async function publishOverdueReviews(
+  now = new Date(),
+  limit = BATCH_LIMIT_PER_RUN,
+): Promise<ReviewBatchResult> {
   const supabase = createAdminClient();
   const threshold = new Date(
     now.getTime() - REVIEW_AUTO_PUBLISH_DAYS * 24 * 60 * 60 * 1000,
@@ -32,12 +37,16 @@ export async function publishOverdueReviews(now = new Date()): Promise<ReviewBat
     .select("id, received_at")
     .eq("status", "received")
     .not("received_at", "is", null)
-    .lte("received_at", threshold);
+    .lte("received_at", threshold)
+    // 古いものから順に、1 回あたりの上限まで
+    .order("received_at", { ascending: true })
+    .limit(limit);
 
   const result: ReviewBatchResult = {
     scanned: candidates?.length ?? 0,
     published: 0,
     completed: 0,
+    capped: (candidates?.length ?? 0) >= limit,
   };
   if (!candidates || candidates.length === 0) return result;
 

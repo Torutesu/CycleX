@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser, requireUserAction } from "@/lib/session";
 import { ok, fail, type ActionResult, toUserMessage, AppError } from "@/lib/errors";
+import { assertAuthRateLimit } from "@/lib/rate-limit";
 import { absoluteUrl, safeRedirectPath } from "@/lib/utils";
 import { ACTIVE_TRANSACTION_STATUSES } from "@/lib/constants";
 import { IMAGE_BUCKETS } from "@/lib/images";
@@ -45,6 +46,13 @@ export async function signup(
 
   // 確認リンクを踏んだ後は、登録を始める前に見ていた画面へ戻す(FR-01-6)
   const next = safeRedirectPath(formValue(formData, "next") || null, "/mypage");
+
+  // 大量の確認メールを送らせないよう、アドレスと接続元の両方で数える(issue #8)
+  try {
+    await assertAuthRateLimit(parsed.data.email, "auth_signup");
+  } catch (error) {
+    return fail(toUserMessage(error));
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -91,6 +99,14 @@ export async function resendVerificationEmail(
 ): Promise<ActionResult<undefined>> {
   const email = formValue(formData, "email").trim().toLowerCase();
   if (!email) return fail("メールアドレスが指定されていません");
+
+  // 存在しないアドレスでも先に数える。あとで「未登録なら ok() を返す」ので、
+  // ここで数えないと未登録アドレス相手には無制限に叩けてしまう(issue #8)
+  try {
+    await assertAuthRateLimit(email, "auth_verify_resend");
+  } catch (error) {
+    return fail(toUserMessage(error));
+  }
 
   const admin = createAdminClient();
   const { data: target } = await admin
@@ -144,6 +160,13 @@ export async function login(
 
   if (!parsed.success) {
     return fail(LOGIN_FAILED_MESSAGE);
+  }
+
+  // パスワードの総当たりと、1 か所から多数のアカウントを試す動きを止める(issue #8)
+  try {
+    await assertAuthRateLimit(parsed.data.email, "auth_login");
+  } catch (error) {
+    return fail(toUserMessage(error));
   }
 
   const supabase = await createClient();
@@ -224,6 +247,13 @@ export async function requestPasswordReset(
   // 未登録アドレスでも同じ応答を返し、アカウントの存在有無を漏らさない
   if (!parsed.success) {
     return fail("メールアドレスの形式が正しくありません");
+  }
+
+  // 再設定メールの踏み台にされないようにする(issue #8)
+  try {
+    await assertAuthRateLimit(parsed.data.email, "auth_password_reset");
+  } catch (error) {
+    return fail(toUserMessage(error));
   }
 
   const supabase = await createClient();

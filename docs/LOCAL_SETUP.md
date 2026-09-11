@@ -2,6 +2,9 @@
 
 このセッションで実際に通して確認した手順。所要 15 分ほど。
 
+**Node 22 以上が必要です**(`.nvmrc` に `22`)。nvm なら `nvm use` で切り替わります。
+seed スクリプトは Supabase Realtime を読み込むため、Node 20 ではネイティブ WebSocket が無く失敗します(issue #12)。
+
 ## 必要なもの
 
 - Node.js 22 以上、pnpm

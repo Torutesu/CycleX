@@ -34,7 +34,7 @@ test.afterAll(async () => {
   await db.from("listings").delete().in("id", ids);
 });
 
-test("ゲストはホームと検索を閲覧できる", async ({ page }) => {
+test("ゲストはホームと検索を閲覧できる @cross-browser", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "カテゴリから探す" })).toBeVisible();
 
@@ -89,7 +89,7 @@ test("検索窓が候補と履歴を出す", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: "キーワード検索" })).toHaveValue("");
 });
 
-test("シートを開かずにカテゴリと価格帯で絞り込める", async ({ page }) => {
+test("シートを開かずにカテゴリと価格帯で絞り込める @cross-browser", async ({ page }) => {
   await page.goto("/search");
   const heading = page.getByRole("heading", { level: 1 });
   const countOf = async () => Number((await heading.innerText()).replace(/[^0-9]/g, ""));
@@ -118,7 +118,7 @@ test("シートを開かずにカテゴリと価格帯で絞り込める", async
   expect(await countOf()).toBe(all);
 });
 
-test("未ログインで会員ページを開くとログインへ誘導される", async ({ page }) => {
+test("未ログインで会員ページを開くとログインへ誘導される @cross-browser", async ({ page }) => {
   await page.goto("/mypage");
   await expect(page).toHaveURL(/\/login\?next=%2Fmypage/);
 });

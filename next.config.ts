@@ -7,6 +7,42 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
 }
 const supabaseHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname;
 
+/**
+ * Content-Security-Policy(issue #11)。
+ *
+ * まず Report-Only で出す。誤って遮断すると決済が通らなくなる経路
+ * (Stripe Checkout への遷移、Supabase Storage からの画像配信)があるため、
+ * 違反の実績を見てから強制モードへ切り替える。
+ *
+ * 許可オリジンと理由:
+ * - `js.stripe.com`      : Checkout のリダイレクト前に読み込む Stripe.js
+ * - `*.stripe.com`       : Checkout の iframe と API への通信
+ * - Supabase のホスト     : 商品画像・アバターの配信と PostgREST / Auth への通信
+ * - `*.googleusercontent.com` : Google ログイン利用者のプロフィール画像
+ * - `fonts.gstatic.com`  : next/font が自己ホストしきれない場合の保険
+ *
+ * `script-src` に `'unsafe-inline'` を含めている。App Router が
+ * ブートストラップ用のインラインスクリプトを出すためで、これを外すには
+ * proxy.ts で nonce を発行して各リクエストに埋める必要がある。
+ * 強制モードへ移す前に nonce 方式へ替えること(それまでは XSS 緩和の効果が薄い)。
+ */
+const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const cspReportOnly = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline' https://js.stripe.com`,
+  // Tailwind と next/font がインラインで style を出す
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  `img-src 'self' data: blob: ${supabaseOrigin} https://*.googleusercontent.com`,
+  `connect-src 'self' ${supabaseOrigin} https://api.stripe.com`,
+  "frame-src https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com",
+  // 埋め込みも Flash 等のプラグインも使わない
+  "frame-ancestors 'none'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -26,10 +62,6 @@ const nextConfig: NextConfig = {
 
   /**
    * 基本的なセキュリティヘッダ(S2-9)。
-   *
-   * CSP はここに入れていない。Stripe Checkout への遷移や Supabase Storage からの
-   * 画像配信を誤って遮断すると決済が通らなくなるため、本番稼働後に
-   * Report-Only で様子を見てから導入する。
    * HSTS は Vercel が付与するのでここでは扱わない。
    */
   async headers() {
@@ -50,6 +82,8 @@ const nextConfig: NextConfig = {
           },
           // 他オリジンからの window 参照を切る
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          // XSS の影響範囲を絞る(issue #11)。まずは Report-Only で観測する
+          { key: "Content-Security-Policy-Report-Only", value: cspReportOnly },
         ],
       },
     ];

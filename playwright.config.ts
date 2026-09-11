@@ -50,6 +50,24 @@ export default defineConfig({
         launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH },
       },
     },
+    /*
+     * iOS Safari と Firefox の確認(issue #15)。
+     *
+     * 全件を 3 ブラウザで回すと CI が 3 倍になるので、ここでは
+     * @cross-browser を付けた主要導線だけを対象にする。
+     * ブラウザの用意は `pnpm exec playwright install webkit firefox` が必要で、
+     * 入っていない環境では `--project=mobile-chromium` を指定して除外する。
+     */
+    {
+      name: "mobile-webkit",
+      grep: /@cross-browser/,
+      use: { ...devices["iPhone 14"] },
+    },
+    {
+      name: "firefox",
+      grep: /@cross-browser/,
+      use: { ...devices["Desktop Firefox"], viewport: { width: 375, height: 812 } },
+    },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

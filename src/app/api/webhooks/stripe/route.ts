@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, getWebhookSecret } from "@/lib/stripe";
 import { arePaymentsDisabled } from "@/lib/env";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   handleChargeRefunded,
   handleCheckoutCompleted,
@@ -20,6 +21,33 @@ import {
 function retryLater(reason: string) {
   return NextResponse.json({ error: "後で再試行してください", reason }, { status: 500 });
 }
+/**
+ * 受け取ったイベントを `stripe_events` に残す。
+ *
+ * @returns すでに記録済み(= 再送・重複配信)なら true
+ */
+async function recordStripeEvent(event: Stripe.Event): Promise<boolean> {
+  const transactionId = transactionIdOf(event);
+  const { error } = await createAdminClient()
+    .from("stripe_events")
+    .insert({ event_id: event.id, type: event.type, transaction_id: transactionId });
+
+  if (!error) return false;
+  // 23505 = 主キー衝突。すでに受け取っているイベント
+  if (error.code === "23505") return true;
+  console.error("[stripe webhook] イベントの記録に失敗しました", event.id, error);
+  return false;
+}
+
+/** イベントから取引 ID を拾えるだけ拾う(台帳から追いやすくするため) */
+function transactionIdOf(event: Stripe.Event): string | null {
+  const object = event.data.object as { metadata?: Record<string, string> | null };
+  const id = object.metadata?.transaction_id;
+  return id && UUID_PATTERN.test(id) ? id : null;
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(request: NextRequest) {
   // 決済を無効にして公開している段階では、署名の検証もできない
   // (STRIPE_WEBHOOK_SECRET が無い)。503 で明示的に断り、
@@ -43,6 +71,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("[stripe webhook] 署名検証に失敗しました", error);
     return NextResponse.json({ error: "署名の検証に失敗しました" }, { status: 400 });
+  }
+
+  // 受信を記録する(issue #10)。主キー衝突で再送・重複配信を検出できる。
+  // 記録に失敗しても処理は続ける — 追跡のための台帳であって、
+  // 二重処理を防いでいるのは各ハンドラの「遷移前 status を条件に含める」実装の方
+  const alreadySeen = await recordStripeEvent(event);
+  if (alreadySeen) {
+    console.info("[stripe webhook] 同じイベントを再度受信しました", event.id, event.type);
   }
 
   try {
@@ -91,8 +127,19 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     // 500 を返すと Stripe が再送するため、復旧可能な失敗はここに落とす
     console.error("[stripe webhook] 処理に失敗しました", event.type, error);
+    await markStripeEventOutcome(event.id, "failed");
     return NextResponse.json({ error: "処理に失敗しました" }, { status: 500 });
   }
 
+  await markStripeEventOutcome(event.id, "handled");
   return NextResponse.json({ received: true });
+}
+
+/** 台帳に結果を書き戻す。失敗しても応答は変えない(追跡用の情報) */
+async function markStripeEventOutcome(eventId: string, outcome: "handled" | "failed") {
+  const { error } = await createAdminClient()
+    .from("stripe_events")
+    .update({ outcome })
+    .eq("event_id", eventId);
+  if (error) console.error("[stripe webhook] 結果の記録に失敗しました", eventId, error);
 }

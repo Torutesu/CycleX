@@ -287,6 +287,16 @@ export const PRICE_PRESETS = [
 // 数値制約
 // ============================================================
 
+/**
+ * 日次バッチが 1 回で扱う件数の上限(issue #3)。
+ *
+ * 上限が無いと、件数が増えたときに Vercel の実行時間を超えて途中で切れ、
+ * どこまで進んだか分からないまま誰も気づかない。PostgREST の行上限
+ * (既定 1,000)にも当たるため、超過分は黙って落ちる。
+ * 超えた分は翌日以降の実行で処理する(いずれの処理も冪等)。
+ */
+export const BATCH_LIMIT_PER_RUN = 300;
+
 export const PRICE_MIN = 300;
 export const PRICE_MAX = 9_999_999;
 export const MAX_IMAGES = 10;
