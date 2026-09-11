@@ -1,4 +1,5 @@
 import "server-only";
+import { reportError } from "@/lib/observability";
 
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -73,7 +74,8 @@ export async function sendMail(input: SendMailInput): Promise<void> {
     });
 
     if (error) {
-      console.error("[mail:failed]", input.kind, error);
+      // 送れていないことに気づけるようにする(issue #5)
+      reportError("mail", error, { kind: input.kind });
       await logMail(input, "failed", error.message);
       return;
     }
@@ -81,7 +83,7 @@ export async function sendMail(input: SendMailInput): Promise<void> {
     await logMail(input, "sent");
   } catch (error) {
     // ここで throw すると呼び出し元の業務処理が巻き添えになる
-    console.error("[mail:error]", input.kind, error);
+    reportError("mail", error, { kind: input.kind });
     await logMail(input, "failed", error instanceof Error ? error.message : String(error)).catch(
       () => undefined,
     );

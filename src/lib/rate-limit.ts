@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AppError } from "@/lib/errors";
+import { reportError } from "@/lib/observability";
 
 /**
  * レート制限(ADR #10 / issue #8, #9)。
@@ -104,8 +105,9 @@ export async function assertRateLimit(key: string, bucket: RateLimitKey): Promis
   });
 
   if (error) {
-    // 判定できないときは通さない。無制限に通すより安全側に倒す
-    console.error("[rate limit] 判定に失敗したため操作を拒否しました", bucket, error);
+    // 判定できないときは通さない。無制限に通すより安全側に倒す。
+    // ここが続くと出品・メッセージが全部断られるので必ず通知する
+    reportError("rate_limit", error, { bucket });
     throw new AppError(
       "混雑しているため、この操作を受け付けられませんでした。時間をおいて再度お試しください。",
     );
@@ -125,7 +127,9 @@ export async function pruneRateLimitHits(): Promise<number> {
     p_older_than_hours: 48,
   });
   if (error) {
-    console.error("[rate limit] 古い記録の削除に失敗しました", error);
+    // 掃除の失敗で日次バッチ全体を落とす必要はないが、
+    // 放置するとテーブルが太り続けるので気づけるようにする(issue #5)
+    reportError("rate_limit_prune", error);
     return 0;
   }
   return Number(data ?? 0);

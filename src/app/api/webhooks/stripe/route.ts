@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { getStripe, getWebhookSecret } from "@/lib/stripe";
 import { arePaymentsDisabled } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { flushErrorReports, reportError } from "@/lib/observability";
 import {
   handleChargeRefunded,
   handleCheckoutCompleted,
@@ -125,9 +126,11 @@ export async function POST(request: NextRequest) {
         break;
     }
   } catch (error) {
-    // 500 を返すと Stripe が再送するため、復旧可能な失敗はここに落とす
-    console.error("[stripe webhook] 処理に失敗しました", event.type, error);
+    // 500 を返すと Stripe が再送するため、復旧可能な失敗はここに落とす。
+    // 再送が続くと取引が進まないので、気づけるように通知する(issue #5)
+    reportError("stripe_webhook", error, { eventType: event.type, eventId: event.id });
     await markStripeEventOutcome(event.id, "failed");
+    await flushErrorReports();
     return NextResponse.json({ error: "処理に失敗しました" }, { status: 500 });
   }
 

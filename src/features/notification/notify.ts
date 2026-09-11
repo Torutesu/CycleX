@@ -483,6 +483,39 @@ export async function notifyRefundedWhileActive(transactionId: string): Promise<
   );
 }
 
+/**
+ * 管理者ロールが変わったことを本人へ知らせる(issue #18)。
+ *
+ * 本人が知らないまま権限を持つ / 失う状態を避ける。
+ * 権限の変更は本人の意思とは無関係に起きるので、通知設定では止めさせない。
+ */
+export async function notifyAdminRoleChanged(
+  userId: string,
+  change: "granted" | "revoked",
+): Promise<void> {
+  await sendMail({
+    userId,
+    kind: change === "granted" ? "admin_role_granted" : "admin_role_revoked",
+    refId: userId,
+    body:
+      change === "granted"
+        ? {
+            intro:
+              "CycleX の管理者権限が付与されました。管理画面から利用者・出品・取引・通報の確認と対応ができます。",
+            details: [{ label: "権限", value: "管理者" }],
+            cta: { label: "管理画面を開く", path: "/admin" },
+            outro:
+              "心当たりが無い場合は、権限を付与した担当者に確認してください。管理画面では他の利用者の個人情報を扱います。取り扱いにご注意ください。",
+          }
+        : {
+            intro:
+              "CycleX の管理者権限が解除されました。管理画面へはアクセスできなくなります。一般の会員機能は引き続きご利用いただけます。",
+            details: [{ label: "権限", value: "一般会員" }],
+            outro: "心当たりが無い場合は、運営までお問い合わせください。",
+          },
+  });
+}
+
 /** 発送されないまま止まっている取引を出品者へ催促する */
 export async function notifyShipReminder(transactionId: string, days: number): Promise<void> {
   const tx = await loadTransaction(transactionId);

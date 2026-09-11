@@ -6,6 +6,7 @@ import { findStateMismatches } from "@/features/admin/queries";
 import { cleanupOrphanListingImages } from "@/lib/storage";
 import { sendStalledTransactionReminders } from "@/features/transaction/reminders";
 import { pruneRateLimitHits } from "@/lib/rate-limit";
+import { flushErrorReports, reportError, reportWarning } from "@/lib/observability";
 
 /**
  * 日次バッチ(ADR #8)。
@@ -40,8 +41,8 @@ async function runStep<T>(name: string, run: () => Promise<T>): Promise<StepResu
   try {
     return { ok: true, value: await run() };
   } catch (error) {
-    // 1 つの失敗で全体を落とさない。応答と Vercel のログの両方に残す
-    console.error(`[cron] ${name} に失敗しました`, error);
+    // 1 つの失敗で全体を落とさない。ログと Sentry の両方に残す(issue #5)
+    reportError("cron", error, { step: name });
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
@@ -71,7 +72,11 @@ export async function GET(request: NextRequest) {
   const rateLimitHits = await runStep("レート制限の記録の掃除", () => pruneRateLimitHits());
 
   if (mismatches.ok && mismatches.value.length > 0) {
-    console.error("[cron] 取引と商品の状態が食い違っています", mismatches.value);
+    // 放置すると「取引中なのに販売中の商品」が残る。人が直す必要がある
+    reportWarning("cron", "取引と商品の状態が食い違っています", {
+      count: mismatches.value.length,
+      transactionIds: mismatches.value.map((row) => row.transactionId),
+    });
   }
 
   const steps = { reviews, canceled, mismatches, orphanImages, reminders, rateLimitHits };
@@ -102,11 +107,16 @@ export async function GET(request: NextRequest) {
   };
 
   if (failed.length > 0) {
-    console.error(`[cron] ${failed.length} 件の処理が失敗しました: ${failed.join(", ")}`);
+    reportError("cron", new Error(`日次バッチで ${failed.length} 件の処理が失敗しました`), {
+      failed,
+    });
   }
   if (capped.length > 0) {
-    console.warn(`[cron] 件数上限に達しました(残りは次回): ${capped.join(", ")}`);
+    reportWarning("cron", "件数上限に達しました(残りは次回)", { capped });
   }
+
+  // サーバーレスでは応答後に関数が止まるため、送信を待ってから返す
+  await flushErrorReports();
 
   // 一部でも失敗したら 500。Vercel の Cron ログとアラートで気づけるようにする
   return NextResponse.json(body, { status: failed.length > 0 ? 500 : 200 });

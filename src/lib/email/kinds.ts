@@ -19,6 +19,8 @@ export type MailKind =
   | "tx_ship_reminder"
   | "tx_receive_reminder"
   | "tx_paid_after_cancel"
+  | "admin_role_granted"
+  | "admin_role_revoked"
   | "admin_dispute"
   | "admin_late_payment"
   | "admin_refund_review";
@@ -50,6 +52,10 @@ export const MAIL_KINDS: Record<MailKind, MailKindMeta> = {
     subject: "【重要】お支払いを受領しましたが取引は成立していません",
     category: null,
   },
+  // 管理者ロールの変更。本人が知らないまま権限を持つ / 失う状態を避けるため、
+  // 設定に関わらず必ず送る(issue #18)
+  admin_role_granted: { subject: "管理者権限が付与されました", category: null },
+  admin_role_revoked: { subject: "管理者権限が解除されました", category: null },
   // 運営あて。応答期限があるため設定に関わらず必ず送る
   admin_dispute: { subject: "【要対応】チャージバックの申し立てがありました", category: null },
   // 運営あて。キャンセル済みの取引に支払いが届いたので返金が必要

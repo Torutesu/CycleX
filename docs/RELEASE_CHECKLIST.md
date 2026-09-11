@@ -51,18 +51,19 @@ E2E_BASE_URL=http://localhost:3000 pnpm test:e2e
 欠けていれば `src/instrumentation.ts` が起動時に落とすので、
 「動いているのに設定が抜けている」状態にはならない。
 
-| 変数                            | 用途                       | 備考                                        |
-| ------------------------------- | -------------------------- | ------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase 接続              |                                             |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 接続(公開可)      |                                             |
-| `SUPABASE_SERVICE_ROLE_KEY`     | サーバー側の管理操作       | **共有しない**                              |
-| `STRIPE_SECRET_KEY`             | Checkout の作成・失効      | 本番キー。テストキーと取り違えないこと      |
-| `STRIPE_WEBHOOK_SECRET`         | Webhook の署名検証         | Webhook 登録後に発行される値                |
-| `RESEND_API_KEY`                | メール送信                 | 未設定だと送信せず `skipped` ログのみ       |
-| `EMAIL_FROM`                    | 送信元                     | 🅰 甲のドメイン                              |
-| `CRON_SECRET`                   | 日次バッチの認証           | 推測されない値                              |
-| `CYCLEX_PAYMENTS_DISABLED`      | 決済を閉じて公開する       | Stripe を後回しにする場合のみ `1`。下記参照 |
-| `NEXT_PUBLIC_APP_URL`           | メール内リンク・OGP の基準 | 設定後に**再デプロイが必要**                |
+| 変数                            | 用途                       | 備考                                                                                   |
+| ------------------------------- | -------------------------- | -------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase 接続              |                                                                                        |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 接続(公開可)      |                                                                                        |
+| `SUPABASE_SERVICE_ROLE_KEY`     | サーバー側の管理操作       | **共有しない**                                                                         |
+| `STRIPE_SECRET_KEY`             | Checkout の作成・失効      | 本番キー。テストキーと取り違えないこと                                                 |
+| `STRIPE_WEBHOOK_SECRET`         | Webhook の署名検証         | Webhook 登録後に発行される値                                                           |
+| `RESEND_API_KEY`                | メール送信                 | 未設定だと送信せず `skipped` ログのみ                                                  |
+| `EMAIL_FROM`                    | 送信元                     | 🅰 甲のドメイン                                                                         |
+| `CRON_SECRET`                   | 日次バッチの認証           | 推測されない値                                                                         |
+| `CYCLEX_PAYMENTS_DISABLED`      | 決済を閉じて公開する       | Stripe を後回しにする場合のみ `1`。下記参照                                            |
+| `SENTRY_DSN`                    | 障害検知                   | 任意。未設定だと障害が console にしか残らない。設定は [ops/RUNBOOK.md](ops/RUNBOOK.md) |
+| `NEXT_PUBLIC_APP_URL`           | メール内リンク・OGP の基準 | 設定後に**再デプロイが必要**                                                           |
 
 - `ALLOW_DEMO_CHECKOUT` は**本番では絶対に設定しない**(決済を通さず取引が成立する)。
   `src/lib/env.ts` が本番で立っていたら起動を止める
@@ -235,3 +236,6 @@ charge.refunded
 - `/admin/transactions?refund=pending` が空か(空でなければ返金対応が必要)
 - Stripe ダッシュボードの Webhook 配信失敗
 - 日次バッチのログに `[cleanup]` の失敗件数が出ていないか
+- Sentry にイベントが溜まっていないか(`context` タグで経路が分かる)
+
+障害時の一次対応は [ops/RUNBOOK.md](ops/RUNBOOK.md) にまとめてある。

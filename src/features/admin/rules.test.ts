@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  canGrantAdmin,
+  canRevokeAdmin,
   canSuspendListing,
   canSuspendUser,
   isCancellable,
@@ -151,5 +153,50 @@ describe("detectStateMismatch", () => {
 
   it("支払い待ちの段階では商品の状態を問わない", () => {
     expect(detectStateMismatch("pending_payment", "published")).toBeNull();
+  });
+});
+
+describe("canGrantAdmin", () => {
+  it("利用中の一般会員を管理者にできる", () => {
+    expect(canGrantAdmin(TARGET, ADMIN, "user", "active")).toEqual({ allowed: true });
+  });
+
+  it("自分自身のロールは変更できない", () => {
+    expect(canGrantAdmin(ADMIN, ADMIN, "user", "active")).toEqual({
+      allowed: false,
+      reason: "自分自身のロールは変更できません。",
+    });
+  });
+
+  it("すでに管理者なら何もしない", () => {
+    expect(canGrantAdmin(TARGET, ADMIN, "admin", "active").allowed).toBe(false);
+  });
+
+  it("停止中・退会済みは管理者にできない", () => {
+    // 入れない管理者を増やしても意味がない
+    expect(canGrantAdmin(TARGET, ADMIN, "user", "suspended").allowed).toBe(false);
+    expect(canGrantAdmin(TARGET, ADMIN, "user", "withdrawn").allowed).toBe(false);
+  });
+});
+
+describe("canRevokeAdmin", () => {
+  it("他に利用中の管理者がいれば降格できる", () => {
+    expect(canRevokeAdmin(TARGET, ADMIN, "admin", 1)).toEqual({ allowed: true });
+  });
+
+  it("自分自身のロールは変更できない", () => {
+    expect(canRevokeAdmin(ADMIN, ADMIN, "admin", 5).allowed).toBe(false);
+  });
+
+  it("管理者でなければ降格できない", () => {
+    expect(canRevokeAdmin(TARGET, ADMIN, "user", 5).allowed).toBe(false);
+  });
+
+  it("最後の管理者は降格できない", () => {
+    // 降格すると誰も管理画面に入れず、復旧に SQL が必要になる
+    expect(canRevokeAdmin(TARGET, ADMIN, "admin", 0)).toEqual({
+      allowed: false,
+      reason: "管理者が 1 人もいなくなるため降格できません。",
+    });
   });
 });

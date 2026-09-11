@@ -75,6 +75,9 @@ describe("MAIL_KINDS", () => {
       "admin_dispute",
       "admin_late_payment",
       "admin_refund_review",
+      // 権限の変更は本人の意思と無関係に起きるので設定で止めさせない(issue #18)
+      "admin_role_granted",
+      "admin_role_revoked",
       "tx_paid_after_cancel",
       "welcome",
     ]);

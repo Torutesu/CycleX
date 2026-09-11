@@ -184,6 +184,7 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 | ------------------------------------------------- | -------------------------------------------------------- |
 | [DEPLOY.md](docs/DEPLOY.md)                       | Supabase / Vercel への載せ方                             |
 | [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | 公開前チェックリスト(済 / 本番待ち / 甲の支給待ちの区別) |
+| [ops/RUNBOOK.md](docs/ops/RUNBOOK.md)             | 障害時の一次対応(Sentry の設定とアラート条件を含む)      |
 
 ### レビュー(`docs/review/`)
 
@@ -203,3 +204,10 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 - 規約・プライバシーポリシーの文面作成(掲載枠のみ実装)
 - ネイティブアプリ、多言語・多通貨対応
 - 負荷試験、脆弱性診断、リリース後の運用・監視
+
+これらは 2026-09-11 に改めて確認し、**実装しない**と判断しました。
+自動レビューで「未実装」として起票されることがありますが、契約の対象外です
+(該当 issue: [#1 売上送金](https://github.com/Torutesu/CycleX/issues/1) /
+[#2 返金 API](https://github.com/Torutesu/CycleX/issues/2) /
+[#17 配送業者連携](https://github.com/Torutesu/CycleX/issues/17))。
+スコープに入れる場合は契約の変更が必要です。

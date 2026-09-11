@@ -7,7 +7,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { RatingStars } from "@/components/rating-stars";
 import { getAuditLogs, getUserDetail } from "@/features/admin/queries";
-import { suspendUser, unsuspendUser } from "@/features/admin/actions";
+import { requireAdmin } from "@/lib/session";
+import { grantAdmin, revokeAdmin, suspendUser, unsuspendUser } from "@/features/admin/actions";
 import { ReasonDialog, ConfirmButton } from "@/features/admin/components/admin-actions";
 import { ReviewHideButton } from "@/features/admin/components/review-actions";
 import { AuditLogList } from "@/features/admin/components/audit-log-list";
@@ -28,6 +29,8 @@ export const metadata: Metadata = { title: "利用者の詳細" };
 
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // 自分自身のロールは変更できないので、操作中の管理者が誰かを知る必要がある
+  const viewer = await requireAdmin();
   const detail = await getUserDetail(id);
   if (!detail) notFound();
 
@@ -55,7 +58,27 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
         description={user.email}
         action={
           user.role === "admin" ? (
-            <Badge variant="secondary">管理者</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">管理者</Badge>
+              {/*
+                自分自身は降格できない(表示もしない)。
+                最後の管理者の降格は Action 側でも拒否する(issue #18)
+              */}
+              {user.id !== viewer.id && (
+                <ConfirmButton
+                  label="管理者を解除"
+                  confirmTitle="管理者権限を解除しますか?"
+                  confirmDescription="この利用者は管理画面へアクセスできなくなります。一般の会員機能は引き続き使えます。本人へ通知が送られ、操作は監査ログに残ります。"
+                  onConfirm={async () => {
+                    "use server";
+                    const formData = new FormData();
+                    formData.set("userId", user.id);
+                    return revokeAdmin(null, formData);
+                  }}
+                  successMessage="管理者権限を解除しました"
+                />
+              )}
+            </div>
           ) : user.status === "suspended" ? (
             <ConfirmButton
               label="利用停止を解除"
@@ -68,23 +91,37 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               successMessage="利用停止を解除しました"
             />
           ) : user.status === "active" ? (
-            <ReasonDialog
-              trigger="利用停止にする"
-              title="利用者を利用停止にしますか?"
-              description="この利用者はログイン後、利用停止の案内のみが表示されるようになります。"
-              reasonLabel="理由(記録用・必須)"
-              reasonRequired
-              hidden={{ userId: user.id }}
-              action={suspendUser}
-              successMessage="利用停止にしました"
-              warning={
-                activeTransactions.length > 0
-                  ? `進行中の取引が ${activeTransactions.length} 件あります。停止すると相手方が連絡できなくなるため、先に取引の扱いをご確認ください。`
-                  : publishedListings.length > 0
-                    ? `公開中・下書きの出品 ${publishedListings.length} 件も同時に非表示になります。`
-                    : undefined
-              }
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <ConfirmButton
+                label="管理者にする"
+                confirmTitle="この利用者を管理者にしますか?"
+                confirmDescription="管理画面から利用者・出品・取引・通報の確認と対応ができるようになります。他の利用者の個人情報を扱えるようになるため、対象が正しいことを確認してください。本人へ通知が送られ、操作は監査ログに残ります。"
+                onConfirm={async () => {
+                  "use server";
+                  const formData = new FormData();
+                  formData.set("userId", user.id);
+                  return grantAdmin(null, formData);
+                }}
+                successMessage="管理者にしました"
+              />
+              <ReasonDialog
+                trigger="利用停止にする"
+                title="利用者を利用停止にしますか?"
+                description="この利用者はログイン後、利用停止の案内のみが表示されるようになります。"
+                reasonLabel="理由(記録用・必須)"
+                reasonRequired
+                hidden={{ userId: user.id }}
+                action={suspendUser}
+                successMessage="利用停止にしました"
+                warning={
+                  activeTransactions.length > 0
+                    ? `進行中の取引が ${activeTransactions.length} 件あります。停止すると相手方が連絡できなくなるため、先に取引の扱いをご確認ください。`
+                    : publishedListings.length > 0
+                      ? `公開中・下書きの出品 ${publishedListings.length} 件も同時に非表示になります。`
+                      : undefined
+                }
+              />
+            </div>
           ) : null
         }
       />

@@ -100,6 +100,15 @@ NEXT_PUBLIC_NOINDEX          1(関係者限定で検証している間だけ。�
 CYCLEX_PAYMENTS_DISABLED     1
 ```
 
+**障害検知**（任意だが推奨）。Sentry のプロジェクトを作り、DSN を入れる。
+
+```
+SENTRY_DSN                   https://xxxx@oyyyy.ingest.sentry.io/zzzz
+```
+
+未設定でも動きますが、障害は Vercel のログにしか残りません。
+設定手順とアラート条件は [ops/RUNBOOK.md](ops/RUNBOOK.md) を参照。
+
 購入の導線が「決済の準備中です」になり、それ以外(閲覧・会員登録・出品・
 メッセージ・管理)はすべて動く。決済を始めるときにキー 2 つを入れて
 **このフラグを消す**。詳細は [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) §2。

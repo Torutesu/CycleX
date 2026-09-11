@@ -17,7 +17,9 @@ export type AdminAction =
   | "unhide_review"
   | "mark_refunded"
   | "force_received"
-  | "force_completed";
+  | "force_completed"
+  | "grant_admin"
+  | "revoke_admin";
 
 export type AuditTargetType = "user" | "listing" | "transaction" | "brand" | "report" | "review";
 

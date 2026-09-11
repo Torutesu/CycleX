@@ -30,6 +30,57 @@ export function canSuspendUser(
   return { allowed: true };
 }
 
+/**
+ * 管理者ロールを付与できるか(issue #18)。
+ *
+ * 権限は admin / user の 2 段階のままにする。細かい権限分けは運用の手間が
+ * 増えるだけで、この規模では釣り合わない。
+ */
+export function canGrantAdmin(
+  targetId: string,
+  adminId: string,
+  targetRole: string,
+  targetStatus: UserStatus,
+): AdminCheck {
+  if (targetId === adminId) {
+    // 自己昇格は既に管理者でなければ起こり得ないが、経路として塞いでおく
+    return { allowed: false, reason: "自分自身のロールは変更できません。" };
+  }
+  if (targetRole === "admin") {
+    return { allowed: false, reason: "すでに管理者です。" };
+  }
+  if (targetStatus !== "active") {
+    // 停止中・退会済みを管理者にすると、入れない管理者が増える
+    return { allowed: false, reason: "利用中の利用者のみ管理者にできます。" };
+  }
+  return { allowed: true };
+}
+
+/**
+ * 管理者ロールを剥奪できるか(issue #18)。
+ *
+ * @param otherActiveAdmins 本人以外の利用中の管理者の数
+ */
+export function canRevokeAdmin(
+  targetId: string,
+  adminId: string,
+  targetRole: string,
+  otherActiveAdmins: number,
+): AdminCheck {
+  if (targetId === adminId) {
+    return { allowed: false, reason: "自分自身のロールは変更できません。" };
+  }
+  if (targetRole !== "admin") {
+    return { allowed: false, reason: "管理者ではありません。" };
+  }
+  if (otherActiveAdmins < 1) {
+    // 最後の管理者を降格すると、誰も管理画面に入れなくなり
+    // 復旧に SQL を直接叩く必要が出る
+    return { allowed: false, reason: "管理者が 1 人もいなくなるため降格できません。" };
+  }
+  return { allowed: true };
+}
+
 /** 利用停止に伴って非表示にする出品のステータス */
 export const SUSPENDABLE_LISTING_STATUSES: readonly ListingStatus[] = [
   "published",

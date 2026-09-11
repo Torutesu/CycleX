@@ -14,6 +14,8 @@ import {
 } from "@/lib/errors";
 import { ACTIVE_TRANSACTION_STATUSES, type ListingStatus, type UserStatus } from "@/lib/constants";
 import {
+  canGrantAdmin,
+  canRevokeAdmin,
   canSuspendListing,
   canSuspendUser,
   canSuspendUserWithTransactions,
@@ -23,7 +25,12 @@ import { recordAdminAction } from "@/features/admin/audit";
 import { hideListingImages, restoreListingImages, type MoveImagesResult } from "@/lib/storage";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
 import { cancelPendingTransaction } from "@/features/transaction/cancel";
-import { notifyCanceled, notifyCompleted, notifyReceived } from "@/features/notification/notify";
+import {
+  notifyAdminRoleChanged,
+  notifyCanceled,
+  notifyCompleted,
+  notifyReceived,
+} from "@/features/notification/notify";
 import { formValue } from "@/lib/form";
 
 /**
@@ -131,6 +138,115 @@ export async function suspendUser(
 
     const warning = imageMoveWarning(hideResult, "hide");
     if (warning) return fail(warning);
+    return ok();
+  } catch (error) {
+    return fail(toUserMessage(error));
+  }
+}
+
+/**
+ * 管理者ロールの付与(issue #18)。
+ *
+ * これまで `users.role` を admin にするには SQL を直接実行する必要があった。
+ * 担当者の追加・交代のたびに本番の DB を手で触るのは事故の元なので、
+ * 管理画面から行えるようにする。
+ *
+ * 権限は admin / user の 2 段階のまま(細かい権限分けはしない)。
+ */
+export async function grantAdmin(
+  _prev: ActionResult<undefined> | null,
+  formData: FormData,
+): Promise<ActionResult<undefined>> {
+  try {
+    const admin = await requireAdminAction();
+    const userId = formValue(formData, "userId");
+
+    const supabase = createAdminClient();
+    const { data: target } = await supabase
+      .from("users")
+      .select("id, role, status, display_name")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!target) throw new AppError("利用者が見つかりません。");
+
+    const check = canGrantAdmin(target.id, admin.id, target.role, target.status as UserStatus);
+    if (!check.allowed) throw new AppError(check.reason);
+
+    // role を条件に含めて、同時に 2 人が操作しても二重に記録されないようにする
+    const { data: updated, error } = await supabase
+      .from("users")
+      .update({ role: "admin" })
+      .eq("id", userId)
+      .eq("role", "user")
+      .select("id")
+      .maybeSingle();
+
+    if (error) throw new AppError("ロールの変更に失敗しました。");
+    if (!updated) throw new AppError("すでに管理者です。");
+
+    await recordAdminAction(admin.id, "grant_admin", "user", userId, "管理者に昇格");
+    // 本人が知らないまま権限を持つ状態を避ける
+    await notifyAdminRoleChanged(userId, "granted");
+
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
+    return ok();
+  } catch (error) {
+    return fail(toUserMessage(error));
+  }
+}
+
+/**
+ * 管理者ロールの剥奪(issue #18)。
+ *
+ * 最後の管理者を降格すると誰も管理画面に入れなくなり、復旧に SQL が必要に
+ * なるため、本人以外の利用中の管理者が 1 人以上いることを確かめる。
+ */
+export async function revokeAdmin(
+  _prev: ActionResult<undefined> | null,
+  formData: FormData,
+): Promise<ActionResult<undefined>> {
+  try {
+    const admin = await requireAdminAction();
+    const userId = formValue(formData, "userId");
+
+    const supabase = createAdminClient();
+    const { data: target } = await supabase
+      .from("users")
+      .select("id, role, status")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!target) throw new AppError("利用者が見つかりません。");
+
+    // 本人以外の「利用中の」管理者を数える。停止中の管理者は入れないので数えない
+    const { count: otherActiveAdmins } = await supabase
+      .from("users")
+      .select("*", { count: "exact", head: true })
+      .eq("role", "admin")
+      .eq("status", "active")
+      .neq("id", userId);
+
+    const check = canRevokeAdmin(target.id, admin.id, target.role, otherActiveAdmins ?? 0);
+    if (!check.allowed) throw new AppError(check.reason);
+
+    const { data: updated, error } = await supabase
+      .from("users")
+      .update({ role: "user" })
+      .eq("id", userId)
+      .eq("role", "admin")
+      .select("id")
+      .maybeSingle();
+
+    if (error) throw new AppError("ロールの変更に失敗しました。");
+    if (!updated) throw new AppError("管理者ではありません。");
+
+    await recordAdminAction(admin.id, "revoke_admin", "user", userId, "管理者を解除");
+    await notifyAdminRoleChanged(userId, "revoked");
+
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));
