@@ -100,7 +100,9 @@ jobs:
           # 絞り込み・ページ送りのテストが前提にする出品を入れておく
           node scripts/seed-users.mjs
           node scripts/seed-dev.mjs 60
-          pnpm test:e2e
+          # このジョブは Chromium しか入れていないので、対象を明示する。
+          # WebKit は e2e-webkit ジョブが受け持つ
+          pnpm exec playwright test --project=mobile-chromium
 
       - uses: actions/upload-artifact@v4
         if: failure()

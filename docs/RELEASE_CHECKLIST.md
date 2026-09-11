@@ -33,6 +33,10 @@ pnpm dev                            # 別ターミナル
 E2E_BASE_URL=http://localhost:3000 pnpm test:e2e
 ```
 
+`pnpm test:e2e` は Chromium のみ。WebKit / Firefox の主要導線は
+`pnpm exec playwright install webkit firefox` のあと `pnpm test:e2e:cross`
+(CI では `e2e-webkit` ジョブが WebKit を受け持つ)。
+
 `scripts/*.mjs` と E2E は接続先がローカルでないと止まる
 (`--allow-remote` / `CYCLEX_ALLOW_REMOTE=1` を明示した場合のみ通る)。
 
