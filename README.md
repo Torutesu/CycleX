@@ -67,11 +67,14 @@ node scripts/seed-dev.mjs 500   # ダミー商品を 500 件作成
 ### 管理者アカウントの作成
 
 管理画面(`/admin`)は `users.role = 'admin'` のユーザーのみアクセスできます。
-管理画面上での管理者追加 UI は MVP の対象外のため、DB を直接更新してください。
+**最初の 1 人だけ** DB を直接更新して昇格させてください。
 
 ```sql
 update public.users set role = 'admin' where email = 'admin@example.com';
 ```
+
+2 人目以降は管理画面の会員詳細から「管理者にする」「管理者を解除」で操作できます
+(自分自身は操作できず、最後の 1 人は解除できません)。
 
 ### Stripe Webhook のローカル検証
 
