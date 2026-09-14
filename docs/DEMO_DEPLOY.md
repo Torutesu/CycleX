@@ -9,6 +9,29 @@ Vercel のアカウント 2 つだけで、どちらも無料枠で足りる。
 
 ---
 
+## 先に決めること: 2 つの見せ方
+
+|                  | A. Preview(この文書)     | B. 本番公開 + 決済を閉じる     |
+| ---------------- | ------------------------ | ------------------------------ |
+| Vercel           | Preview(`demo` ブランチ) | Production(`main`)             |
+| 購入を試せるか   | **試せる**(デモ決済)     | 試せない(「決済の準備中です」) |
+| 必要なアカウント | Supabase / Vercel        | Supabase / Vercel / **Resend** |
+| 帯の表示         | 「デモ環境です」         | 出ない                         |
+
+**B を選ぶ場合、`RESEND_API_KEY` と `EMAIL_FROM` が必須**になる
+(`REQUIRED_IN_PRODUCTION`。欠けていると起動時に落ちて全ページ 500)。
+ドメイン認証前でも Resend の `onboarding@resend.dev` を差出人にすれば
+起動はできるが、**メールは Resend 登録者本人のアドレスにしか届かない**。
+`EMAIL_FROM` に `example.com` を含む値を入れるとダミー値として弾かれる。
+
+B の手順は [DEPLOY.md](DEPLOY.md) と
+[RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) §2 を参照。
+`CYCLEX_PAYMENTS_DISABLED=1` と `NEXT_PUBLIC_NOINDEX=1` を入れる。
+
+以下は A の手順。
+
+---
+
 ## 本番公開と何が違うか
 
 | 項目           | デモ公開                                 | 本番公開           |
