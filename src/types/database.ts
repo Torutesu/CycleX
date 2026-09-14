@@ -155,6 +155,13 @@ export type Database = {
             foreignKeyName: "favorites_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
+            referencedRelation: "listing_suspension_reasons"
+            referencedColumns: ["listing_id"]
+          },
+          {
+            foreignKeyName: "favorites_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
             referencedRelation: "listings"
             referencedColumns: ["id"]
           },
@@ -190,6 +197,13 @@ export type Database = {
           position?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "listing_images_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listing_suspension_reasons"
+            referencedColumns: ["listing_id"]
+          },
           {
             foreignKeyName: "listing_images_listing_id_fkey"
             columns: ["listing_id"]
@@ -495,6 +509,13 @@ export type Database = {
             foreignKeyName: "threads_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
+            referencedRelation: "listing_suspension_reasons"
+            referencedColumns: ["listing_id"]
+          },
+          {
+            foreignKeyName: "threads_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
             referencedRelation: "listings"
             referencedColumns: ["id"]
           },
@@ -612,6 +633,13 @@ export type Database = {
             foreignKeyName: "transactions_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
+            referencedRelation: "listing_suspension_reasons"
+            referencedColumns: ["listing_id"]
+          },
+          {
+            foreignKeyName: "transactions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
             referencedRelation: "listings"
             referencedColumns: ["id"]
           },
@@ -677,7 +705,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      listing_suspension_reasons: {
+        Row: {
+          listing_id: string | null
+          suspended_reason: string | null
+        }
+        Insert: {
+          listing_id?: string | null
+          suspended_reason?: string | null
+        }
+        Update: {
+          listing_id?: string | null
+          suspended_reason?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       category_listing_counts: {

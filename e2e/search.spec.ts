@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { adminDb, ensureUser } from "./helpers";
 
 /**
  * 検索の結果そのものを確かめる(FR-04)。
@@ -89,11 +90,33 @@ test("すべて解除すると条件が消える", async ({ page }) => {
 });
 
 test("売却済みを含めると SOLD が並ぶ", async ({ page }) => {
-  await page.goto("/search");
-  await expect(page.getByText("SOLD")).toHaveCount(0);
+  // SOLD が1ページ目に来るかはシードデータの並び次第なので、
+  // 確実に見つかる専用の売却済み出品を用意してキーワードで絞る
+  const title = `SOLD確認の商品 ${Date.now()}`;
+  const sellerId = await ensureUser(`search-sold-${Date.now()}@example.com`, "売却確認");
+  await adminDb().from("listings").insert({
+    seller_id: sellerId,
+    title,
+    description: "売却済みの表示確認用です。",
+    category: "road",
+    condition: "good",
+    price: 50000,
+    delivery_method: "shipping",
+    shipping_from_pref: "13",
+    status: "sold",
+    published_at: new Date().toISOString(),
+  });
 
-  await page.goto("/search?include_sold=1");
-  await expect(page.getByText("SOLD").first()).toBeVisible({ timeout: 20_000 });
+  const q = encodeURIComponent(title);
+
+  // 既定では売却済みは出ない
+  await page.goto(`/search?q=${q}`);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("0件");
+
+  // 含めると SOLD バッジ付きで出る
+  await page.goto(`/search?q=${q}&include_sold=1`);
+  await expect(page.locator("article").first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("SOLD").first()).toBeVisible();
 });
 
 test("該当が無いときは、条件を消す導線が出る", async ({ page }) => {
@@ -126,7 +149,9 @@ test("範囲外のページ番号は最後のページとして扱う", async ({
   // 古いリンクを踏んでも「0件」で行き止まりにならない
   const response = await page.goto("/search?page=9999");
   expect(response?.status()).toBe(200);
-  await expect(page.getByRole("heading", { level: 1 })).not.toContainText("0件");
+  // 件数ラベルは「0件」のときだけ空き地になる。
+  // 「280件中」のように 0件 を内包する表記と区別するため span の文字で見る
+  await expect(page.getByRole("heading", { level: 1 }).locator("span")).not.toHaveText("0件");
   await expect(page.getByText("条件に合う商品が見つかりませんでした")).toHaveCount(0);
   await expect(page.locator("article").first()).toBeVisible();
 

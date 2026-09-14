@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { publishOverdueReviews } from "@/features/review/batch";
 import { cleanupStalePendingTransactions } from "@/features/transaction/webhook";
@@ -19,8 +20,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "設定エラー" }, { status: 500 });
   }
 
-  const authorization = request.headers.get("authorization");
-  if (authorization !== `Bearer ${secret}`) {
+  // 文字列比較だと一致した先頭部分の長さが応答時間に滲むため、
+  // 常に全体を比較する
+  const authorization = request.headers.get("authorization") ?? "";
+  const expected = `Bearer ${secret}`;
+  const authorized =
+    authorization.length === expected.length &&
+    timingSafeEqual(Buffer.from(authorization), Buffer.from(expected));
+  if (!authorized) {
     return NextResponse.json({ error: "認証に失敗しました" }, { status: 401 });
   }
 

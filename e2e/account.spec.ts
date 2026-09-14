@@ -47,6 +47,9 @@ test("プロフィールの変更が公開ページに出る", async ({ page }) 
   await page.click("#prefecture");
   await page.click('[role="option"]:has-text("大阪府")');
   await page.getByRole("button", { name: /保存|更新/ }).click();
+  // 保存(Server Action)が終わるのを待ってから遷移する。
+  // 待たずに遷移すると、保存コミット前に描画されたマイページを読み続けてしまう
+  await expect(page.getByText("プロフィールを更新しました")).toBeVisible({ timeout: 20_000 });
 
   // マイページの見出しに新しい表示名が出る
   await page.goto("/mypage");

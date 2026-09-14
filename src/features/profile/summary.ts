@@ -32,10 +32,10 @@ export async function getMyPageSummary(userId: string): Promise<MyPageSummary> {
   const [published, drafts, purchases, favorites, shipment, receipt] = await Promise.all([
     supabase
       .from("listings")
-      .select("*", options)
+      .select("id", options)
       .eq("seller_id", userId)
       .eq("status", "published"),
-    supabase.from("listings").select("*", options).eq("seller_id", userId).eq("status", "draft"),
+    supabase.from("listings").select("id", options).eq("seller_id", userId).eq("status", "draft"),
     supabase
       .from("transactions")
       .select("*", options)

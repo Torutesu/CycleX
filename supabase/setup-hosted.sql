@@ -5,7 +5,7 @@
 -- テーブル・権限・インデックス・Storage・初期データがすべて入る。
 -- CLI のインストールもログインも不要。
 --
--- 内容は supabase/migrations/ の9本 + seed.sql と同一。
+-- 内容は supabase/migrations/ の11本 + seed.sql と同一。
 -- このファイルは scripts/build-hosted-sql.mjs が生成する。直接編集しないこと。
 -- マイグレーションを足したら node scripts/build-hosted-sql.mjs を実行する。
 -- ============================================================
@@ -1029,6 +1029,86 @@ comment on function public.thread_summaries(uuid) is
 
 revoke execute on function public.thread_summaries(uuid) from public, anon, authenticated;
 grant execute on function public.thread_summaries(uuid) to service_role;
+
+
+-- ############################################################
+-- 20260101000010_touch_updated_at_search_path.sql
+-- ############################################################
+
+-- =============================================================
+-- touch_updated_at の search_path 固定
+--
+-- トリガー関数は呼び出し側の search_path で解決されるため、
+-- pg_temp などに同名関数を置かれるとそちらが実行されうる。
+-- 他の関数と同じく search_path を public に固定する。
+-- =============================================================
+
+create or replace function public.touch_updated_at()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  new.updated_at = now();
+  return new;
+end $$;
+
+
+-- ############################################################
+-- 20260101000011_hide_listing_suspension.sql
+-- ############################################################
+
+-- =============================================================
+-- listings.suspended_reason / status_before_suspend の非公開化
+--
+-- 非表示の理由は運営の内部情報であり、公開鍵(anon / authenticated)から
+-- 読める状態だった。出品者本人にだけ届ければよい情報なので、
+-- listings から列権限を外し、本人向けの読み取りはビュー経由にする。
+-- 列権限は行を区別できないため、
+-- 「自分の出品の理由だけ見える」はビューの WHERE で実現する。
+-- =============================================================
+
+-- テーブル全体の SELECT を引き上げ、公開してよい列だけを再許可する。
+-- select("*") は権限のある列へ展開されるため、アプリ側の記述は変えなくてよい。
+revoke select on public.listings from anon, authenticated;
+grant select (
+  id,
+  seller_id,
+  status,
+  category,
+  parts_subcategory,
+  title,
+  brand_id,
+  brand_other,
+  model_name,
+  model_year,
+  frame_size,
+  frame_size_cm,
+  component,
+  component_note,
+  mileage,
+  condition,
+  description,
+  price,
+  delivery_method,
+  shipping_from_pref,
+  meetup_pref,
+  favorites_count,
+  published_at,
+  created_at,
+  updated_at
+) on public.listings to anon, authenticated;
+
+-- 出品者本人(および service role = 管理画面)向けの理由の読み取り経路。
+-- ビューは所有者(postgres)の権限で実行されるため、WHERE の
+-- seller_id = auth.uid() がそのまま行の絞り込みになる。
+-- security_barrier で、呼び出し側の条件が WHERE より先に
+-- 他の行へ評価されるのを防ぐ。
+create or replace view public.listing_suspension_reasons
+with (security_barrier = on) as
+select l.id as listing_id, l.suspended_reason
+from public.listings l
+where l.seller_id = auth.uid();
+
+revoke select on public.listing_suspension_reasons from anon;
+grant select on public.listing_suspension_reasons to authenticated;
 
 
 -- ############################################################

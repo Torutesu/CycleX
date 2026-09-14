@@ -142,6 +142,46 @@ test("非公開の列はブラウザの鍵では読めない", async () => {
     expect(error, `${column} が読めてはいけない`).not.toBeNull();
   }
 
+  // listings の運営メモも直接は読めない(非表示理由・停止前の状態)
+  for (const column of ["suspended_reason", "status_before_suspend"]) {
+    const { error } = await db.from("listings").select(column).limit(1);
+    expect(error, `listings.${column} が読めてはいけない`).not.toBeNull();
+  }
+
+  // 出品者本人はビュー経由で自分の分だけ読める
+  const { data: suspended } = await adminDb()
+    .from("listings")
+    .insert({
+      seller_id: ownerId,
+      title: `非公開理由の確認 ${STAMP}`,
+      description: "非公開列の確認用です。",
+      category: "road",
+      condition: "good",
+      price: 50000,
+      delivery_method: "shipping",
+      shipping_from_pref: "13",
+      status: "suspended",
+      suspended_reason: "確認用の非表示理由",
+    })
+    .select("id")
+    .single();
+
+  const { data: ownReasons } = await db
+    .from("listing_suspension_reasons")
+    .select("suspended_reason")
+    .eq("listing_id", suspended!.id);
+  expect(ownReasons?.[0]?.suspended_reason, "本人は理由を読める").toBe("確認用の非表示理由");
+
+  // 他人には同じ行が返らない
+  const other = await userDb(OTHER);
+  const { data: othersReasons } = await other
+    .from("listing_suspension_reasons")
+    .select("suspended_reason")
+    .eq("listing_id", suspended!.id);
+  expect(othersReasons ?? [], "他人には理由が見えない").toHaveLength(0);
+
+  await adminDb().from("listings").delete().eq("id", suspended!.id);
+
   // 公開してよい列は読める
   const { data, error } = await db.from("users").select("id, display_name, prefecture").limit(1);
   expect(error).toBeNull();
@@ -284,7 +324,10 @@ test("外部サイトへ飛ばす next は無視される", async ({ page }) => 
     await page.fill("#password", TEST_PASSWORD);
     await page.click('button[type="submit"]:has-text("ログイン")');
     await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 20_000 });
-    expect(page.url(), next).toContain("localhost:3000");
+    // アプリのオリジンに留まること(外部サイトへ飛ばないこと)を見る。
+    // ポート番号を埋め込むと、別ポートで実行したときにだけ落ちる
+    const origin = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
+    expect(page.url(), next).toContain(origin);
   }
 });
 

@@ -54,13 +54,25 @@ export default async function MyListingsPage({
   const from = (page - 1) * PER_PAGE;
   const { data: rows } = await supabase
     .from("listings")
-    .select(
-      "id, status, title, price, created_at, published_at, suspended_reason, listing_images(path, position)",
-    )
+    .select("id, status, title, price, created_at, published_at, listing_images(path, position)")
     .eq("seller_id", user.id)
     .eq("status", activeTab)
     .order("created_at", { ascending: false })
     .range(from, from + PER_PAGE - 1);
+
+  // 非表示の理由は公開列ではないため、本人だけが読めるビューから取る
+  const suspendedIds = (rows ?? [])
+    .filter((row) => row.status === "suspended")
+    .map((row) => row.id);
+  const { data: reasonRows } = suspendedIds.length
+    ? await supabase
+        .from("listing_suspension_reasons")
+        .select("listing_id, suspended_reason")
+        .in("listing_id", suspendedIds)
+    : { data: [] };
+  const reasonOf = new Map(
+    (reasonRows ?? []).map((row) => [row.listing_id, row.suspended_reason] as const),
+  );
 
   const total = counts.get(activeTab) ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
@@ -176,9 +188,9 @@ export default async function MyListingsPage({
                       <div className="mt-1.5">
                         <Badge variant="destructive">運営により非公開</Badge>
                         {/* 理由が届かないと、出品者は何を直せばよいか分からない */}
-                        {row.suspended_reason && (
+                        {reasonOf.get(row.id) && (
                           <p className="mt-1 text-xs text-destructive">
-                            理由: {row.suspended_reason}
+                            理由: {reasonOf.get(row.id)}
                           </p>
                         )}
                       </div>

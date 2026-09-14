@@ -67,7 +67,9 @@ const { data: txActive } = await db
   .limit(1)
   .maybeSingle();
 
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch({
+  executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined,
+});
 
 async function session(email, width) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 2 });

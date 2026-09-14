@@ -290,7 +290,9 @@ test("写真を拡大して前後に送れる", async ({ page }) => {
 
 test("ページを送ると、見ている件数の範囲が変わる", async ({ page }) => {
   await page.goto("/search");
+  // ストリーミング中は結果が hidden の境界内にある。件数を見る前に表示を待つ
   const heading = page.getByRole("heading", { level: 1 });
+  await expect(heading).toBeVisible();
   const next = page.getByRole("link", { name: "次へ" });
   test.skip((await next.count()) === 0, "全件が1ページに収まっていて確認できない");
 

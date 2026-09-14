@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     // (残っていると HTML レポートの束ねられた JS が数千件の指摘になる)
     "playwright-report/**",
     "test-results/**",
+    // Supabase CLI がローカル起動時に展開する生成物
+    "supabase/.temp/**",
   ]),
 ]);
 

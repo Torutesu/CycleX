@@ -149,7 +149,9 @@ if (targets.length === 0) {
   process.exit(0);
 }
 
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch({
+  executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined,
+});
 const page = await browser.newPage({ viewport: { width: 512, height: 512 } });
 
 let done = 0;

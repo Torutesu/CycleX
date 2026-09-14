@@ -54,7 +54,7 @@ export const getListingDetail = cache(async function getListingDetail(
   const { data } = await supabase
     .from("listings")
     .select(
-      `id, seller_id, status, suspended_reason, category, parts_subcategory, title, model_name, model_year,
+      `id, seller_id, status, category, parts_subcategory, title, model_name, model_year,
        frame_size, frame_size_cm, component, component_note, mileage, condition, description,
        price, delivery_method, shipping_from_pref, meetup_pref, favorites_count, published_at,
        updated_at, brand_other,
@@ -67,6 +67,18 @@ export const getListingDetail = cache(async function getListingDetail(
 
   if (!data) return null;
 
+  // 非表示の理由は公開列ではないため、出品者本人だけが読める
+  // ビュー(listing_suspension_reasons)から取る。他人には空が返る。
+  let suspendedReason: string | null = null;
+  if (data.status === "suspended") {
+    const { data: reason } = await supabase
+      .from("listing_suspension_reasons")
+      .select("suspended_reason")
+      .eq("listing_id", id)
+      .maybeSingle();
+    suspendedReason = reason?.suspended_reason ?? null;
+  }
+
   const imagePaths = [...(data.listing_images ?? [])]
     .sort((a, b) => a.position - b.position)
     .map((image) => image.path);
@@ -75,7 +87,7 @@ export const getListingDetail = cache(async function getListingDetail(
     id: data.id,
     sellerId: data.seller_id,
     status: data.status as ListingStatus,
-    suspendedReason: data.suspended_reason,
+    suspendedReason,
     category: data.category,
     partsSubcategory: data.parts_subcategory,
     title: data.title,

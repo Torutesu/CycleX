@@ -301,7 +301,7 @@ export async function countListingsBySeller(sellerId: string): Promise<number> {
   const supabase = await createClient();
   const { count } = await supabase
     .from("listings")
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq("seller_id", sellerId)
     .in("status", ["published", "trading"]);
   return count ?? 0;
