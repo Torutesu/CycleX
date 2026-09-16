@@ -77,6 +77,27 @@ describe("publishSchema", () => {
     ).toBe(true);
   });
 
+  it("着払いは受渡地域なしで公開できる(発送元だけで足りる)", () => {
+    expect(publishSchema.safeParse(validInput({ deliveryMethod: "shipping_cod" })).success).toBe(
+      true,
+    );
+  });
+
+  it("着払いでも発送元は必須", () => {
+    const result = publishSchema.safeParse(
+      validInput({ deliveryMethod: "shipping_cod", shippingFromPref: null }),
+    );
+    expect(result.success).toBe(false);
+    if (!result.success) expect(errorPaths(result)).toContain("shippingFromPref");
+  });
+
+  it("受渡方法は既知の値のみ受け付ける", () => {
+    // optionalEnum は未知の値を null に落とすので、必須エラーとして現れる
+    const result = publishSchema.safeParse(validInput({ deliveryMethod: "cod" }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(errorPaths(result)).toContain("deliveryMethod");
+  });
+
   it("価格の境界値を検証する", () => {
     expect(publishSchema.safeParse(validInput({ price: 299 })).success).toBe(false);
     expect(publishSchema.safeParse(validInput({ price: 300 })).success).toBe(true);
@@ -147,6 +168,15 @@ describe("toListingRow", () => {
   it("配送のときは受渡地域を持たない", () => {
     const parsed = publishSchema.parse(validInput({ meetupPref: "27" }));
     expect(toListingRow(parsed).meetup_pref).toBeNull();
+  });
+
+  it("着払いも受渡地域を持たず、受渡方法はそのまま保存する", () => {
+    const parsed = publishSchema.parse(
+      validInput({ deliveryMethod: "shipping_cod", meetupPref: "27" }),
+    );
+    const row = toListingRow(parsed);
+    expect(row.delivery_method).toBe("shipping_cod");
+    expect(row.meetup_pref).toBeNull();
   });
 });
 

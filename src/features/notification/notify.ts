@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMail, findLastSentAt } from "@/lib/email/send";
 import { shouldThrottleMessageNotification } from "@/lib/email/kinds";
 import { formatDateTime, formatPrice } from "@/lib/utils";
+import { isCashOnDelivery } from "@/lib/constants";
 
 /**
  * FR-13 のメール通知フック。
@@ -20,6 +21,8 @@ type TransactionContext = {
   listingTitle: string;
   shippingNote: string | null;
   isInPerson: boolean;
+  /** 着払い。送料が CycleX の決済を通らないため、金額に触れる通知で必ず添える */
+  isCashOnDelivery: boolean;
 };
 
 /** 通知に必要な取引の情報をまとめて引く */
@@ -41,6 +44,7 @@ async function loadTransaction(transactionId: string): Promise<TransactionContex
     listingTitle: data.listings.title,
     shippingNote: data.shipping_note,
     isInPerson: data.listings.delivery_method === "in_person",
+    isCashOnDelivery: isCashOnDelivery(data.listings.delivery_method),
   };
 }
 
@@ -95,6 +99,10 @@ export async function notifyPaid(transactionId: string): Promise<void> {
         intro: "お支払いが完了しました。出品者からの発送・受渡のご連絡をお待ちください。",
         details,
         cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
+        // 上の「金額」に送料は含まれない。届いてから知らされるのを避ける
+        outro: tx.isCashOnDelivery
+          ? "この商品は着払いです。上記の金額に送料は含まれません。送料は商品の受け取り時に配送業者へお支払いください。"
+          : undefined,
       },
     }),
   ]);
@@ -118,7 +126,9 @@ export async function notifyShipped(transactionId: string): Promise<void> {
         : "出品者が商品を発送しました。",
       details,
       cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
-      outro: "商品を受け取ったら、取引画面から受取確認をお願いします。",
+      outro: tx.isCashOnDelivery
+        ? "この商品は着払いです。送料は受け取り時に配送業者へお支払いください。受け取られましたら、取引画面から受取確認をお願いします。"
+        : "商品を受け取ったら、取引画面から受取確認をお願いします。",
     },
   });
 }

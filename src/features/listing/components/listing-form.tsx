@@ -81,6 +81,19 @@ function focusField(key: string) {
 const NONE = "__none__";
 const BRAND_OTHER = "__other__";
 
+/**
+ * 受渡方法ごとの補足。
+ *
+ * 「送料込み」と「着払い」は出品者の受取額が変わる。選んでから気づくと
+ * 値付けをやり直すことになるため、選択中の意味をその場で出す。
+ */
+const DELIVERY_METHOD_HINTS: Record<string, string | undefined> = {
+  shipping: "送料を出品者が負担します。希望価格に送料を含めて設定してください。",
+  shipping_cod:
+    "送料を購入者が受け取り時に配送業者へ支払います。商品ページにもその旨を表示します。",
+  in_person: "購入者と直接会って引き渡します。受渡地域の選択が必要です。",
+};
+
 export type ListingFormDefaults = {
   id?: string;
   category: string;
@@ -637,7 +650,13 @@ export function ListingForm({
           </dl>
         )}
 
-        <Field id="deliveryMethod" label="受渡方法" required errors={fieldErrors.deliveryMethod}>
+        <Field
+          id="deliveryMethod"
+          label="受渡方法"
+          required
+          errors={fieldErrors.deliveryMethod}
+          hint={DELIVERY_METHOD_HINTS[values.deliveryMethod]}
+        >
           {(control) => (
             <Select value={values.deliveryMethod} onValueChange={(v) => set("deliveryMethod", v)}>
               <SelectTrigger id="deliveryMethod" {...control} className="h-11 w-full">

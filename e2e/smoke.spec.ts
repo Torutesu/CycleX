@@ -197,7 +197,8 @@ test("出品 → 検索でヒット → 詳細 → お気に入り", async ({ pa
   await page.fill("#description", LONG_DESCRIPTION);
   await page.fill("#price", "123456");
   await page.click("#deliveryMethod");
-  await page.click('[role="option"]:has-text("配送")');
+  // 「配送」だけだと送料込みと着払いの両方に当たるので、文言を最後まで指定する
+  await page.click('[role="option"]:has-text("配送(送料込み)")');
   await page.click("#shippingFromPref");
   await page.click('[role="option"]:has-text("東京都")');
 

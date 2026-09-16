@@ -108,7 +108,10 @@ for (let i = 0; i < COUNT; i += 1) {
   const condition = weighted(CONDITION_WEIGHTS);
   const seller = pick(users);
   const pref = seller.prefecture ?? String(randomInt(1, 47)).padStart(2, "0");
-  const delivery = Math.random() > 0.25 ? "shipping" : "in_person";
+  // 送料込みを多めに、着払いと対面をそれぞれ一定数混ぜる(画面確認用)
+  const deliveryRoll = Math.random();
+  const delivery =
+    deliveryRoll < 0.6 ? "shipping" : deliveryRoll < 0.8 ? "shipping_cod" : "in_person";
   const year = isParts
     ? null
     : randomInt(

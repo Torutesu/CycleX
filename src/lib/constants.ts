@@ -139,10 +139,44 @@ export type ComponentGrade = (typeof COMPONENTS)[number]["value"];
 
 export const DELIVERY_METHODS = [
   { value: "shipping", label: "配送(送料込み)" },
+  { value: "shipping_cod", label: "配送(着払い)" },
   { value: "in_person", label: "対面(手渡し)" },
 ] as const satisfies readonly Option[];
 
 export type DeliveryMethod = (typeof DELIVERY_METHODS)[number]["value"];
+
+/**
+ * 配送を伴うか(対面以外)。
+ *
+ * 発送連絡・受取確認・催促メールの文言はすべて「配送か対面か」で分かれる。
+ * 着払いも配送なので、`=== "shipping"` で判定すると着払いが対面側に
+ * 落ちてしまう。判定はこの関数を通す。
+ */
+export function isShippingMethod(method: string | null | undefined): boolean {
+  return method === "shipping" || method === "shipping_cod";
+}
+
+/**
+ * 送料を購入者が受け取り時に配送業者へ支払うか(着払い)。
+ *
+ * 着払いの送料は CycleX の決済を通らない。購入者が決済画面で見る金額と
+ * 実際の負担額が食い違うため、金額を出す画面では必ず注記を添える。
+ */
+export function isCashOnDelivery(method: string | null | undefined): boolean {
+  return method === "shipping_cod";
+}
+
+/**
+ * 価格に添える注記。送料が代金に含まれるかどうかを明示する。
+ *
+ * 出品側が受渡方法をどう選んでも、購入者が「この金額だけ払えばよいのか」を
+ * 取り違えないようにするためのもの。
+ */
+export function priceNote(method: string | null | undefined): string {
+  if (method === "shipping") return "送料込み・税込";
+  if (method === "shipping_cod") return "税込(送料は着払い)";
+  return "税込";
+}
 
 /** JIS X 0401 都道府県コード */
 export const PREFECTURES = [

@@ -49,3 +49,24 @@ describe("waitingNotice", () => {
     }
   });
 });
+
+describe("waitingNotice(着払い)", () => {
+  it("着払いも配送として扱い、お届け先を伝えるよう促す", () => {
+    const notice = waitingNotice("paid", "buyer", "shipping_cod", false);
+    // 対面側に落ちると「待ち合わせの相談」になり、発送されないまま止まる
+    expect(notice.title).toBe("お届け先をお伝えください");
+    expect(notice.showMessageLink).toBe(true);
+    expect(notice.detail).toContain("住所");
+  });
+
+  it("着払いのときは送料の支払い先を添える", () => {
+    const notice = waitingNotice("paid", "buyer", "shipping_cod", false);
+    expect(notice.detail).toContain("着払い");
+    expect(notice.detail).toContain("配送業者");
+  });
+
+  it("送料込みのときは着払いの案内を出さない", () => {
+    const notice = waitingNotice("paid", "buyer", "shipping", false);
+    expect(notice.detail).not.toContain("着払い");
+  });
+});

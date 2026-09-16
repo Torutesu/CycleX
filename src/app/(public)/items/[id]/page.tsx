@@ -41,6 +41,7 @@ import {
   PREFECTURES,
   isBikeCategory,
   labelOf,
+  priceNote,
   type ListingStatus,
 } from "@/lib/constants";
 
@@ -227,7 +228,7 @@ export default async function ItemDetailPage({
 
           <p className="mt-3 text-2xl font-bold tabular-nums">{formatPrice(listing.price)}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {listing.deliveryMethod === "shipping" ? "送料込み・税込" : "税込"}
+            {priceNote(listing.deliveryMethod)}
           </p>
 
           {/* 出品の新しさと注目度。中古品は価格だけでは判断しづらい */}

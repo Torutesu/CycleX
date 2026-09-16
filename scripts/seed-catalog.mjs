@@ -886,6 +886,10 @@ export function buildDescription({ brand, model, year, condition, delivery, pref
     );
   }
 
+  if (delivery === "shipping_cod") {
+    lines.push("送料は着払いでお願いします。");
+  }
+
   const closing = maybe(CLOSING, 0.6);
   if (closing) lines.push(closing);
 

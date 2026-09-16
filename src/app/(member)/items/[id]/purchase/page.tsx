@@ -11,7 +11,13 @@ import { PurchaseButton } from "@/features/transaction/components/purchase-butto
 import { canPurchase } from "@/features/listing/rules";
 import { listingImageUrl, hasVisibleImage } from "@/lib/images";
 import { formatPrice } from "@/lib/utils";
-import { DELIVERY_METHODS, PREFECTURES, labelOf } from "@/lib/constants";
+import {
+  DELIVERY_METHODS,
+  PREFECTURES,
+  isCashOnDelivery,
+  labelOf,
+  priceNote,
+} from "@/lib/constants";
 import { isDemoCheckout } from "@/lib/demo";
 import { arePaymentsDisabled } from "@/lib/env";
 
@@ -124,8 +130,17 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
           <span className="text-xl font-bold tabular-nums">{formatPrice(listing.price)}</span>
         </div>
         <p className="mt-1 text-right text-xs text-muted-foreground">
-          {listing.deliveryMethod === "shipping" ? "送料込み・税込" : "税込"}
+          {priceNote(listing.deliveryMethod)}
         </p>
+        {/* 着払いの送料は CycleX の決済を通らない。ここで言わないと、
+            購入者は「お支払い金額」だけで足りると受け取ってしまう */}
+        {isCashOnDelivery(listing.deliveryMethod) && (
+          <p className="mt-3 rounded-md bg-warning/15 px-3 py-2 text-xs leading-relaxed">
+            {/* 改行を入れると JSX がテキストを空白で連結して文中に隙間が出るため 1 行で書く */}
+            この商品は<strong className="font-medium">着払い</strong>
+            です。上記のお支払い金額に送料は含まれません。送料は商品の受け取り時に、配送業者へ直接お支払いください。
+          </p>
+        )}
       </section>
 
       <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-muted/50 p-3.5 text-xs text-muted-foreground">

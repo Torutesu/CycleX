@@ -9,6 +9,8 @@
  *
  * 表示だけを決める純粋な関数なのでテストで網羅する。
  */
+import { isCashOnDelivery } from "@/lib/constants";
+
 export type WaitingNotice = {
   title: string;
   detail?: string;
@@ -44,8 +46,9 @@ export function waitingNotice(
         }
       : {
           title: "お届け先をお伝えください",
-          detail:
-            "出品者が発送できるよう、メッセージでお届け先の住所・氏名・電話番号をお送りください。発送が済むと出品者から連絡があります。",
+          detail: isCashOnDelivery(deliveryMethod)
+            ? "出品者が発送できるよう、メッセージでお届け先の住所・氏名・電話番号をお送りください。この商品は着払いのため、送料は受け取り時に配送業者へお支払いください。"
+            : "出品者が発送できるよう、メッセージでお届け先の住所・氏名・電話番号をお送りください。発送が済むと出品者から連絡があります。",
           showMessageLink: true,
         };
   }
