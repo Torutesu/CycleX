@@ -183,11 +183,15 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 
 ### リリース
 
-| ドキュメント                                      | 内容                                                     |
-| ------------------------------------------------- | -------------------------------------------------------- |
-| [DEPLOY.md](docs/DEPLOY.md)                       | Supabase / Vercel への載せ方                             |
-| [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | 公開前チェックリスト(済 / 本番待ち / 甲の支給待ちの区別) |
-| [ops/RUNBOOK.md](docs/ops/RUNBOOK.md)             | 障害時の一次対応(Sentry の設定とアラート条件を含む)      |
+| ドキュメント                                      | 内容                                                       |
+| ------------------------------------------------- | ---------------------------------------------------------- |
+| [DEPLOY.md](docs/DEPLOY.md)                       | Supabase / Vercel への載せ方                               |
+| [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | 公開前チェックリスト(済 / 本番待ち / 甲の支給待ちの区別)   |
+| [ops/RUNBOOK.md](docs/ops/RUNBOOK.md)             | 障害時の一次対応(Sentry の設定とアラート条件を含む)        |
+| [ops/OPERATIONS.md](docs/ops/OPERATIONS.md)       | 平常時の運営業務(振込・返金・通報対応。対象外機能の手作業) |
+| [DEMO_DEPLOY.md](docs/DEMO_DEPLOY.md)             | クライアントに触ってもらうデモ環境の作り方                 |
+| [CLIENT_REQUEST.md](docs/CLIENT_REQUEST.md)       | 甲への依頼一覧(支給物・アカウント)                         |
+| [REVIEW_NOTES.md](docs/REVIEW_NOTES.md)           | クライアント配布用のレビュー案内文                         |
 
 ### レビュー(`docs/review/`)
 
