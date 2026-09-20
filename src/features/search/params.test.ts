@@ -180,11 +180,13 @@ describe("partsSubcategoriesForKeyword", () => {
 
 describe("brandIdsForKeyword", () => {
   const brands = [
-    { id: "b-pinarello", name: "Pinarello" },
-    { id: "b-colnago", name: "Colnago" },
-    { id: "b-shimano", name: "Shimano" },
-    { id: "b-louis", name: "LOUIS GARNEAU" },
-    { id: "b-trek", name: "Trek" },
+    { id: "b-pinarello", name: "Pinarello", kana: "ピナレロ" },
+    { id: "b-colnago", name: "COLNAGO", kana: "コルナゴ" },
+    { id: "b-shimano", name: "Shimano", kana: "シマノ" },
+    { id: "b-louis", name: "Louis Garneau", kana: "ルイガノ" },
+    { id: "b-trek", name: "Trek", kana: "トレック" },
+    { id: "b-bridgestone", name: "Bridgestone", kana: "ブリヂストン" },
+    { id: "b-noname", name: "Zerode", kana: null },
   ];
 
   it("英字表記でそのまま一致する", () => {
@@ -192,21 +194,31 @@ describe("brandIdsForKeyword", () => {
     expect(brandIdsForKeyword("trek", brands)).toEqual(["b-trek"]);
   });
 
-  it("カタカナ表記を英字表記に読み替える", () => {
+  it("カナ読みでも一致する", () => {
     expect(brandIdsForKeyword("ピナレロ", brands)).toEqual(["b-pinarello"]);
     expect(brandIdsForKeyword("コルナゴ", brands)).toEqual(["b-colnago"]);
     expect(brandIdsForKeyword("シマノ", brands)).toEqual(["b-shimano"]);
   });
 
-  it("空白入りのブランド名も読み替えられる", () => {
+  it("空白入りのブランド名もカナで引ける", () => {
     expect(brandIdsForKeyword("ルイガノ", brands)).toEqual(["b-louis"]);
+  });
+
+  it("略称・表記ゆれも読み替える", () => {
+    // 「ヂ」を「ジ」で打つ人が多い
+    expect(brandIdsForKeyword("ブリジストン", brands)).toEqual(["b-bridgestone"]);
   });
 
   it("前方一致でも拾う", () => {
     expect(brandIdsForKeyword("ピナ", brands)).toEqual(["b-pinarello"]);
   });
 
-  it("1 文字の語では読み替えない", () => {
+  it("カナが未登録のブランドは英字でだけ引ける", () => {
+    expect(brandIdsForKeyword("Zerode", brands)).toEqual(["b-noname"]);
+    expect(brandIdsForKeyword("ゼロード", brands)).toEqual([]);
+  });
+
+  it("1 文字の語ではカナを見ない(当たりすぎるため)", () => {
     expect(brandIdsForKeyword("ピ", brands)).toEqual([]);
   });
 
@@ -217,39 +229,47 @@ describe("brandIdsForKeyword", () => {
 });
 
 describe("brandNamesForKeyword", () => {
-  const names = ["Pinarello", "Colnago", "Shimano", "LOUIS GARNEAU", "Trek"];
+  const brands = [
+    { name: "Pinarello", kana: "ピナレロ" },
+    { name: "COLNAGO", kana: "コルナゴ" },
+    { name: "Shimano", kana: "シマノ" },
+    { name: "Louis Garneau", kana: "ルイガノ" },
+    { name: "Trek", kana: "トレック" },
+  ];
 
   it("カタカナの入力途中でも英字のブランドを出す", () => {
-    expect(brandNamesForKeyword("ピナ", names)).toEqual(["Pinarello"]);
-    expect(brandNamesForKeyword("ルイガノ", names)).toEqual(["LOUIS GARNEAU"]);
+    expect(brandNamesForKeyword("ピナ", brands)).toEqual(["Pinarello"]);
+    expect(brandNamesForKeyword("ルイガノ", brands)).toEqual(["Louis Garneau"]);
   });
 
   it("英字はそのまま前方一致でも拾う", () => {
-    expect(brandNamesForKeyword("shim", names)).toEqual(["Shimano"]);
+    expect(brandNamesForKeyword("shim", brands)).toEqual(["Shimano"]);
   });
 
   it("候補に出た語で検索しても 0 件にならない(同じ判定を使う)", () => {
-    const brands = names.map((name, index) => ({ id: `b${index}`, name }));
-    for (const name of brandNamesForKeyword("ピナ", names)) {
-      expect(brandIdsForKeyword(name, brands).length).toBeGreaterThan(0);
+    const withIds = brands.map((brand, index) => ({ id: `b${index}`, ...brand }));
+    for (const name of brandNamesForKeyword("ピナ", brands)) {
+      expect(brandIdsForKeyword(name, withIds).length).toBeGreaterThan(0);
     }
   });
 
   it("関係ない語では何も出さない", () => {
-    expect(brandNamesForKeyword("ロードバイク", names)).toEqual([]);
-    expect(brandNamesForKeyword("", names)).toEqual([]);
+    expect(brandNamesForKeyword("ロードバイク", brands)).toEqual([]);
+    expect(brandNamesForKeyword("", brands)).toEqual([]);
   });
 });
 
 describe("日本語入力のゆれ", () => {
   const brands = [
-    { id: "b1", name: "Pinarello" },
-    { id: "b2", name: "Trek" },
+    { id: "b1", name: "Pinarello", kana: "ピナレロ" },
+    { id: "b2", name: "Trek", kana: "トレック" },
   ];
 
   it("全角で打たれた英字でもブランドに当たる", () => {
     expect(brandIdsForKeyword("ＴＲＥＫ", brands)).toEqual(["b2"]);
-    expect(brandNamesForKeyword("Ｐｉｎａ", ["Pinarello"])).toEqual(["Pinarello"]);
+    expect(brandNamesForKeyword("Ｐｉｎａ", [{ name: "Pinarello", kana: "ピナレロ" }])).toEqual([
+      "Pinarello",
+    ]);
   });
 
   it("ひらがなで打たれても読み替えに当たる", () => {

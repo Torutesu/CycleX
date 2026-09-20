@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Field } from "@/components/form/field";
+import { BrandSelect, BRAND_OTHER } from "@/features/listing/components/brand-select";
 import { ImageUploader } from "@/features/listing/components/image-uploader";
 import { useFormBackup } from "@/features/listing/components/use-form-backup";
 import { saveDraft, publishListing } from "@/features/listing/actions";
@@ -35,6 +36,7 @@ import {
   isBikeCategory,
   modelYearMax,
 } from "@/lib/constants";
+import { type BrandOption } from "@/features/search/params";
 import { formatPrice } from "@/lib/utils";
 
 /**
@@ -73,7 +75,6 @@ function focusField(key: string) {
 }
 
 const NONE = "__none__";
-const BRAND_OTHER = "__other__";
 
 export type ListingFormDefaults = {
   id?: string;
@@ -100,7 +101,7 @@ export type ListingFormDefaults = {
 
 type ListingFormProps = {
   userId: string;
-  brands: { id: string; name: string }[];
+  brands: BrandOption[];
   feeRate: number;
   defaults: ListingFormDefaults;
   /** 下書き保存を出すか(公開中の商品の編集では出さない) */
@@ -342,20 +343,20 @@ export function ListingForm({
           />
         </Field>
 
-        <Field id="brandId" label="ブランド" required errors={fieldErrors.brandId}>
-          <Select value={values.brandId} onValueChange={(v) => set("brandId", v)}>
-            <SelectTrigger id="brandId" className="h-11 w-full">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              {brands.map((brand) => (
-                <SelectItem key={brand.id} value={brand.id}>
-                  {brand.name}
-                </SelectItem>
-              ))}
-              <SelectItem value={BRAND_OTHER}>その他(自由入力)</SelectItem>
-            </SelectContent>
-          </Select>
+        <Field
+          id="brandId"
+          label="ブランド"
+          required
+          hint="一覧に無いメーカーは「その他」で入力できます"
+          errors={fieldErrors.brandId}
+        >
+          <BrandSelect
+            id="brandId"
+            brands={brands}
+            value={values.brandId}
+            onChange={(v) => set("brandId", v)}
+            hasError={Boolean(fieldErrors.brandId?.length)}
+          />
         </Field>
 
         {values.brandId === BRAND_OTHER && (

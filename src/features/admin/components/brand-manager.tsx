@@ -12,7 +12,13 @@ import { SubmitButton } from "@/components/form/submit-button";
 import { createBrand, renameBrand, toggleBrandActive } from "@/features/admin/actions";
 import { formatDate } from "@/lib/utils";
 
-type Brand = { id: string; name: string; is_active: boolean; created_at: string };
+type Brand = {
+  id: string;
+  name: string;
+  name_kana: string | null;
+  is_active: boolean;
+  created_at: string;
+};
 
 /** AD-06: ブランドマスタの追加・改名・有効/無効切り替え */
 export function BrandManager({ brands }: { brands: Brand[] }) {
@@ -55,13 +61,21 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
             <AlertDescription>{createError}</AlertDescription>
           </Alert>
         )}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Input
             name="name"
             maxLength={80}
             required
             placeholder="例: Trek"
             aria-label="ブランド名"
+            className="h-11 max-w-xs"
+          />
+          {/* カナは出品フォームと検索の絞り込みに使う(「とれっく」で引けるように) */}
+          <Input
+            name="nameKana"
+            maxLength={80}
+            placeholder="例: トレック"
+            aria-label="カナ読み"
             className="h-11 max-w-xs"
           />
           <SubmitButton className="h-11" pendingLabel="追加中...">
@@ -88,7 +102,7 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
           {brands.map((brand) => (
             <li key={brand.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
               {editingId === brand.id ? (
-                <form action={handleRename} className="flex flex-1 items-center gap-2">
+                <form action={handleRename} className="flex flex-1 flex-wrap items-center gap-2">
                   <input type="hidden" name="brandId" value={brand.id} />
                   <Input
                     name="name"
@@ -98,6 +112,14 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
                     aria-label="ブランド名"
                     className="h-11 max-w-xs"
                     autoFocus
+                  />
+                  <Input
+                    name="nameKana"
+                    defaultValue={brand.name_kana ?? ""}
+                    maxLength={80}
+                    placeholder="カナ読み"
+                    aria-label="カナ読み"
+                    className="h-11 max-w-xs"
                   />
                   <Button type="submit" size="icon" className="size-11" aria-label="保存">
                     <Check className="size-4" aria-hidden />
@@ -115,7 +137,14 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
                 </form>
               ) : (
                 <>
-                  <span className="flex-1 text-sm font-medium">{brand.name}</span>
+                  <span className="flex-1 text-sm font-medium">
+                    {brand.name}
+                    {brand.name_kana && (
+                      <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                        {brand.name_kana}
+                      </span>
+                    )}
+                  </span>
                   {!brand.is_active && <Badge variant="secondary">無効</Badge>}
                   <span className="text-xs tabular-nums text-muted-foreground">
                     {formatDate(brand.created_at)}

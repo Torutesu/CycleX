@@ -12,5 +12,8 @@ export const revalidate = 3600;
 
 export async function GET() {
   const brands = await getBrandOptions();
-  return NextResponse.json({ brands: brands.map((brand) => brand.name) });
+  // 候補の絞り込みはカナでも行うため、読みも一緒に渡す
+  return NextResponse.json({
+    brands: brands.map((brand) => ({ name: brand.name, kana: brand.kana })),
+  });
 }

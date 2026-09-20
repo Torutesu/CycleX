@@ -41,11 +41,12 @@ erDiagram
 
 ### brands(ブランドマスタ)
 
-| カラム | 型 | 制約 |
-|---|---|---|
-| id | uuid | PK |
-| name | text | UNIQUE NOT NULL |
-| is_active | boolean | NOT NULL default true |
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| id | uuid | PK | |
+| name | text | UNIQUE NOT NULL | 英字表記 |
+| name_kana | text | | カナ読み。「トレック」「ぴなれろ」から引くために持つ |
+| is_active | boolean | NOT NULL default true | |
 
 ### listings(商品)
 

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Clock, Search, Tag, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CATEGORIES } from "@/lib/constants";
-import { brandNamesForKeyword } from "@/features/search/params";
+import { brandNamesForKeyword, type BrandOption } from "@/features/search/params";
 import { cn } from "@/lib/utils";
 import { clearHistory, pushHistory, readHistory } from "@/components/layout/search-history";
 
@@ -21,8 +21,10 @@ type Suggestion = {
   kind: "history" | "brand" | "category";
 };
 
-/** ブランド名は一度取れば十分なので、画面をまたいで使い回す */
-let brandCache: string[] | null = null;
+type BrandSuggestion = Pick<BrandOption, "name" | "kana">;
+
+/** ブランド一覧は一度取れば十分なので、画面をまたいで使い回す */
+let brandCache: BrandSuggestion[] | null = null;
 
 function normalize(value: string): string {
   return value.toLowerCase().replace(/[\s　]/g, "");
@@ -49,7 +51,7 @@ export function SearchBar({ className, placeholder = "ブランド・車種で�
   const [history, setHistory] = useState<string[]>(() =>
     typeof window === "undefined" ? [] : readHistory(),
   );
-  const [brands, setBrands] = useState<string[]>(brandCache ?? []);
+  const [brands, setBrands] = useState<BrandSuggestion[]>(brandCache ?? []);
   const [active, setActive] = useState(-1);
 
   // 検索条件が変わったら入力も追従させる(描画中の調整。effect で書くと二度描画になる)
@@ -65,7 +67,7 @@ export function SearchBar({ className, placeholder = "ブランド・車種で�
     let alive = true;
     fetch("/api/brands")
       .then((response) => (response.ok ? response.json() : { brands: [] }))
-      .then((data: { brands?: string[] }) => {
+      .then((data: { brands?: BrandSuggestion[] }) => {
         brandCache = data.brands ?? [];
         if (alive) setBrands(brandCache);
       })

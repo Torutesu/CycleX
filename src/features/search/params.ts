@@ -181,61 +181,34 @@ export function categoriesForKeyword(word: string): string[] {
   return [...matched];
 }
 
+/** 絞り込みや候補に使うブランド。カナ読みは brands.name_kana から来る */
+export type BrandOption = { id: string; name: string; kana: string | null };
+
 /**
- * ブランド名の読み替え。左が入力(カタカナ)、右が brands.name に含まれる表記。
+ * ブランド名の略称・表記ゆれ。左が入力、右が brands.name の表記。
  *
- * ブランドは listings.brand_id の外部キーで持っているため、
- * listings 側の ILIKE では拾えず、ブランド名で探されると 0 件になってしまう。
- * さらに brands.name は英字表記なので、日本語で入力されても一致しない。
+ * 正式なカナ読みは brands.name_kana に持たせてあるので、
+ * ここに置くのは読みから素直に導けない呼び方だけにする。
  */
-const BRAND_ALIASES: Record<string, string> = {
-  ピナレロ: "Pinarello",
-  コルナゴ: "Colnago",
-  ビアンキ: "Bianchi",
-  キャノンデール: "Cannondale",
-  キャニオン: "Canyon",
-  サーヴェロ: "Cervélo",
-  サーベロ: "Cervélo",
-  ジャイアント: "Giant",
-  メリダ: "Merida",
-  トレック: "Trek",
-  スペシャライズド: "Specialized",
+const BRAND_NICKNAMES: Record<string, string> = {
   スペシャ: "Specialized",
-  スコット: "Scott",
-  ジオス: "GIOS",
-  フジ: "FUJI",
-  ラレー: "RALEIGH",
-  ブロンプトン: "Brompton",
-  ダホン: "DAHON",
-  ターン: "tern",
-  アンカー: "ANCHOR",
-  ブリヂストン: "BRIDGESTONE",
-  ブリジストン: "BRIDGESTONE",
-  パナソニック: "Panasonic",
-  ヤマハ: "YAMAHA",
-  シマノ: "Shimano",
-  カンパニョーロ: "Campagnolo",
   カンパ: "Campagnolo",
-  スラム: "SRAM",
-  マビック: "MAVIC",
-  フルクラム: "FULCRUM",
-  ネスト: "NESTO",
-  コーダーブルーム: "KhodaaBloom",
-  ルイガノ: "LOUIS GARNEAU",
-  ビーエムシー: "BMC",
+  ブリジストン: "Bridgestone",
+  アンカー: "ANCHOR",
+  サーベロ: "Cervélo",
+  メルクス: "Eddy Merckx",
+  エスワークス: "S-WORKS",
+  コーダブルーム: "Khodaa-Bloom",
+  ルイガノー: "Louis Garneau",
 };
 
 /**
  * キーワードに一致するブランドの id。該当が無ければ空配列。
  *
- * 英字表記はそのまま部分一致で、カタカナ表記は読み替えてから照合する。
- * 1 文字だけの語は誤爆が多いので読み替えの対象にしない。
+ * 英字表記・カナ読みのどちらで打たれても拾う。
  */
-export function brandIdsForKeyword(
-  word: string,
-  brands: readonly { id: string; name: string }[],
-): string[] {
-  return brands.filter((brand) => brandMatches(word, brand.name)).map((brand) => brand.id);
+export function brandIdsForKeyword(word: string, brands: readonly BrandOption[]): string[] {
+  return brands.filter((brand) => brandMatches(word, brand)).map((brand) => brand.id);
 }
 
 /**
@@ -243,25 +216,35 @@ export function brandIdsForKeyword(
  * 結果の絞り込みと同じ読み替えを通すので、
  * 候補に出た語で検索して 0 件になることがない。
  */
-export function brandNamesForKeyword(word: string, names: readonly string[]): string[] {
-  return names.filter((name) => brandMatches(word, name));
+export function brandNamesForKeyword(
+  word: string,
+  brands: readonly Pick<BrandOption, "name" | "kana">[],
+): string[] {
+  return brands.filter((brand) => brandMatches(word, brand)).map((brand) => brand.name);
 }
 
-/** 入力語が、このブランド名を指しているか */
-function brandMatches(word: string, brandName: string): boolean {
+/**
+ * 入力語が、このブランドを指しているか。
+ *
+ * 英字表記は部分一致。カナは 1 文字だと当たりすぎるので 2 文字から見る
+ * (「ス」で数十件出ても選べない)。
+ */
+export function brandMatches(word: string, brand: Pick<BrandOption, "name" | "kana">): boolean {
   const key = normalize(word);
   if (key.length === 0) return false;
 
-  const terms = new Set<string>([key]);
-  if (key.length >= 2) {
-    for (const [kana, name] of Object.entries(BRAND_ALIASES)) {
-      const alias = normalize(kana);
-      if (alias.includes(key) || key.includes(alias)) terms.add(normalize(name));
-    }
-  }
+  const name = normalize(brand.name);
+  if (name.includes(key)) return true;
+  if (key.length < 2) return false;
 
-  const target = normalize(brandName);
-  return [...terms].some((term) => target.includes(term));
+  const kana = brand.kana ? normalize(brand.kana) : "";
+  if (kana.includes(key)) return true;
+
+  // 略称・表記ゆれ(「スペシャ」「ブリジストン」)
+  return Object.entries(BRAND_NICKNAMES).some(([nickname, brandName]) => {
+    const alias = normalize(nickname);
+    return (alias.includes(key) || key.includes(alias)) && name === normalize(brandName);
+  });
 }
 
 /** キーワードに対応するパーツ種別の値。該当が無ければ空配列 */

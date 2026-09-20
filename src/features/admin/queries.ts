@@ -388,7 +388,7 @@ export async function listBrands() {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("brands")
-    .select("id, name, is_active, created_at")
+    .select("id, name, name_kana, is_active, created_at")
     .order("name");
   return data ?? [];
 }

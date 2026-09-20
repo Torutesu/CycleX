@@ -46,7 +46,7 @@ ${readFileSync(`${migrationsDir}/${name}`, "utf8").trimEnd()}
 parts.push(`
 
 -- ############################################################
--- 初期データ(ブランド一覧) / seed.sql
+-- 初期データ / seed.sql
 -- ############################################################
 
 ${readFileSync(`${root}supabase/seed.sql`, "utf8").trimEnd()}

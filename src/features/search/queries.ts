@@ -9,6 +9,7 @@ import {
   keywordVariants,
   partsSubcategoriesForKeyword,
   splitKeywords,
+  type BrandOption,
   type SearchParams,
 } from "@/features/search/params";
 import { CATEGORIES, type ListingStatus } from "@/lib/constants";
@@ -64,6 +65,9 @@ export function toCard(row: ListingRow): ListingCardData {
   };
 }
 
+/** 1語あたり、検索条件に足すブランドの上限 */
+const BRAND_MATCH_LIMIT = 30;
+
 export type SearchResult = {
   items: ListingCardData[];
   total: number;
@@ -93,7 +97,7 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
 
   const words = splitKeywords(params.q);
   // ブランドは外部キーなので listings 側の ILIKE では拾えない。
-  // 30 件程度の小さな表なので一度だけ引いて、語ごとに id へ読み替える。
+  // 200 件程度の小さな表なので一度だけ引いて、語ごとに id へ読み替える。
   const brands = words.length > 0 ? await getBrandOptions() : [];
 
   // キーワード: 語ごとに AND、各語はタイトル/説明/モデル名/自由入力ブランドの OR。
@@ -120,7 +124,9 @@ export async function searchListings(params: SearchParams): Promise<SearchResult
       conditions.push(`parts_subcategory.in.(${subcategories.join(",")})`);
     }
 
-    const brandIds = brandIdsForKeyword(word, brands);
+    // 「ヴァ」のような短い語だと何十件も当たる。URL が伸びすぎないよう頭で切る
+    // (それだけ広い語なら、本文の部分一致のほうで拾えている)
+    const brandIds = brandIdsForKeyword(word, brands).slice(0, BRAND_MATCH_LIMIT);
     if (brandIds.length > 0) conditions.push(`brand_id.in.(${brandIds.join(",")})`);
 
     query = query.or(conditions.join(","));
@@ -255,16 +261,14 @@ export async function getListingsBySeller(
  * 検索フィルタに出すブランド一覧。
  * 同じリクエストの中でフィルタ表示とキーワード読み替えの両方から呼ばれるため memo 化する。
  */
-export const getBrandOptions = cache(async function getBrandOptions(): Promise<
-  { id: string; name: string }[]
-> {
+export const getBrandOptions = cache(async function getBrandOptions(): Promise<BrandOption[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("brands")
-    .select("id, name")
+    .select("id, name, name_kana")
     .eq("is_active", true)
     .order("name");
-  return data ?? [];
+  return (data ?? []).map((row) => ({ id: row.id, name: row.name, kana: row.name_kana }));
 });
 
 /**

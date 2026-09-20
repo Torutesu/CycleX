@@ -14,7 +14,12 @@ import {
 } from "@/components/ui/select";
 import { FilterPanel } from "@/features/search/components/filter-panel";
 import { useSearchNavigation } from "@/features/search/components/search-transition";
-import { toQueryString, hasActiveFilters, type SearchParams } from "@/features/search/params";
+import {
+  toQueryString,
+  hasActiveFilters,
+  type BrandOption,
+  type SearchParams,
+} from "@/features/search/params";
 import {
   CATEGORIES,
   CONDITIONS,
@@ -28,7 +33,7 @@ import type { SortOption } from "@/lib/constants";
 
 type Props = {
   params: SearchParams;
-  brands: { id: string; name: string }[];
+  brands: BrandOption[];
 };
 
 /** スマホ用の絞り込みトリガー(ボトムシート) */
@@ -103,7 +108,7 @@ export function ActiveFilterChips({
   brands,
 }: {
   params: SearchParams;
-  brands: { id: string; name: string }[];
+  brands: BrandOption[];
 }) {
   const { navigate } = useSearchNavigation();
   if (!hasActiveFilters(params)) return null;

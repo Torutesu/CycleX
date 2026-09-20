@@ -321,6 +321,17 @@ const brandNameSchema = z
   .min(1, "ブランド名を入力してください")
   .max(80, "ブランド名は80文字以内で入力してください");
 
+/**
+ * カナ読み。検索とフォームの絞り込みで使うので、
+ * ひらがな・英字が混ざらないようカタカナに限る(未入力は許す)。
+ */
+const brandKanaSchema = z
+  .string()
+  .trim()
+  .max(80, "カナ読みは80文字以内で入力してください")
+  .regex(/^[ァ-ヶー・\s]*$/u, "カナ読みは全角カタカナで入力してください")
+  .transform((value) => (value.length > 0 ? value : null));
+
 export async function createBrand(
   _prev: ActionResult<undefined> | null,
   formData: FormData,
@@ -331,11 +342,15 @@ export async function createBrand(
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? "入力内容を確認してください");
     }
+    const kana = brandKanaSchema.safeParse(formValue(formData, "nameKana"));
+    if (!kana.success) {
+      return fail(kana.error.issues[0]?.message ?? "入力内容を確認してください");
+    }
 
     const supabase = createAdminClient();
     const { data: created, error } = await supabase
       .from("brands")
-      .insert({ name: parsed.data })
+      .insert({ name: parsed.data, name_kana: kana.data })
       .select("id")
       .single();
 
@@ -368,15 +383,23 @@ export async function renameBrand(
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? "入力内容を確認してください");
     }
+    const kana = brandKanaSchema.safeParse(formValue(formData, "nameKana"));
+    if (!kana.success) {
+      return fail(kana.error.issues[0]?.message ?? "入力内容を確認してください");
+    }
 
     const supabase = createAdminClient();
-    const { error } = await supabase.from("brands").update({ name: parsed.data }).eq("id", brandId);
+    const { error } = await supabase
+      .from("brands")
+      .update({ name: parsed.data, name_kana: kana.data })
+      .eq("id", brandId);
 
     if (error) throw new AppError("ブランド名の変更に失敗しました。");
 
     await recordAdminAction(admin.id, "rename_brand", "brand", brandId, parsed.data);
 
     revalidatePath("/admin/brands");
+    revalidatePath("/sell");
     return ok();
   } catch (error) {
     return fail(toUserMessage(error));

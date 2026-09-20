@@ -5,7 +5,7 @@
 -- テーブル・権限・インデックス・Storage・初期データがすべて入る。
 -- CLI のインストールもログインも不要。
 --
--- 内容は supabase/migrations/ の11本 + seed.sql と同一。
+-- 内容は supabase/migrations/ の12本 + seed.sql と同一。
 -- このファイルは scripts/build-hosted-sql.mjs が生成する。直接編集しないこと。
 -- マイグレーションを足したら node scripts/build-hosted-sql.mjs を実行する。
 -- ============================================================
@@ -1112,7 +1112,249 @@ grant select on public.listing_suspension_reasons to authenticated;
 
 
 -- ############################################################
--- 初期データ(ブランド一覧) / seed.sql
+-- 20260101000012_brand_master.sql
+-- ############################################################
+
+-- =============================================================
+-- ブランドマスタの整備(FR-03: 出品フォームのメーカー選択)
+--
+-- ロード/クロス/MTB/e-bike の主要メーカーを一括で登録する。
+-- あわせてカナ読み(name_kana)を持たせる。英字表記しか無いと
+-- 「ぴなれろ」「メリダ」と打った人に候補を出せず、
+-- 検索でも 0 件になってしまうため。
+--
+-- 何度流しても同じ結果になるようにしてある。
+-- =============================================================
+
+alter table public.brands add column if not exists name_kana text;
+
+-- -------------------------------------------------------------
+-- 表記ゆれのある既存行を、下のマスタと同じ綴りへ寄せる。
+-- listings.brand_id が参照しているので、消して入れ直さず改名で合わせる。
+-- 寄せ先がすでにある場合は触らない(同名衝突で失敗させない)。
+-- -------------------------------------------------------------
+with renames(from_name, to_name) as (
+  values
+    ('FUJI', 'Fuji'),
+    ('Merida', 'MERIDA'),
+    ('Colnago', 'COLNAGO'),
+    ('RALEIGH', 'Raleigh'),
+    ('KhodaaBloom', 'Khodaa-Bloom'),
+    ('LOUIS GARNEAU', 'Louis Garneau'),
+    ('YAMAHA', 'Yamaha'),
+    ('BRIDGESTONE', 'Bridgestone')
+)
+update public.brands b
+set name = r.to_name
+from renames r
+where b.name = r.from_name
+  and not exists (select 1 from public.brands x where x.name = r.to_name);
+
+-- -------------------------------------------------------------
+-- マスタ本体。既存行はカナが空のときだけ補う
+-- (管理画面で直したカナを、流し直しで上書きしないため)。
+-- 有効/無効も既存の設定を尊重する。
+-- -------------------------------------------------------------
+insert into public.brands (name, name_kana) values
+  ('Airdrop', 'エアドロップ'),
+  ('ALAN', 'アラン'),
+  ('Alchemy', 'アルケミー'),
+  ('All-City', 'オールシティ'),
+  ('Allied Cycle Works', 'アライド'),
+  ('ANCHOR', 'アンカー'),
+  ('ARAYA', 'アラヤ'),
+  ('ARC8', 'アークエイト'),
+  ('Argon 18', 'アルゴンエイティーン'),
+  ('Argonaut', 'アーゴノート'),
+  ('Ari', 'アリ'),
+  ('Atherton Bikes', 'アサートン'),
+  ('Author', 'アーサー'),
+  ('Avanti', 'アバンティ'),
+  ('AVEDIO', 'エヴァディオ'),
+  ('Aventon', 'アベントン'),
+  ('AZZURRI', 'アッズーリ'),
+  ('Banshee', 'バンシー'),
+  ('BASSO', 'バッソ'),
+  ('Baum', 'バウム'),
+  ('Bergamont', 'ベルガモン'),
+  ('BH', 'ビーエイチ'),
+  ('Bianchi', 'ビアンキ'),
+  ('BMC', 'ビーエムシー'),
+  ('Boardman', 'ボードマン'),
+  ('BOMA', 'ボーマ'),
+  ('BOTTECCHIA', 'ボッテキア'),
+  ('Breezer', 'ブリーザー'),
+  ('Bridgestone', 'ブリヂストン'),
+  ('Brompton', 'ブロンプトン'),
+  ('CALAMITA', 'カラミータ'),
+  ('Campagnolo', 'カンパニョーロ'),
+  ('Canfield', 'キャンフィールド'),
+  ('Cannondale', 'キャノンデール'),
+  ('Canyon', 'キャニオン'),
+  ('CARRERA', 'カレラ'),
+  ('Cervélo', 'サーヴェロ'),
+  ('Cherubim', 'ケルビム'),
+  ('Chromag', 'クロマグ'),
+  ('Cinelli', 'チネリ'),
+  ('Cipollini', 'チポッリーニ'),
+  ('COLNAGO', 'コルナゴ'),
+  ('Co-Motion', 'コモーション'),
+  ('Commencal', 'コメンサル'),
+  ('CORRATEC', 'コラテック'),
+  ('Cotic', 'コティック'),
+  ('Cube', 'キューブ'),
+  ('Daccordi', 'ダッコルディ'),
+  ('DAHON', 'ダホン'),
+  ('Dartmoor', 'ダートムーア'),
+  ('Dassi', 'ダッシ'),
+  ('De Rosa', 'デローザ'),
+  ('Devinci', 'デヴィンチ'),
+  ('Diamondback', 'ダイヤモンドバック'),
+  ('Dolan', 'ドーラン'),
+  ('Eddy Merckx', 'エディメルクス'),
+  ('Ellsworth', 'エルスワース'),
+  ('ENVE', 'エンヴィ'),
+  ('Evil', 'イーヴィル'),
+  ('Factor', 'ファクター'),
+  ('Felt', 'フェルト'),
+  ('Festka', 'フェスカ'),
+  ('Focus', 'フォーカス'),
+  ('Fondriest', 'フォンドリエスト'),
+  ('Fuji', 'フジ'),
+  ('FULCRUM', 'フルクラム'),
+  ('Genesis', 'ジェネシス'),
+  ('Giant', 'ジャイアント'),
+  ('GIOS', 'ジオス'),
+  ('Graphite Design', 'グラファイトデザイン'),
+  ('GT', 'ジーティー'),
+  ('Haibike', 'ハイバイク'),
+  ('Haro', 'ハロー'),
+  ('Ibis', 'アイビス'),
+  ('Independent Fabrication', 'インディペンデントファブリケーション'),
+  ('Intense', 'インテンス'),
+  ('IRD', 'アイアールディー'),
+  ('Iron Horse', 'アイアンホース'),
+  ('Isaac', 'アイザック'),
+  ('J.Guillem', 'ジェイギレム'),
+  ('Jamis', 'ジェイミス'),
+  ('Java', 'ジャバ'),
+  ('Juliana', 'ジュリアナ'),
+  ('Kestrel', 'ケストレル'),
+  ('Khodaa-Bloom', 'コーダーブルーム'),
+  ('KHS', 'ケイエイチエス'),
+  ('Kinesis', 'キネシス'),
+  ('Koga', 'コガ'),
+  ('Kona', 'コナ'),
+  ('KTM', 'ケーティーエム'),
+  ('Kuota', 'クオータ'),
+  ('Kuwahara', 'クワハラ'),
+  ('Lapierre', 'ラピエール'),
+  ('Litespeed', 'ライトスピード'),
+  ('Liteville', 'ライトビル'),
+  ('Liv', 'リブ'),
+  ('Look', 'ルック'),
+  ('Louis Garneau', 'ルイガノ'),
+  ('Marin', 'マリン'),
+  ('Masi', 'マジ'),
+  ('MAVIC', 'マビック'),
+  ('MERIDA', 'メリダ'),
+  ('Miyata', 'ミヤタ'),
+  ('Mizuno', 'ミズノ'),
+  ('Mondraker', 'モンドレイカー'),
+  ('Mongoose', 'マングース'),
+  ('Moots', 'ムーツ'),
+  ('MUUR ZERO', 'ミュールゼロ'),
+  ('NESTO', 'ネスト'),
+  ('Nicolai', 'ニコライ'),
+  ('Niner', 'ナイナー'),
+  ('Nishiki', 'ニシキ'),
+  ('Norco', 'ノルコ'),
+  ('Novara', 'ノヴァラ'),
+  ('Nukeproof', 'ヌークプルーフ'),
+  ('Olmo', 'オルモ'),
+  ('Opus', 'オーパス'),
+  ('Orange', 'オレンジ'),
+  ('Orbea', 'オルベア'),
+  ('Orro', 'オーロ'),
+  ('Panasonic', 'パナソニック'),
+  ('Parlee', 'パーリー'),
+  ('Pinarello', 'ピナレロ'),
+  ('Pivot', 'ピボット'),
+  ('Polygon', 'ポリゴン'),
+  ('Principle', 'プリンシプル'),
+  ('Pro-Lite', 'プロライト'),
+  ('Propain', 'プロペイン'),
+  ('Quintana Roo', 'クインタナルー'),
+  ('Ragley', 'ラグリー'),
+  ('Raleigh', 'ラレー'),
+  ('RAVANELLO', 'ラバネロ'),
+  ('Ravaneli', 'ラバネリ'),
+  ('Revel', 'レベル'),
+  ('Ridley', 'リドレー'),
+  ('Ritchey', 'リッチー'),
+  ('Rock Bikes', 'ロックバイクス'),
+  ('Rocky Mountain', 'ロッキーマウンテン'),
+  ('Rondo', 'ロンド'),
+  ('Rose', 'ローズ'),
+  ('RSD', 'アールエスディー'),
+  ('Salsa', 'サルサ'),
+  ('Santa Cruz', 'サンタクルーズ'),
+  ('Sarto', 'サルト'),
+  ('Schwinn', 'シュウィン'),
+  ('SCOR', 'スコア'),
+  ('Scott', 'スコット'),
+  ('Seven Cycles', 'セブン'),
+  ('Shimano', 'シマノ'),
+  ('Silk Cycle', 'シルクサイクル'),
+  ('SOMA', 'ソーマ'),
+  ('Specialized', 'スペシャライズド'),
+  ('SRAM', 'スラム'),
+  ('Standert', 'スタンデルト'),
+  ('Stevens', 'スティーブンス'),
+  ('Storck', 'ストーク'),
+  ('Surly', 'サーリー'),
+  ('S-WORKS', 'エスワークス'),
+  ('Swift', 'スウィフト'),
+  ('tern', 'ターン'),
+  ('TIME', 'タイム'),
+  ('Tommasini', 'トマジーニ'),
+  ('Tommaso', 'トマッソ'),
+  ('TOYO FRAME', 'トウヨウフレーム'),
+  ('Transition', 'トランジション'),
+  ('Trek', 'トレック'),
+  ('Trigon', 'トライゴン'),
+  ('Trinx', 'トリンクス'),
+  ('Turner', 'ターナー'),
+  ('Univega', 'ユニベガ'),
+  ('Unno', 'ウンノ'),
+  ('Upland', 'アップランド'),
+  ('VAAST', 'ヴァースト'),
+  ('Van Dessel', 'ヴァンデッセル'),
+  ('Van Nicholas', 'ヴァンニコラス'),
+  ('VAN RYSEL', 'ヴァンリーゼル'),
+  ('Ventum', 'ヴェンタム'),
+  ('Viathon', 'ヴァイアソン'),
+  ('Vielo', 'ヴィエロ'),
+  ('Vitus', 'ヴィチュー'),
+  ('Voodoo', 'ブードゥー'),
+  ('We Are One', 'ウィーアーワン'),
+  ('Whyte', 'ホワイト'),
+  ('Wilier', 'ウィリエール'),
+  ('WR Compositi', 'ダブリューアールコンポジッティ'),
+  ('XDS', 'エックスディーエス'),
+  ('Yamaha', 'ヤマハ'),
+  ('Yeti', 'イエティ'),
+  ('YONEX', 'ヨネックス'),
+  ('YT Industries', 'ワイティーインダストリーズ'),
+  ('Zerode', 'ゼロード'),
+  ('ZULLO', 'ズッロ')
+on conflict (name) do update
+  set name_kana = excluded.name_kana
+  where brands.name_kana is null;
+
+
+-- ############################################################
+-- 初期データ / seed.sql
 -- ############################################################
 
 -- =============================================================
@@ -1120,38 +1362,9 @@ grant select on public.listing_suspension_reasons to authenticated;
 -- `supabase db reset` 実行時に自動適用される
 -- =============================================================
 
-insert into public.brands (name) values
-  ('Trek'),
-  ('Specialized'),
-  ('Giant'),
-  ('Cannondale'),
-  ('Bianchi'),
-  ('Pinarello'),
-  ('Colnago'),
-  ('Cervélo'),
-  ('Scott'),
-  ('Merida'),
-  ('BMC'),
-  ('Canyon'),
-  ('GIOS'),
-  ('RALEIGH'),
-  ('Brompton'),
-  ('DAHON'),
-  ('tern'),
-  ('FUJI'),
-  ('ANCHOR'),
-  ('KhodaaBloom'),
-  ('NESTO'),
-  ('LOUIS GARNEAU'),
-  ('Panasonic'),
-  ('YAMAHA'),
-  ('BRIDGESTONE'),
-  ('Shimano'),
-  ('SRAM'),
-  ('Campagnolo'),
-  ('MAVIC'),
-  ('FULCRUM')
-on conflict (name) do nothing;
+-- ブランドマスタ(出品フォームのメーカー選択)は
+-- supabase/migrations/20260101000012_brand_master.sql が持つ。
+-- seed に置くと表記ゆれの寄せ直しとぶつかるため、ここには書かない。
 
 -- -------------------------------------------------------------
 -- 管理者アカウントの作成手順(手動)

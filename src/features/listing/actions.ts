@@ -11,6 +11,7 @@ import { ok, fail, toUserMessage, AppError, type ActionResult } from "@/lib/erro
 import { MAX_DRAFTS, type ListingStatus } from "@/lib/constants";
 import { IMAGE_BUCKETS, isOwnedImagePath } from "@/lib/images";
 import { removeStorageObjects } from "@/lib/storage";
+import { type BrandOption } from "@/features/search/params";
 import {
   draftSchema,
   publishSchema,
@@ -335,15 +336,15 @@ export async function deleteDraft(listingId: string): Promise<ActionResult<undef
   }
 }
 
-/** 出品フォームで使うブランド一覧 */
-export async function listActiveBrands(): Promise<{ id: string; name: string }[]> {
+/** 出品フォームで使うブランド一覧。カナは絞り込みに使う */
+export async function listActiveBrands(): Promise<BrandOption[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("brands")
-    .select("id, name")
+    .select("id, name, name_kana")
     .eq("is_active", true)
     .order("name");
-  return data ?? [];
+  return (data ?? []).map((row) => ({ id: row.id, name: row.name, kana: row.name_kana }));
 }
 
 /** 保存後に商品詳細へ遷移する(フォームから呼ぶ) */

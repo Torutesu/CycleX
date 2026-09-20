@@ -14,13 +14,18 @@ import {
   PREFECTURES,
   PRICE_PRESETS,
 } from "@/lib/constants";
-import { toQueryString, type SearchParams } from "@/features/search/params";
+import {
+  brandMatches,
+  toQueryString,
+  type BrandOption,
+  type SearchParams,
+} from "@/features/search/params";
 import { useSearchNavigation } from "@/features/search/components/search-transition";
 import { cn } from "@/lib/utils";
 
 type FilterPanelProps = {
   params: SearchParams;
-  brands: { id: string; name: string }[];
+  brands: BrandOption[];
   /** 適用後に呼ばれる(ボトムシートを閉じるため) */
   onApplied?: () => void;
 };
@@ -72,8 +77,9 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
     onApplied?.();
   }
 
-  const filteredBrands = brandQuery
-    ? brands.filter((brand) => brand.name.toLowerCase().includes(brandQuery.toLowerCase()))
+  // 英字でもカナでも絞り込めるようにする(「ぴなれろ」で Pinarello)
+  const filteredBrands = brandQuery.trim()
+    ? brands.filter((brand) => brandMatches(brandQuery, brand))
     : brands;
 
   // min-h-0 が無いと flex-1 の領域が内容ぶん伸び、シートの上部が画面外へ押し出される
@@ -216,7 +222,7 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
           <legend className="mb-2 text-sm font-semibold">ブランド</legend>
           <Input
             type="search"
-            placeholder="ブランド名で絞り込む"
+            placeholder="ブランド名・カナで絞り込む"
             aria-label="ブランド名で絞り込む"
             value={brandQuery}
             onChange={(e) => setBrandQuery(e.target.value)}
@@ -235,6 +241,9 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
                   className="flex-1 cursor-pointer text-sm font-normal"
                 >
                   {brand.name}
+                  {brand.kana && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">{brand.kana}</span>
+                  )}
                 </Label>
               </li>
             ))}

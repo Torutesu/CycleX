@@ -12,7 +12,7 @@ export default async function AdminBrandsPage() {
     <>
       <AdminHeader
         title="ブランド管理"
-        description="出品フォームの選択肢に表示されるブランドを管理します。参照整合のため削除はできません(無効化してください)。"
+        description="出品フォームの選択肢に表示されるブランドを管理します。カナ読みは検索と絞り込みに使います。参照整合のため削除はできません(無効化してください)。"
       />
       <BrandManager brands={brands} />
     </>

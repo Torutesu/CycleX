@@ -3,38 +3,9 @@
 -- `supabase db reset` 実行時に自動適用される
 -- =============================================================
 
-insert into public.brands (name) values
-  ('Trek'),
-  ('Specialized'),
-  ('Giant'),
-  ('Cannondale'),
-  ('Bianchi'),
-  ('Pinarello'),
-  ('Colnago'),
-  ('Cervélo'),
-  ('Scott'),
-  ('Merida'),
-  ('BMC'),
-  ('Canyon'),
-  ('GIOS'),
-  ('RALEIGH'),
-  ('Brompton'),
-  ('DAHON'),
-  ('tern'),
-  ('FUJI'),
-  ('ANCHOR'),
-  ('KhodaaBloom'),
-  ('NESTO'),
-  ('LOUIS GARNEAU'),
-  ('Panasonic'),
-  ('YAMAHA'),
-  ('BRIDGESTONE'),
-  ('Shimano'),
-  ('SRAM'),
-  ('Campagnolo'),
-  ('MAVIC'),
-  ('FULCRUM')
-on conflict (name) do nothing;
+-- ブランドマスタ(出品フォームのメーカー選択)は
+-- supabase/migrations/20260101000012_brand_master.sql が持つ。
+-- seed に置くと表記ゆれの寄せ直しとぶつかるため、ここには書かない。
 
 -- -------------------------------------------------------------
 -- 管理者アカウントの作成手順(手動)
