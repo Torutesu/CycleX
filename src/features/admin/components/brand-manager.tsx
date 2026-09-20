@@ -20,7 +20,7 @@ type Brand = {
   created_at: string;
 };
 
-/** AD-06: ブランドマスタの追加・改名・有効/無効切り替え */
+/** AD-06: メーカーマスタの追加・改名・有効/無効切り替え */
 export function BrandManager({ brands }: { brands: Brand[] }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -36,7 +36,7 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
       return;
     }
     setCreateError(null);
-    toast.success("ブランドを追加しました");
+    toast.success("メーカーを追加しました");
     router.refresh();
   }
 
@@ -48,14 +48,14 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
     }
     setRenameError(null);
     setEditingId(null);
-    toast.success("ブランド名を変更しました");
+    toast.success("メーカー名を変更しました");
     router.refresh();
   }
 
   return (
     <div className="space-y-5">
       <form action={handleCreate} className="rounded-xl border bg-background p-4">
-        <h2 className="mb-3 text-sm font-semibold">ブランドを追加</h2>
+        <h2 className="mb-3 text-sm font-semibold">メーカーを追加</h2>
         {createError && (
           <Alert variant="destructive" className="mb-3">
             <AlertDescription>{createError}</AlertDescription>
@@ -67,7 +67,7 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
             maxLength={80}
             required
             placeholder="例: Trek"
-            aria-label="ブランド名"
+            aria-label="メーカー名"
             className="h-11 max-w-xs"
           />
           {/* カナは出品フォームと検索の絞り込みに使う(「とれっく」で引けるように) */}
@@ -86,7 +86,7 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
 
       <div className="overflow-hidden rounded-xl border bg-background">
         <h2 className="border-b bg-muted/40 px-4 py-2.5 text-sm font-semibold">
-          登録済みブランド
+          登録済みメーカー
           <span className="ml-2 font-normal tabular-nums text-muted-foreground">
             {brands.length}
           </span>
@@ -109,7 +109,7 @@ export function BrandManager({ brands }: { brands: Brand[] }) {
                     defaultValue={brand.name}
                     maxLength={80}
                     required
-                    aria-label="ブランド名"
+                    aria-label="メーカー名"
                     className="h-11 max-w-xs"
                     autoFocus
                   />

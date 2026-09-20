@@ -49,8 +49,8 @@ const FIELD_LABELS: [key: string, label: string][] = [
   ["category", "カテゴリ"],
   ["partsSubcategory", "パーツの種類"],
   ["title", "タイトル"],
-  ["brandId", "ブランド"],
-  ["brandOther", "ブランド名"],
+  ["brandId", "メーカー"],
+  ["brandOther", "メーカー名"],
   ["modelName", "モデル名"],
   ["modelYear", "年式"],
   ["frameSize", "フレームサイズ"],
@@ -345,7 +345,7 @@ export function ListingForm({
 
         <Field
           id="brandId"
-          label="ブランド"
+          label="メーカー"
           required
           hint="一覧に無いメーカーは「その他」で入力できます"
           errors={fieldErrors.brandId}
@@ -360,7 +360,7 @@ export function ListingForm({
         </Field>
 
         {values.brandId === BRAND_OTHER && (
-          <Field id="brandOther" label="ブランド名" required errors={fieldErrors.brandOther}>
+          <Field id="brandOther" label="メーカー名" required errors={fieldErrors.brandOther}>
             <Input
               id="brandOther"
               value={values.brandOther}

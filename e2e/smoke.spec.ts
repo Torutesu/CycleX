@@ -58,7 +58,7 @@ test("検索窓が候補と履歴を出す", async ({ page }) => {
 
   const box = page.getByRole("combobox", { name: "キーワード検索" });
 
-  // カタカナで打っても英字のブランドを出す(結果の絞り込みと同じ読み替え)
+  // カタカナで打っても英字のメーカーを出す(結果の絞り込みと同じ読み替え)
   await box.fill("ピナ");
   await expect(page.getByRole("option", { name: /Pinarello/ })).toBeVisible();
 

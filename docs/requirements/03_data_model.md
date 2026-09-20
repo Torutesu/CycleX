@@ -39,7 +39,7 @@ erDiagram
 | notification_prefs | jsonb | NOT NULL default '{}' | 通知カテゴリごとの ON/OFF |
 | withdrawn_at | timestamptz | | 退会日時 |
 
-### brands(ブランドマスタ)
+### brands(メーカーマスタ)
 
 | カラム | 型 | 制約 | 説明 |
 |---|---|---|---|

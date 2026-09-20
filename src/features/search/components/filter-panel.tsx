@@ -217,13 +217,13 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
 
         <Separator />
 
-        {/* ブランド */}
+        {/* メーカー */}
         <fieldset>
-          <legend className="mb-2 text-sm font-semibold">ブランド</legend>
+          <legend className="mb-2 text-sm font-semibold">メーカー</legend>
           <Input
             type="search"
-            placeholder="ブランド名・カナで絞り込む"
-            aria-label="ブランド名で絞り込む"
+            placeholder="メーカー名・カナで絞り込む"
+            aria-label="メーカー名で絞り込む"
             value={brandQuery}
             onChange={(e) => setBrandQuery(e.target.value)}
             className="mb-2 h-11"
@@ -248,7 +248,7 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               </li>
             ))}
             {filteredBrands.length === 0 && (
-              <li className="py-2 text-sm text-muted-foreground">該当するブランドがありません</li>
+              <li className="py-2 text-sm text-muted-foreground">該当するメーカーがありません</li>
             )}
           </ul>
         </fieldset>

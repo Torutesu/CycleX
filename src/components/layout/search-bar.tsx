@@ -23,7 +23,7 @@ type Suggestion = {
 
 type BrandSuggestion = Pick<BrandOption, "name" | "kana">;
 
-/** ブランド一覧は一度取れば十分なので、画面をまたいで使い回す */
+/** メーカー一覧は一度取れば十分なので、画面をまたいで使い回す */
 let brandCache: BrandSuggestion[] | null = null;
 
 function normalize(value: string): string {
@@ -34,9 +34,9 @@ function normalize(value: string): string {
  * キーワード検索フォーム。送信で /search?q= へ遷移する。
  *
  * 空の検索窓だけだと何を打てばよいか分からないので、
- * 履歴とブランド・カテゴリの候補を出す。
+ * 履歴とメーカー・カテゴリの候補を出す。
  */
-export function SearchBar({ className, placeholder = "ブランド・車種で検索" }: SearchBarProps) {
+export function SearchBar({ className, placeholder = "メーカー・車種で検索" }: SearchBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const keyword = searchParams.get("q") ?? "";

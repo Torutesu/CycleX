@@ -312,14 +312,14 @@ export async function resolveReport(
 }
 
 // ============================================================
-// ブランド管理(AD-06)
+// メーカー管理(AD-06)
 // ============================================================
 
 const brandNameSchema = z
   .string()
   .trim()
-  .min(1, "ブランド名を入力してください")
-  .max(80, "ブランド名は80文字以内で入力してください");
+  .min(1, "メーカー名を入力してください")
+  .max(80, "メーカー名は80文字以内で入力してください");
 
 /**
  * カナ読み。検索とフォームの絞り込みで使うので、
@@ -357,8 +357,8 @@ export async function createBrand(
     if (error) {
       throw new AppError(
         error.code === "23505"
-          ? "同名のブランドがすでに登録されています。"
-          : "ブランドの追加に失敗しました。",
+          ? "同名のメーカーがすでに登録されています。"
+          : "メーカーの追加に失敗しました。",
       );
     }
 
@@ -394,7 +394,7 @@ export async function renameBrand(
       .update({ name: parsed.data, name_kana: kana.data })
       .eq("id", brandId);
 
-    if (error) throw new AppError("ブランド名の変更に失敗しました。");
+    if (error) throw new AppError("メーカー名の変更に失敗しました。");
 
     await recordAdminAction(admin.id, "rename_brand", "brand", brandId, parsed.data);
 
@@ -420,7 +420,7 @@ export async function toggleBrandActive(
       .update({ is_active: isActive })
       .eq("id", brandId);
 
-    if (error) throw new AppError("ブランドの更新に失敗しました。");
+    if (error) throw new AppError("メーカーの更新に失敗しました。");
 
     await recordAdminAction(
       admin.id,

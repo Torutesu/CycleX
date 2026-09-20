@@ -31,7 +31,7 @@ const ITEMS: NavItem[] = [
   { href: "/admin/listings", label: "出品", icon: Package },
   { href: "/admin/transactions", label: "取引", icon: Receipt },
   { href: "/admin/reports", label: "通報", icon: Flag },
-  { href: "/admin/brands", label: "ブランド", icon: Tag },
+  { href: "/admin/brands", label: "メーカー", icon: Tag },
 ];
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {

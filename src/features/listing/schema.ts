@@ -55,7 +55,7 @@ export const listingFormSchema = z.object({
   partsSubcategory: optionalEnum(subcategoryValues),
   title: z.string().trim().max(TITLE_MAX, `タイトルは${TITLE_MAX}文字以内で入力してください`),
   brandId: z.uuid().optional().nullable(),
-  brandOther: optionalText(80, "ブランド名"),
+  brandOther: optionalText(80, "メーカー名"),
   modelName: optionalText(80, "モデル名"),
   modelYear: z
     .union([z.coerce.number().int(), z.literal("")])
@@ -145,7 +145,7 @@ export const publishSchema = listingFormSchema.superRefine((values, ctx) => {
   }
 
   if (!values.brandId && !values.brandOther) {
-    add("brandId", "ブランドを選択、または「その他」でブランド名を入力してください");
+    add("brandId", "メーカーを選択、または「その他」でメーカー名を入力してください");
   }
 
   if (!values.condition) {

@@ -3,7 +3,7 @@ import { adminDb, ensureUser, login } from "./helpers";
 
 /**
  * 運営の操作(FR-12 / FR-13)。
- * 通報の対応、利用停止と解除、出品の非表示と解除、ブランドの管理、
+ * 通報の対応、利用停止と解除、出品の非表示と解除、メーカーの管理、
  * 取引のキャンセルまでを画面から通す。
  */
 
@@ -190,14 +190,14 @@ test("利用停止にすると出品も止まり、解除すると本人だけ�
   await expect(page).toHaveURL(/\/mypage/);
 });
 
-test("ブランドを足して、名前を変えて、無効にできる", async ({ page }) => {
+test("メーカーを足して、名前を変えて、無効にできる", async ({ page }) => {
   const name = `E2Eブランド${STAMP}`;
   const renamed = `${name}改`;
 
   await login(page, ADMIN);
   await page.goto("/admin/brands");
 
-  await page.getByLabel("ブランド名").first().fill(name);
+  await page.getByLabel("メーカー名").first().fill(name);
   await page.getByRole("button", { name: /追加/ }).click();
   await expect(page.getByText(name)).toBeVisible({ timeout: 20_000 });
 
@@ -210,7 +210,7 @@ test("ブランドを足して、名前を変えて、無効にできる", async
   // 名前を変える
   await page.goto("/admin/brands");
   await page.getByRole("button", { name: `${name} の名称を変更` }).click();
-  await page.getByLabel("ブランド名").last().fill(renamed);
+  await page.getByLabel("メーカー名").last().fill(renamed);
   await page.getByRole("button", { name: "保存" }).click();
   await expect(page.getByText(renamed)).toBeVisible({ timeout: 20_000 });
 

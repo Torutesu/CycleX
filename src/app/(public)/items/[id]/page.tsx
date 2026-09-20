@@ -128,7 +128,7 @@ export default async function ItemDetailPage({ params }: { params: Promise<{ id:
           ? labelOf(PARTS_SUBCATEGORIES, listing.partsSubcategory)
           : null,
     },
-    { label: "ブランド", value: listing.brandName },
+    { label: "メーカー", value: listing.brandName },
     { label: "モデル名", value: listing.modelName },
     { label: "年式", value: listing.modelYear ? `${listing.modelYear}年` : null },
     {

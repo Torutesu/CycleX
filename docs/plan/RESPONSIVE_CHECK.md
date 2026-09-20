@@ -35,7 +35,7 @@
 | 管理: 出品 | `/admin/listings` | なし | なし |
 | 管理: 取引 | `/admin/transactions` | なし | なし |
 | 管理: 通報 | `/admin/reports` | なし | なし |
-| 管理: ブランド | `/admin/brands` | なし | なし |
+| 管理: メーカー | `/admin/brands` | なし | なし |
 
 ## 集計
 

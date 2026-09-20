@@ -63,7 +63,7 @@
 | AD-03 | 出品管理 | `/admin/listings` | 一覧・検索・詳細・非表示化 |
 | AD-04 | 取引管理 | `/admin/transactions` | 一覧・検索・詳細・キャンセル操作 |
 | AD-05 | 通報管理 | `/admin/reports` | 一覧・対応ステータス更新 |
-| AD-06 | ブランド管理 | `/admin/brands` | マスタ CRUD |
+| AD-06 | メーカー管理 | `/admin/brands` | マスタ CRUD |
 
 ## 3. 主要画面遷移
 

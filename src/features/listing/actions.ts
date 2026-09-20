@@ -336,7 +336,7 @@ export async function deleteDraft(listingId: string): Promise<ActionResult<undef
   }
 }
 
-/** 出品フォームで使うブランド一覧。カナは絞り込みに使う */
+/** 出品フォームで使うメーカー一覧。カナは絞り込みに使う */
 export async function listActiveBrands(): Promise<BrandOption[]> {
   const supabase = await createClient();
   const { data } = await supabase

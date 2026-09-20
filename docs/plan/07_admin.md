@@ -9,7 +9,7 @@
 
 ## T-7.2 管理画面基盤
 
-- `src/app/admin/layout.tsx`: 独自レイアウト(左サイドバー: ダッシュボード/利用者/出品/取引/通報/ブランド。スマホは Sheet ドロワー)。ヘッダーに「管理画面」明示+一般画面へ戻るリンク
+- `src/app/admin/layout.tsx`: 独自レイアウト(左サイドバー: ダッシュボード/利用者/出品/取引/通報/メーカー。スマホは Sheet ドロワー)。ヘッダーに「管理画面」明示+一般画面へ戻るリンク
 - アクセス制御は middleware(T-1.4)+layout 内での二重チェック(`users.role !== 'admin'` → notFound)
 - 管理系の読み書きはすべて `src/features/admin/queries.ts / actions.ts` に集約し、**admin クライアント使用+全 action 冒頭で is_admin 検証**
 - 共通部品: `AdminTable`(shadcn Table+ページネーション 20 件+検索フォーム)。検索・ページは URL クエリ
@@ -39,7 +39,7 @@
 - 詳細行の展開で detail 全文+対象への操作ボタン(出品非表示/ユーザー停止へのショートカット)
 - `resolveReport(id, note)`: status='resolved', resolved_by, resolved_note
 
-## T-7.7 ブランド管理(AD-06)
+## T-7.7 メーカー管理(AD-06)
 
 - 一覧+追加フォーム+名称編集(inline)+有効/無効トグル。削除はしない(参照整合のため is_active=false)
 

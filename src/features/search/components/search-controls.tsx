@@ -133,7 +133,7 @@ export function ActiveFilterChips({
     const brand = brands.find((item) => item.id === id);
     chips.push({
       key: `brand-${id}`,
-      label: brand?.name ?? "ブランド",
+      label: brand?.name ?? "メーカー",
       next: { brand: params.brand.filter((item) => item !== id) },
     });
   }

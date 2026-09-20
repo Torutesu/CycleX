@@ -33,7 +33,7 @@ SUPABASE_SERVICE_ROLE_KEY=<service_role key>
 続けてデータを入れる。
 
 ```bash
-pnpm db:reset                       # マイグレーションとブランドの初期データ
+pnpm db:reset                       # マイグレーションとメーカーの初期データ
 node scripts/seed-users.mjs         # テスト会員 5 名
 node scripts/seed-dev.mjs 120       # ダミー商品 120 件
 node scripts/seed-images.mjs        # 商品画像(自転車のシルエット)

@@ -32,7 +32,7 @@ function initialOf(name: string): string {
 /**
  * メーカーの選択欄。
  *
- * 登録ブランドが200件近くあり、素の <select> では目的の1件まで
+ * 登録メーカーが200件近くあり、素の <select> では目的の1件まで
  * 延々とスクロールすることになる。英字でもカナでも絞り込めるようにして、
  * 「ぴなれろ」「トレック」のどちらの打ち方でもたどり着けるようにする。
  */
@@ -166,8 +166,8 @@ export function BrandSelect({ id, brands, value, onChange, hasError }: BrandSele
               setActive(0);
             }}
             onKeyDown={onKeyDown}
-            placeholder="ブランド名・カナで絞り込む"
-            aria-label="ブランドを絞り込む"
+            placeholder="メーカー名・カナで絞り込む"
+            aria-label="メーカーを絞り込む"
             autoComplete="off"
             className="h-10 pl-8"
           />
@@ -177,7 +177,7 @@ export function BrandSelect({ id, brands, value, onChange, hasError }: BrandSele
           id={listId}
           ref={listRef}
           role="listbox"
-          aria-label="ブランド"
+          aria-label="メーカー"
           className="max-h-72 overflow-y-auto py-1"
         >
           {filtered.map((choice, index) => {

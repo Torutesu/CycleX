@@ -7,7 +7,7 @@
 - `searchParamsSchema`(Zod): `q, category, sub, brand[](uuid), price_min, price_max, size[], pref[], condition[], include_sold(bool), sort('new'|'price_asc'|'price_desc'|'popular'), page(≥1)` — 不正値は無視してデフォルトへ(throw しない)
 - `buildSearchQuery(supabase, params)`:
   - base: `listings` + `listing_images(position=0)` + `brands(name)` を select、`status in ('published','trading')`(include_sold 時は +'sold')
-  - q: 空白区切りで分割し、各語について `or(title.ilike.%w%, description.ilike.%w%, model_name.ilike.%w%, brand_other.ilike.%w%)` を AND 連結。ブランド名一致は brand_id サブクエリ(brands.name ilike)で対応
+  - q: 空白区切りで分割し、各語について `or(title.ilike.%w%, description.ilike.%w%, model_name.ilike.%w%, brand_other.ilike.%w%)` を AND 連結。メーカー名一致は brand_id の読み替え(brands.name / brands.name_kana との照合)で対応
   - 絞り込みは各カラムの `eq/in/gte/lte`
   - sort: new=`published_at desc` / price_asc / price_desc / popular=`favorites_count desc, published_at desc`
   - `range((page-1)*24, page*24-1)` + `count: 'exact'`
@@ -17,7 +17,7 @@
 
 - `/(public)/search/page.tsx`(Server Component、`searchParams` 受け取り)
 - 構成: PC=左サイドバー(w-64 フィルタ)+右グリッド(4列)/ スマホ=上部に「絞り込み」ボタン(Sheet でボトムシート)+2列グリッド
-- `FilterPanel`(client): カテゴリ(RadioGroup+パーツ時サブカテゴリ)、ブランド(Checkbox リスト、検索付き)、価格帯(プリセットボタン+min/max入力)、サイズ・地域・コンディション(Checkbox)、販売状況。適用で `router.push('/search?' + qs)`
+- `FilterPanel`(client): カテゴリ(RadioGroup+パーツ時サブカテゴリ)、メーカー(Checkbox リスト、検索付き)、価格帯(プリセットボタン+min/max入力)、サイズ・地域・コンディション(Checkbox)、販売状況。適用で `router.push('/search?' + qs)`
 - 適用中条件のチップ行(個別 ✕ / すべてクリア)
 - `SortSelect`(client): Select 変更で qs 更新(page リセット)
 - ページネーション: スマホ=「もっと見る」(`page+1` へのリンクを `<Link>` で追加描画する CSR 積み増しはせず、シンプルに次ページ遷移+ページ番号。実装簡略化のため**両デバイスともページ番号式**とし、スマホは前後ボタンのみ表示)

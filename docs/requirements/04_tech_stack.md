@@ -58,7 +58,7 @@ CycleX/
 │   └── emails/               # メールテンプレート
 ├── supabase/
 │   ├── migrations/           # DDL・RLS ポリシー
-│   └── seed.sql              # ブランドマスタ・管理者シード
+│   └── seed.sql              # 管理者シードの手順(メーカーマスタはマイグレーション)
 └── e2e/                      # Playwright スモーク
 ```
 
