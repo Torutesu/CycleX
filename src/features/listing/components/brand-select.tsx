@@ -77,14 +77,10 @@ export function BrandSelect({ id, brands, value, onChange, hasError }: BrandSele
 
   /** 候補を選びながらスクロールもついてくるようにする */
   function moveActive(step: number) {
-    setActive((current) => {
-      const next = current + step;
-      const index = next < 0 ? filtered.length - 1 : next >= filtered.length ? 0 : next;
-      listRef.current
-        ?.querySelector(`[data-index="${index}"]`)
-        ?.scrollIntoView({ block: "nearest" });
-      return index;
-    });
+    const next = active + step;
+    const index = next < 0 ? filtered.length - 1 : next >= filtered.length ? 0 : next;
+    setActive(index);
+    listRef.current?.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: "nearest" });
   }
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -169,6 +165,11 @@ export function BrandSelect({ id, brands, value, onChange, hasError }: BrandSele
             placeholder="メーカー名・カナで絞り込む"
             aria-label="メーカーを絞り込む"
             autoComplete="off"
+            role="combobox"
+            aria-expanded
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={filtered[active] ? `${listId}-${active}` : undefined}
             className="h-10 pl-8"
           />
         </div>
@@ -200,6 +201,7 @@ export function BrandSelect({ id, brands, value, onChange, hasError }: BrandSele
                 )}
                 <button
                   type="button"
+                  id={`${listId}-${index}`}
                   role="option"
                   data-index={index}
                   aria-selected={choice.value === value}
