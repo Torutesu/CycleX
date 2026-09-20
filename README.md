@@ -140,6 +140,15 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 
 ## ドキュメント
 
+### 運用(`docs/`)
+
+| ドキュメント | 内容 |
+|---|---|
+| [LOCAL_SETUP.md](docs/LOCAL_SETUP.md) | 手元で動かす手順 |
+| [DEPLOY.md](docs/DEPLOY.md) | 本番へのデプロイ。Stripe・Supabase・Vercel の設定 |
+| [BACKUP.md](docs/BACKUP.md) | バックアップと復旧の手順 |
+| [CLIENT_GUIDE.md](docs/CLIENT_GUIDE.md) | 検証環境を触ってもらうための案内(非エンジニア向け) |
+
 ### 要件定義(`docs/requirements/`)
 
 | ドキュメント | 内容 |

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { contactEmail } from "@/lib/company";
 import { jstYear } from "@/lib/utils";
 
 const LINKS = [
@@ -9,6 +10,9 @@ const LINKS = [
 
 /** 共通フッター。規約類の文面は甲支給のため、掲載枠のみを用意する。 */
 export function Footer() {
+  // 問い合わせ先は設定されている場合だけ出す(未設定のリンクを踏ませない)
+  const email = contactEmail();
+
   return (
     <footer className="mt-16 border-t bg-muted/30">
       <div className="mx-auto max-w-7xl px-4 py-8">
@@ -28,6 +32,16 @@ export function Footer() {
               </Link>
             </li>
           ))}
+          {email && (
+            <li>
+              <a
+                href={`mailto:${email}`}
+                className="inline-flex min-h-11 items-center text-muted-foreground hover:text-foreground"
+              >
+                お問い合わせ
+              </a>
+            </li>
+          )}
         </ul>
         <p className="mt-6 text-xs text-muted-foreground">© {jstYear()} CycleX</p>
       </div>
