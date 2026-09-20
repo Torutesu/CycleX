@@ -260,6 +260,24 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 
 ---
 
+### Google ログインを使う場合(任意)
+
+設定しなければ、ログイン・会員登録の画面に Google のボタンは**出ない**。
+壊れたボタンを見せないよう、Supabase 側で有効になっているかを見て出し分けている。
+
+1. Google Cloud コンソールで OAuth クライアント ID(種類: ウェブアプリケーション)を作る。
+2. 「承認済みのリダイレクト URI」に、Supabase の認証コールバックを入れる。
+
+   ```
+   https://<プロジェクト ref>.supabase.co/auth/v1/callback
+   ```
+
+3. Supabase の **Authentication → Sign In / Providers → Google** を有効にし、
+   クライアント ID とクライアントシークレットを貼る。
+4. 反映には最大5分かかる。ログイン画面を開き直してボタンが出れば設定できている。
+
+---
+
 ## 7. 動作確認
 
 | 確認すること | 期待 |
