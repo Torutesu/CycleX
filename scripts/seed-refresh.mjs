@@ -46,7 +46,9 @@ function entryForPrice(price, isParts) {
 }
 
 const { data: brands } = await supabase.from("brands").select("id, name").eq("is_active", true);
-const brandByName = new Map((brands ?? []).map((brand) => [brand.name, brand.id]));
+// マスタ側の表記ゆれ(FUJI → Fuji など)に引きずられないよう、綴りを丸めて引く
+const brandKey = (name) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+const brandByName = new Map((brands ?? []).map((brand) => [brandKey(brand.name), brand.id]));
 
 const { data: listings } = await supabase
   .from("listings")
@@ -74,7 +76,7 @@ for (const listing of listings) {
       title: isParts
         ? `${entry.brand} ${entry.model}`
         : `${entry.brand} ${entry.model} ${year}年モデル${size ? ` ${size}サイズ` : ""}`,
-      brand_id: brandByName.get(entry.brand) ?? null,
+      brand_id: brandByName.get(brandKey(entry.brand)) ?? null,
       model_name: entry.model,
       model_year: year,
       frame_size: size,

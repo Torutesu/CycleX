@@ -86,16 +86,19 @@ const { data: users } = await supabase
 const { data: brands } = await supabase.from("brands").select("id, name").eq("is_active", true);
 
 if (!users?.length || !brands?.length) {
-  console.error("ユーザーまたはブランドが存在しません。先に会員登録してください。");
+  console.error("ユーザーまたはメーカーが存在しません。先に会員登録してください。");
   process.exit(1);
 }
 
-const brandByName = new Map(brands.map((brand) => [brand.name, brand.id]));
+// マスタ側の表記が変わっても(FUJI → Fuji のような)当たるよう、
+// 大文字小文字と区切り文字を落とした綴りで引く
+const brandKey = (name) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
+const brandByName = new Map(brands.map((brand) => [brandKey(brand.name), brand.id]));
 const missing = [...new Set([...BIKES, ...PARTS].map((e) => e.brand))].filter(
-  (name) => !brandByName.has(name),
+  (name) => !brandByName.has(brandKey(name)),
 );
 if (missing.length > 0) {
-  console.error("brands に無いブランドがあります:", missing.join(", "));
+  console.error("brands に無いメーカーがあります:", missing.join(", "));
   process.exit(1);
 }
 
@@ -129,7 +132,7 @@ for (let i = 0; i < COUNT; i += 1) {
     category: isParts ? "parts" : entry.category,
     parts_subcategory: isParts ? entry.sub : null,
     title,
-    brand_id: brandByName.get(entry.brand),
+    brand_id: brandByName.get(brandKey(entry.brand)),
     model_name: entry.model,
     model_year: year,
     frame_size: size,

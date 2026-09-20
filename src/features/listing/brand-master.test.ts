@@ -60,6 +60,18 @@ describe("ブランドマスタ", () => {
     }
   });
 
+  it("開発用シードのメーカーがすべてマスタにある", async () => {
+    // seed-catalog.mjs は名前で brands を引く。綴りがずれると
+    // E2E の「Seed demo data」で初めて落ちるので、ここで先に気づけるようにする
+    const catalog: { BIKES: { brand: string }[]; PARTS: { brand: string }[] } =
+      await import("../../../scripts/seed-catalog.mjs");
+    const names = new Set(rows.map((row) => key(row.name)));
+    const used = [...new Set([...catalog.BIKES, ...catalog.PARTS].map((entry) => entry.brand))];
+
+    expect(used.length).toBeGreaterThan(20);
+    expect(used.filter((name) => !names.has(key(name)))).toEqual([]);
+  });
+
   it("旧 seed.sql の表記は、改名の対象として書かれている", () => {
     const sql = readFileSync(MIGRATION, "utf8");
     const renames = sql.slice(0, sql.indexOf("insert into public.brands"));

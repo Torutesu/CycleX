@@ -118,7 +118,7 @@ export const BIKES = [
   },
   {
     category: "road",
-    brand: "Merida",
+    brand: "MERIDA",
     model: "SCULTURA 400",
     price: [110000, 170000],
     since: 2016,
@@ -126,7 +126,7 @@ export const BIKES = [
   },
   {
     category: "road",
-    brand: "Merida",
+    brand: "MERIDA",
     model: "REACTO 4000",
     price: [190000, 300000],
     since: 2017,
@@ -166,7 +166,7 @@ export const BIKES = [
   },
   {
     category: "road",
-    brand: "Colnago",
+    brand: "COLNAGO",
     model: "V3 DISC",
     price: [400000, 700000],
     since: 2020,
@@ -230,7 +230,7 @@ export const BIKES = [
   },
   {
     category: "road",
-    brand: "FUJI",
+    brand: "Fuji",
     model: "NAOMI",
     price: [70000, 120000],
     since: 2015,
@@ -246,7 +246,7 @@ export const BIKES = [
   },
   {
     category: "road",
-    brand: "LOUIS GARNEAU",
+    brand: "Louis Garneau",
     model: "LGS-CR",
     price: [70000, 120000],
     since: 2014,
@@ -320,7 +320,7 @@ export const BIKES = [
   },
   {
     category: "cross",
-    brand: "Merida",
+    brand: "MERIDA",
     model: "CROSSWAY 100-R",
     price: [40000, 70000],
     since: 2015,
@@ -328,7 +328,7 @@ export const BIKES = [
   },
   {
     category: "cross",
-    brand: "KhodaaBloom",
+    brand: "Khodaa-Bloom",
     model: "RAIL DISC",
     price: [55000, 95000],
     since: 2018,
@@ -344,7 +344,7 @@ export const BIKES = [
   },
   {
     category: "cross",
-    brand: "FUJI",
+    brand: "Fuji",
     model: "PALETTE",
     price: [40000, 68000],
     since: 2014,
@@ -352,7 +352,7 @@ export const BIKES = [
   },
   {
     category: "cross",
-    brand: "LOUIS GARNEAU",
+    brand: "Louis Garneau",
     model: "SETTER 8.0",
     price: [38000, 65000],
     since: 2015,
@@ -360,7 +360,7 @@ export const BIKES = [
   },
   {
     category: "cross",
-    brand: "BRIDGESTONE",
+    brand: "Bridgestone",
     model: "CYLVA F24",
     price: [35000, 60000],
     since: 2015,
@@ -368,7 +368,7 @@ export const BIKES = [
   },
   {
     category: "cross",
-    brand: "RALEIGH",
+    brand: "Raleigh",
     model: "RFC RADFORD CLASSIC",
     price: [55000, 92000],
     since: 2014,
@@ -426,7 +426,7 @@ export const BIKES = [
   },
   {
     category: "mtb",
-    brand: "Merida",
+    brand: "MERIDA",
     model: "BIG.SEVEN 20",
     price: [50000, 85000],
     since: 2016,
@@ -460,7 +460,7 @@ export const BIKES = [
   // ---- シティサイクル ----
   {
     category: "city",
-    brand: "BRIDGESTONE",
+    brand: "Bridgestone",
     model: "アルベルト L型",
     price: [28000, 52000],
     since: 2014,
@@ -468,7 +468,7 @@ export const BIKES = [
   },
   {
     category: "city",
-    brand: "BRIDGESTONE",
+    brand: "Bridgestone",
     model: "ステップクルーズ",
     price: [22000, 40000],
     since: 2015,
@@ -476,7 +476,7 @@ export const BIKES = [
   },
   {
     category: "city",
-    brand: "BRIDGESTONE",
+    brand: "Bridgestone",
     model: "マークローザ 7S",
     price: [30000, 55000],
     since: 2016,
@@ -492,7 +492,7 @@ export const BIKES = [
   },
   {
     category: "city",
-    brand: "RALEIGH",
+    brand: "Raleigh",
     model: "RSC RADFORD SPORT",
     price: [45000, 78000],
     since: 2014,
@@ -500,7 +500,7 @@ export const BIKES = [
   },
   {
     category: "city",
-    brand: "LOUIS GARNEAU",
+    brand: "Louis Garneau",
     model: "MULTIWAY 27",
     price: [30000, 52000],
     since: 2016,
@@ -574,7 +574,7 @@ export const BIKES = [
   },
   {
     category: "minivelo",
-    brand: "RALEIGH",
+    brand: "Raleigh",
     model: "RSW SPORT",
     price: [50000, 88000],
     since: 2014,
@@ -584,7 +584,7 @@ export const BIKES = [
   // ---- e-bike ----
   {
     category: "ebike",
-    brand: "YAMAHA",
+    brand: "Yamaha",
     model: "PAS With",
     price: [60000, 105000],
     since: 2016,
@@ -592,7 +592,7 @@ export const BIKES = [
   },
   {
     category: "ebike",
-    brand: "YAMAHA",
+    brand: "Yamaha",
     model: "PAS Brace XL",
     price: [90000, 160000],
     since: 2016,
@@ -600,7 +600,7 @@ export const BIKES = [
   },
   {
     category: "ebike",
-    brand: "YAMAHA",
+    brand: "Yamaha",
     model: "YPJ-EC",
     price: [130000, 230000],
     since: 2018,
@@ -624,7 +624,7 @@ export const BIKES = [
   },
   {
     category: "ebike",
-    brand: "BRIDGESTONE",
+    brand: "Bridgestone",
     model: "TB1e",
     price: [80000, 140000],
     since: 2019,
@@ -632,7 +632,7 @@ export const BIKES = [
   },
   {
     category: "ebike",
-    brand: "BRIDGESTONE",
+    brand: "Bridgestone",
     model: "アシスタU STD",
     price: [55000, 98000],
     since: 2016,
