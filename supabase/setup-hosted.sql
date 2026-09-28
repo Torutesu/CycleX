@@ -5,7 +5,7 @@
 -- テーブル・権限・インデックス・Storage・初期データがすべて入る。
 -- CLI のインストールもログインも不要。
 --
--- 内容は supabase/migrations/ の12本 + seed.sql と同一。
+-- 内容は supabase/migrations/ の13本 + seed.sql と同一。
 -- このファイルは scripts/build-hosted-sql.mjs が生成する。直接編集しないこと。
 -- マイグレーションを足したら node scripts/build-hosted-sql.mjs を実行する。
 -- ============================================================
@@ -1348,6 +1348,30 @@ insert into public.brands (name, name_kana) values
   ('YT Industries', 'ワイティーインダストリーズ'),
   ('Zerode', 'ゼロード'),
   ('ZULLO', 'ズッロ')
+on conflict (name) do update
+  set name_kana = excluded.name_kana
+  where brands.name_kana is null;
+
+
+-- ############################################################
+-- 20260101000013_brand_master_cross.sql
+-- ############################################################
+
+-- =============================================================
+-- メーカーマスタの追加(クロスバイク)
+--
+-- クロスバイクの主要メーカー一覧を突き合わせ、
+-- 20260101000012_brand_master.sql に無かった分だけを足す。
+-- 残り25件は既に入っているため、ここには出てこない。
+--
+-- 何度流しても同じ結果になるようにしてある
+-- (カナは空のときだけ補い、管理画面で直した値を上書きしない)。
+-- =============================================================
+
+insert into public.brands (name, name_kana) values
+  ('CENTURION', 'センチュリオン'),
+  ('MOMENTUM', 'モメンタム'),
+  ('PEUGEOT', 'プジョー')
 on conflict (name) do update
   set name_kana = excluded.name_kana
   where brands.name_kana is null;
