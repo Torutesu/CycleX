@@ -194,6 +194,12 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               aria-label="価格の下限"
               value={draft.priceMin ?? ""}
               onChange={(e) => update({ priceMin: e.target.value ? Number(e.target.value) : null })}
+              // プリセットで値が入ったあとに打つと末尾へ連結され(1万 → 1000010 など)
+              // 0 件になる。フォーカス時に全選択して打ち替えになるようにする
+              onFocus={(e) => e.target.select()}
+              // ホイールは type=number の増減に取られる。ページを送っただけで
+              // 金額が変わるので、その場で外す
+              onWheel={(e) => e.currentTarget.blur()}
               className="h-11 tabular-nums"
             />
             <span className="text-muted-foreground">〜</span>
@@ -204,6 +210,8 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               aria-label="価格の上限"
               value={draft.priceMax ?? ""}
               onChange={(e) => update({ priceMax: e.target.value ? Number(e.target.value) : null })}
+              onFocus={(e) => e.target.select()}
+              onWheel={(e) => e.currentTarget.blur()}
               className="h-11 tabular-nums"
             />
           </div>

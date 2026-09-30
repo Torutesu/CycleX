@@ -118,6 +118,25 @@ test("シートを開かずにカテゴリと価格帯で絞り込める @cross-
   expect(await countOf()).toBe(all);
 });
 
+test("価格帯に値が入っていても、打ち直せば置き換わる", async ({ page }) => {
+  // プリセットで値が入ったあとに数字を打つと、既定の挙動では末尾へ連結され
+  // (1万 → 100007 のように)0 件になる。フォーカス時の全選択で打ち替えにしている
+  await page.goto("/search");
+  // スマホ幅では絞り込みがボトムシートの中にしか無い。
+  // PC 用のサイドバーにも同じ入力があるので、シートの中に限定して操作する
+  await page.getByRole("button", { name: "絞り込み" }).click();
+  const sheet = page.getByRole("dialog");
+
+  const min = sheet.getByLabel("価格の下限");
+  await min.fill("10000");
+  // いったん確実にフォーカスを外してから入れ直す(フォーカス時の挙動を見たい)
+  await sheet.getByLabel("価格の上限").click();
+  await min.click();
+  await page.keyboard.type("7");
+
+  await expect(min).toHaveValue("7");
+});
+
 test("未ログインで会員ページを開くとログインへ誘導される @cross-browser", async ({ page }) => {
   await page.goto("/mypage");
   await expect(page).toHaveURL(/\/login\?next=%2Fmypage/);

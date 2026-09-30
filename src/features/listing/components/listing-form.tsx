@@ -507,6 +507,7 @@ export function ListingForm({
                   max={999}
                   value={values.frameSizeCm}
                   onChange={(e) => set("frameSizeCm", e.target.value)}
+                  onWheel={(e) => e.currentTarget.blur()}
                   className="h-11"
                 />
               </Field>
@@ -629,6 +630,9 @@ export function ListingForm({
               inputMode="numeric"
               value={values.price}
               onChange={(e) => set("price", e.target.value)}
+              // 入力中にホイールを回すと type=number の増減が働き、45000 と
+              // 打ったのに 44998 になる。値段なので黙って変わるのは困る
+              onWheel={(e) => e.currentTarget.blur()}
               className="h-11 pl-7 tabular-nums"
             />
           </div>
