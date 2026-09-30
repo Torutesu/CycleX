@@ -437,6 +437,7 @@ export function ListingForm({
                   max={999}
                   value={values.frameSizeCm}
                   onChange={(e) => set("frameSizeCm", e.target.value)}
+                  onWheel={(e) => e.currentTarget.blur()}
                   className="h-11"
                 />
               </Field>
@@ -553,6 +554,8 @@ export function ListingForm({
               inputMode="numeric"
               value={values.price}
               onChange={(e) => set("price", e.target.value)}
+              // フォーカス中のホイールで数値が増減してしまうのを防ぐ
+              onWheel={(e) => e.currentTarget.blur()}
               className="h-11 pl-7 tabular-nums"
             />
           </div>

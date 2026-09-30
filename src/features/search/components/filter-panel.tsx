@@ -194,6 +194,9 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               aria-label="価格の下限"
               value={draft.priceMin ?? ""}
               onChange={(e) => update({ priceMin: e.target.value ? Number(e.target.value) : null })}
+              // プリセット適用後の追記は末尾連結になってしまうため、フォーカス時は全選択して打ち替えにする
+              onFocus={(e) => e.target.select()}
+              onWheel={(e) => e.currentTarget.blur()}
               className="h-11 tabular-nums"
             />
             <span className="text-muted-foreground">〜</span>
@@ -204,6 +207,8 @@ export function FilterPanel({ params, brands, onApplied }: FilterPanelProps) {
               aria-label="価格の上限"
               value={draft.priceMax ?? ""}
               onChange={(e) => update({ priceMax: e.target.value ? Number(e.target.value) : null })}
+              onFocus={(e) => e.target.select()}
+              onWheel={(e) => e.currentTarget.blur()}
               className="h-11 tabular-nums"
             />
           </div>
