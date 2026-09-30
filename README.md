@@ -189,6 +189,7 @@ curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/dail
 | [RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | 公開前チェックリスト(済 / 本番待ち / 甲の支給待ちの区別)   |
 | [ops/RUNBOOK.md](docs/ops/RUNBOOK.md)             | 障害時の一次対応(Sentry の設定とアラート条件を含む)        |
 | [ops/OPERATIONS.md](docs/ops/OPERATIONS.md)       | 平常時の運営業務(振込・返金・通報対応。対象外機能の手作業) |
+| [ops/DEPLOY_TASK.md](docs/ops/DEPLOY_TASK.md)     | 本番を `main` へ切り替える作業指示(エージェントに渡せる形) |
 | [DEMO_DEPLOY.md](docs/DEMO_DEPLOY.md)             | クライアントに触ってもらうデモ環境の作り方                 |
 | [CLIENT_REQUEST.md](docs/CLIENT_REQUEST.md)       | 甲への依頼一覧(支給物・アカウント)                         |
 | [REVIEW_NOTES.md](docs/REVIEW_NOTES.md)           | クライアント配布用のレビュー案内文                         |
