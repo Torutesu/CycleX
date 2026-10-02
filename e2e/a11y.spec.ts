@@ -73,6 +73,15 @@ test("会員向けの画面に自動検査で分かる違反が無い", async ({
   }
 });
 
+test("ブランドの選択を開いた状態でも違反が無い", async ({ page }) => {
+  // 閉じている間は中身が描かれないため、開いた状態を別に見る
+  await login(page, USER);
+  await page.goto("/sell", { waitUntil: "networkidle" });
+  await page.click("#brandId");
+  await expect(page.getByRole("option").first()).toBeVisible();
+  expect(await violations(page)).toEqual([]);
+});
+
 test("PC 幅でも自動検査で分かる違反が無い", async ({ page }) => {
   // 絞り込みのサイドバーなど、広い画面でしか出ない部分を見る
   await page.setViewportSize({ width: 1280, height: 900 });

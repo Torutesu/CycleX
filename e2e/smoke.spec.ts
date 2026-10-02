@@ -225,10 +225,14 @@ test("出品 → 検索でヒット → 詳細 → お気に入り", async ({ pa
 
   await login(page, BUYER);
   await page.goto(`/search?q=${encodeURIComponent(TITLE)}`);
+  // href を読む前に、先頭が目的の商品であることを確かめる。
+  // ここを飛ばすと、別の商品をお気に入りに入れたことに後の行で気づくことになる
+  await expect(page.locator("article").first()).toContainText(TITLE);
   const itemHref = await page.locator("article a").first().getAttribute("href");
   expect(itemHref).toBeTruthy();
 
   await page.goto(itemHref!);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(TITLE);
   // 関連商品のカードにも同じボタンが並ぶため、商品名の付かないこの商品のものを選ぶ
   const favorite = page.getByRole("button", { name: "お気に入りに追加", exact: true });
   await favorite.first().click();
@@ -239,6 +243,9 @@ test("出品 → 検索でヒット → 詳細 → お気に入り", async ({ pa
   await page.goto("/mypage/favorites");
   // 過去の実行分が残っていても通るよう、順序ではなく存在で判定する
   await expect(page.locator("article", { hasText: TITLE })).toHaveCount(1);
+  // 件数の上限(100件)に当たっていないこと。超えると新しい分から押し出される
+  const shown = await page.locator("article").count();
+  expect(shown, "お気に入りが上限に達している").toBeLessThan(100);
 });
 
 test("写真を拡大して前後に送れる", async ({ page }) => {

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Field } from "@/components/form/field";
+import { BrandPicker } from "@/features/listing/components/brand-picker";
 import { ImageUploader } from "@/features/listing/components/image-uploader";
 import { useFormBackup } from "@/features/listing/components/use-form-backup";
 import { saveDraft, publishListing } from "@/features/listing/actions";
@@ -343,19 +344,13 @@ export function ListingForm({
         </Field>
 
         <Field id="brandId" label="ブランド" required errors={fieldErrors.brandId}>
-          <Select value={values.brandId} onValueChange={(v) => set("brandId", v)}>
-            <SelectTrigger id="brandId" className="h-11 w-full">
-              <SelectValue placeholder="選択してください" />
-            </SelectTrigger>
-            <SelectContent>
-              {brands.map((brand) => (
-                <SelectItem key={brand.id} value={brand.id}>
-                  {brand.name}
-                </SelectItem>
-              ))}
-              <SelectItem value={BRAND_OTHER}>その他(自由入力)</SelectItem>
-            </SelectContent>
-          </Select>
+          <BrandPicker
+            id="brandId"
+            brands={brands}
+            value={values.brandId}
+            onChange={(v) => set("brandId", v)}
+            otherValue={BRAND_OTHER}
+          />
         </Field>
 
         {values.brandId === BRAND_OTHER && (

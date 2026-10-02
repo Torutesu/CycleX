@@ -81,6 +81,8 @@ jobs:
           export SUPABASE_SERVICE_ROLE_KEY=$(pnpm supabase status -o json | jq -r '.SERVICE_ROLE_KEY')
           node scripts/seed-users.mjs
           node scripts/seed-dev.mjs 120
+          # 写真スライダーの確認は「画像が複数ある出品」が無いと黙って飛ぶ
+          node scripts/seed-images.mjs 40
 
       - name: Run E2E smoke test
         run: |

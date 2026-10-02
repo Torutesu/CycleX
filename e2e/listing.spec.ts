@@ -58,6 +58,35 @@ async function addPhoto(page: Page, name: string) {
   });
 }
 
+test("ブランドは名前で絞って選べる", async ({ page }) => {
+  // 登録ブランドは 160 件を超える。並べるだけだとスクロールで探すことになるので、
+  // 打った文字で絞れること、絞っても「その他」に逃げられることを見る。
+  await login(page, SELLER);
+  await page.goto("/sell");
+
+  await page.click("#brandId");
+  const options = page.getByRole("option");
+  const all = await options.count();
+  expect(all, "ブランドが並んでいない").toBeGreaterThan(100);
+
+  await page.fill('input[aria-label="ブランド名で絞り込む"]', "brom");
+  await expect(options).toHaveCount(2); // BROMPTON と「その他(自由入力)」
+  await expect(page.getByRole("option", { name: "Brompton" })).toBeVisible();
+
+  // 1件も当たらなくても、自由入力には進める
+  await page.fill('input[aria-label="ブランド名で絞り込む"]', "該当しない文字列");
+  await expect(page.getByText("該当するブランドがありません")).toBeVisible();
+  await page.getByRole("option", { name: "その他(自由入力)" }).click();
+  await expect(page.locator("#brandOther")).toBeVisible();
+
+  // 選び直すと、絞り込みは持ち越さず全件から選べる
+  await page.click("#brandId");
+  await expect(options).toHaveCount(all);
+  await page.getByRole("option", { name: "Brompton", exact: true }).click();
+  await expect(page.locator("#brandId")).toContainText("Brompton");
+  await expect(page.locator("#brandOther")).toHaveCount(0);
+});
+
 test("下書きに保存すると、公開されず下書きタブに入る", async ({ page }) => {
   await login(page, SELLER);
   await page.goto("/sell");
