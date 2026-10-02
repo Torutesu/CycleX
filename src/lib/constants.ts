@@ -29,7 +29,7 @@ export const CATEGORIES = [
   { value: "road", label: "ロードバイク" },
   { value: "cross", label: "クロスバイク" },
   { value: "mtb", label: "マウンテンバイク" },
-  { value: "city", label: "シティサイクル" },
+  { value: "pista", label: "ピストバイク" },
   { value: "minivelo", label: "ミニベロ" },
   { value: "ebike", label: "e-bike" },
   { value: "parts", label: "パーツ" },
@@ -43,7 +43,7 @@ export const BIKE_CATEGORIES: readonly Category[] = [
   "road",
   "cross",
   "mtb",
-  "city",
+  "pista",
   "minivelo",
   "ebike",
 ];

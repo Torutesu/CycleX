@@ -150,7 +150,10 @@ describe("categoriesForKeyword", () => {
   it("呼び名の揺れを吸収する", () => {
     expect(categoriesForKeyword("MTB")).toContain("mtb");
     expect(categoriesForKeyword("mtb")).toContain("mtb");
-    expect(categoriesForKeyword("ママチャリ")).toContain("city");
+    expect(categoriesForKeyword("ピスト")).toContain("pista");
+    expect(categoriesForKeyword("ぴすと")).toContain("pista");
+    expect(categoriesForKeyword("固定ギア")).toContain("pista");
+    expect(categoriesForKeyword("fixie")).toContain("pista");
     expect(categoriesForKeyword("電動")).toContain("ebike");
     expect(categoriesForKeyword("e-bike")).toContain("ebike");
   });

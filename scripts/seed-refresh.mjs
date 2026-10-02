@@ -21,7 +21,7 @@ const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE
   auth: { persistSession: false },
 });
 
-console.log("対象:", url);
+console.log("対象:", env.NEXT_PUBLIC_SUPABASE_URL);
 
 function pick(list) {
   return list[Math.floor(Math.random() * list.length)];

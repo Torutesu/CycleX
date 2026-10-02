@@ -18,12 +18,17 @@ const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_
   auth: { persistSession: false },
 });
 
-/** カテゴリごとの色味(実物の雰囲気に寄せる) */
+/**
+ * カテゴリごとの色味(実物の雰囲気に寄せる)。
+ *
+ * この色は、明るい背景のときにシルエットの線の色としてそのまま使う。
+ * 明るい色を入れると白地に白を描くことになり、絵が消えるので中〜暗めで選ぶ。
+ */
 const PALETTES = {
   road: ["#1B2A41", "#C1272D", "#0E7C6B", "#F2A007", "#2E4057"],
   cross: ["#3A5A40", "#588157", "#344E41", "#6B705C"],
   mtb: ["#22333B", "#5E503F", "#A9714B", "#0A5C50"],
-  city: ["#4A5859", "#8D99AE", "#BC6C25", "#606C38"],
+  pista: ["#111111", "#E63946", "#2B2D42", "#457B9D"],
   minivelo: ["#D62828", "#F77F00", "#003049", "#457B9D"],
   ebike: ["#1D3557", "#2A9D8F", "#264653", "#3D405B"],
   parts: ["#343A40", "#495057", "#212529", "#6C757D"],
@@ -58,7 +63,7 @@ function silhouette(category, accent) {
 
   // 車体: ダイヤモンドフレーム + ハンドル形状をカテゴリで変える
   const bars =
-    category === "road"
+    category === "road" || category === "pista"
       ? `<path d="M352 218 q26 -6 30 16 q4 22 -18 26" fill="none" stroke="${accent}" stroke-width="9" stroke-linecap="round"/>`
       : `<path d="M330 214 h56" fill="none" stroke="${accent}" stroke-width="10" stroke-linecap="round"/>`;
 
@@ -112,7 +117,7 @@ const CATEGORY_LABELS = {
   road: "ROAD",
   cross: "CROSS",
   mtb: "MTB",
-  city: "CITY",
+  pista: "PISTA",
   minivelo: "MINIVELO",
   ebike: "E-BIKE",
   parts: "PARTS",

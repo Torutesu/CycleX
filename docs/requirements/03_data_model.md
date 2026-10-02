@@ -54,7 +54,7 @@ erDiagram
 | id | uuid | PK | |
 | seller_id | uuid | FK→users NOT NULL | |
 | status | text | NOT NULL default 'draft' | 'draft' / 'published' / 'trading' / 'sold' / 'withdrawn' / 'suspended' |
-| category | text | NOT NULL | 'road' / 'cross' / 'mtb' / 'city' / 'minivelo' / 'ebike' / 'parts' / 'other' |
+| category | text | NOT NULL | 'road' / 'cross' / 'mtb' / 'pista' / 'minivelo' / 'ebike' / 'parts' / 'other' |
 | parts_subcategory | text | | パーツ時のみ('frame' / 'wheel' / 'component' / 'cockpit' / 'saddle' / 'pedal' / 'tire' / 'accessory' / 'other') |
 | title | text | NOT NULL | 5〜80 文字(下書きは 1 文字〜) |
 | brand_id | uuid | FK→brands | |
