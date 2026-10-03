@@ -16,7 +16,19 @@ import path from "node:path";
  */
 
 const ROOTS = ["src", "e2e", "scripts", "supabase", "docs"];
-const EXTENSIONS = new Set([".ts", ".tsx", ".mjs", ".js", ".css", ".sql", ".md", ".json"]);
+const EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mjs",
+  ".js",
+  ".css",
+  ".sql",
+  ".md",
+  ".json",
+  // 認証メールの文面(supabase/templates/)と件名(config.toml)
+  ".html",
+  ".toml",
+]);
 const SKIP_DIRS = new Set(["node_modules", ".next", "dist", ".temp"]);
 
 /** 日本語の文章に紛れていたら、まず間違いと分かる文字 */

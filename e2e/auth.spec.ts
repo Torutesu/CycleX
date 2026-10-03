@@ -38,6 +38,8 @@ test.describe("認証", () => {
 
     // --- 確認メールのリンクでログイン状態になる ---
     const confirmation = await waitForMail(email, seen);
+    // 既定の英語の文面に戻っていないこと(supabase/templates/)
+    expect(confirmation.Subject).toBe("【BicycleMarket】メールアドレスの確認");
     await page.goto(await linkInMail(confirmation.ID));
     expect(page.url()).not.toContain("/login");
     await expect(page.getByRole("navigation", { name: "メインナビゲーション" })).toContainText(
@@ -50,6 +52,7 @@ test.describe("認証", () => {
     await page.click('button[type="submit"]');
 
     const recovery = await waitForMail(email, seen);
+    expect(recovery.Subject).toBe("【BicycleMarket】パスワードの再設定");
     await page.goto(await linkInMail(recovery.ID));
     // next が欠けていてもリセットは更新画面へ着地すること
     await expect(page).toHaveURL(/\/reset-password\/update/);
