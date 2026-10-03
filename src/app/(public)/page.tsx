@@ -11,7 +11,7 @@ import {
 } from "@/features/search/queries";
 import { getFavoritedIds } from "@/features/favorite/queries";
 import { getCurrentUser } from "@/lib/session";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORIES, SITE_NAME } from "@/lib/constants";
 
 /**
  * カテゴリのアイコン。車体は6種すべて自転車なので同じ記号でよいが、
@@ -40,7 +40,7 @@ export default async function HomePage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6">
       {/* 見出しはヒーローが持つ。ログイン後はヒーローを出さないので、その場合だけ補う */}
-      {user && <h1 className="sr-only">CycleX ホーム</h1>}
+      {user && <h1 className="sr-only">{SITE_NAME} ホーム</h1>}
 
       {/* はじめて来た人に、何のサービスかを一目で伝える */}
       {!user && (
@@ -79,7 +79,7 @@ export default async function HomePage() {
           </div>
           <p className="mt-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
             <ShieldCheck className="size-3.5 text-primary" aria-hidden />
-            カード情報は決済代行(Stripe)が扱い、CycleXには保存されません
+            カード情報は決済代行(Stripe)が扱い、{SITE_NAME}には保存されません
           </p>
         </section>
       )}

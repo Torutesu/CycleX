@@ -18,7 +18,7 @@ const migrations = readdirSync(migrationsDir)
   .sort();
 
 const header = `-- ============================================================
--- CycleX 本番セットアップ(1回貼るだけ)
+-- BicycleMarket 本番セットアップ(1回貼るだけ)
 --
 -- Supabase の SQL Editor に貼り付けて Run するだけで、
 -- テーブル・権限・インデックス・Storage・初期データがすべて入る。

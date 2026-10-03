@@ -109,7 +109,7 @@ function pageHtml(category, palette, label) {
     <span style="position:absolute;left:22px;bottom:18px;color:${textColor};opacity:.62;
       font-size:12px;letter-spacing:.08em;">${label}</span>
     <span style="position:absolute;right:22px;top:18px;color:${textColor};opacity:.35;
-      font-size:11px;letter-spacing:.16em;">CycleX SAMPLE</span>
+      font-size:11px;letter-spacing:.16em;">BicycleMarket SAMPLE</span>
   </body></html>`;
 }
 

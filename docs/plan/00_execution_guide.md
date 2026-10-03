@@ -1,6 +1,6 @@
 # 実装計画 00. 実行ガイド(自律エージェント向け)
 
-本ディレクトリは CycleX MVP の**実装計画書**である。`docs/requirements/` の要件定義を実装可能なタスクに分解しており、自律エージェント(Goal モード)がフェーズ順に実行することを前提とする。
+本ディレクトリは BicycleMarket MVP の**実装計画書**である。`docs/requirements/` の要件定義を実装可能なタスクに分解しており、自律エージェント(Goal モード)がフェーズ順に実行することを前提とする。
 
 ## 1. 実行順序
 
@@ -89,7 +89,7 @@ STRIPE_WEBHOOK_SECRET=
 
 # Resend
 RESEND_API_KEY=
-EMAIL_FROM="CycleX <noreply@example.com>"
+EMAIL_FROM="BicycleMarket <noreply@example.com>"
 
 # Cron 保護
 CRON_SECRET=

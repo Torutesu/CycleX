@@ -1,4 +1,5 @@
 import { absoluteUrl } from "@/lib/utils";
+import { SITE_NAME } from "@/lib/constants";
 
 /**
  * メール本文のテンプレート。
@@ -50,7 +51,7 @@ export function renderHtml(recipientName: string, body: MailBody): string {
 <html lang="ja">
 <body style="margin:0;padding:24px;background:#F7FAF9;font-family:system-ui,-apple-system,'Hiragino Sans','Noto Sans JP',sans-serif;color:#1E2422;">
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px;">
-    <p style="margin:0 0 20px;font-size:18px;font-weight:700;color:#0E7C6B;">CycleX</p>
+    <p style="margin:0 0 20px;font-size:18px;font-weight:700;color:#0E7C6B;">${SITE_NAME}</p>
     <p style="margin:0 0 16px;font-size:14px;">${escapeHtml(recipientName)} 様</p>
     <p style="margin:0 0 16px;font-size:14px;line-height:1.8;">${escapeHtml(body.intro)}</p>
     ${detailRows ? `<table style="margin:16px 0;border-collapse:collapse;">${detailRows}</table>` : ""}
@@ -58,7 +59,7 @@ export function renderHtml(recipientName: string, body: MailBody): string {
     ${body.outro ? `<p style="margin:16px 0 0;font-size:13px;color:#5C6663;line-height:1.8;">${escapeHtml(body.outro)}</p>` : ""}
     <hr style="margin:24px 0 16px;border:none;border-top:1px solid #DFE8E4;">
     <p style="margin:0;font-size:11px;color:#5C6663;line-height:1.7;">
-      このメールは CycleX から自動送信されています。<br>
+      このメールは ${SITE_NAME} から自動送信されています。<br>
       通知の設定は<a href="${absoluteUrl("/mypage/settings")}" style="color:#0E7C6B;">設定画面</a>から変更できます。
     </p>
   </div>
@@ -86,7 +87,7 @@ export function renderText(recipientName: string, body: MailBody): string {
   lines.push(
     "",
     "----",
-    "このメールは CycleX から自動送信されています。",
+    `このメールは ${SITE_NAME} から自動送信されています。`,
     `通知の設定: ${absoluteUrl("/mypage/settings")}`,
   );
 

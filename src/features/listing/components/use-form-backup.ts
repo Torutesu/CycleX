@@ -12,6 +12,8 @@ import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "r
  * 保存先はその端末のブラウザのみで、サーバーへは送らない。
  * 保存できない設定(プライベートモード等)でもフォームは通常どおり動く。
  */
+// 接頭辞は改称前の名前のまま。変えると、入力途中で保存された下書きが
+// 読めなくなって消える。利用者には見えない文字列なので触らない。
 const PREFIX = "cyclex:listing-draft:";
 
 const listeners = new Set<() => void>();

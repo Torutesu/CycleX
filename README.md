@@ -1,4 +1,4 @@
-# CycleX
+# BicycleMarket
 
 自転車(中古車体・パーツ)に特化した C2C マーケットプレイスの MVP。
 

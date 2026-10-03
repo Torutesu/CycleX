@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { envValue } from "@/lib/env";
 import { MAIL_KINDS, shouldSend, type MailKind } from "@/lib/email/kinds";
 import { renderHtml, renderText, type MailBody } from "@/lib/email/template";
+import { SITE_NAME } from "@/lib/constants";
 
 let resend: Resend | null = null;
 
@@ -62,7 +63,7 @@ export async function sendMail(input: SendMailInput): Promise<void> {
     }
 
     const { error } = await client.emails.send({
-      from: envValue("EMAIL_FROM") ?? "CycleX <noreply@example.com>",
+      from: envValue("EMAIL_FROM") ?? `${SITE_NAME} <noreply@example.com>`,
       to: user.email,
       subject,
       html: renderHtml(user.display_name, input.body),

@@ -67,7 +67,7 @@ describe("メール本文", () => {
 
   it("末尾には必ず送信元の断りと設定への案内が入る", () => {
     for (const rendered of [renderHtml("さとう", BODY), renderText("さとう", BODY)]) {
-      expect(rendered).toContain("CycleX から自動送信");
+      expect(rendered).toContain("BicycleMarket から自動送信");
       expect(rendered).toContain("/mypage/settings");
     }
   });

@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/session";
 import { getUnreadCount } from "@/features/message/queries";
 import { appBaseUrl } from "@/lib/utils";
 import "./globals.css";
+import { SITE_NAME } from "@/lib/constants";
 
 // 日本語 UI のため、環境に依存しないゴシック体を明示的に読み込む
 const notoSansJp = Noto_Sans_JP({
@@ -22,8 +23,8 @@ export const metadata: Metadata = {
   // OGP 画像や canonical の相対 URL を解決するための基準
   metadataBase: new URL(appBaseUrl()),
   title: {
-    default: "CycleX | 自転車・パーツの個人間売買",
-    template: "%s | CycleX",
+    default: `${SITE_NAME} | 自転車・パーツの個人間売買`,
+    template: `%s | ${SITE_NAME}`,
   },
   description:
     "ロードバイクからパーツまで、自転車に特化したC2Cマーケットプレイス。フレームサイズやコンポーネントで探せます。",

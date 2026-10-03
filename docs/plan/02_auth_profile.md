@@ -4,7 +4,7 @@
 
 ## T-2.1 共通レイアウト(FR-14 の骨格)
 
-- `src/components/layout/header.tsx`: ロゴ(テキスト「CycleX」)・検索バー(`/search?q=` へ submit)・PC のみ: 出品ボタン/お気に入り/メッセージ(未読バッジ)/アカウントメニュー(Avatar + dropdown)
+- `src/components/layout/header.tsx`: ロゴ(テキスト「BicycleMarket」)・検索バー(`/search?q=` へ submit)・PC のみ: 出品ボタン/お気に入り/メッセージ(未読バッジ)/アカウントメニュー(Avatar + dropdown)
 - `src/components/layout/tab-bar.tsx`: `md:hidden fixed bottom-0` の 5 タブ(ホーム/さがす/出品/メッセージ/マイページ)。`usePathname` でアクティブ表示、メッセージに未読数バッジ(Server Component から props)
 - `src/app/layout.tsx`: `<Header/> {children} <TabBar/> <Toaster/>`。本文に `pb-16 md:pb-0`(タブバー分の余白)
 - 未読数取得 `src/features/message/queries.ts#getUnreadCount()`(この時点ではスタブで 0 を返す)

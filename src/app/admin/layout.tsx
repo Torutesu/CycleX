@@ -3,9 +3,10 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { requireAdmin } from "@/lib/session";
 import { AdminNav, AdminNavDrawer } from "@/features/admin/components/admin-nav";
+import { SITE_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: { default: "管理画面", template: "%s | CycleX 管理画面" },
+  title: { default: "管理画面", template: `%s | ${SITE_NAME} 管理画面` },
   robots: { index: false, follow: false },
 };
 
@@ -19,7 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="flex h-14 items-center gap-3 px-4">
           <AdminNavDrawer />
           <Link href="/admin" className="font-bold">
-            CycleX <span className="text-muted-foreground">管理画面</span>
+            {SITE_NAME} <span className="text-muted-foreground">管理画面</span>
           </Link>
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden text-sm text-muted-foreground sm:inline">

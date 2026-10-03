@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMail, findLastSentAt } from "@/lib/email/send";
 import { shouldThrottleMessageNotification } from "@/lib/email/kinds";
 import { formatDateTime, formatPrice } from "@/lib/utils";
+import { SITE_NAME } from "@/lib/constants";
 
 /**
  * FR-13 のメール通知フック。
@@ -53,8 +54,7 @@ export async function notifyWelcome(userId: string): Promise<void> {
     userId,
     kind: "welcome",
     body: {
-      intro:
-        "CycleX へのご登録ありがとうございます。自転車本体からパーツまで、出品と購入がすぐに始められます。",
+      intro: `${SITE_NAME} へのご登録ありがとうございます。自転車本体からパーツまで、出品と購入がすぐに始められます。`,
       cta: { label: "商品をさがす", path: "/search" },
       outro:
         "出品する際は、フレームサイズやコンポーネントを入力すると見つけてもらいやすくなります。",

@@ -18,7 +18,7 @@ jobs:
       STRIPE_SECRET_KEY: sk_test_dummy
       STRIPE_WEBHOOK_SECRET: whsec_dummy
       RESEND_API_KEY: re_dummy
-      EMAIL_FROM: CycleX <noreply@example.com>
+      EMAIL_FROM: BicycleMarket <noreply@example.com>
       CRON_SECRET: dummy-cron-secret
     steps:
       - uses: actions/checkout@v4
@@ -96,7 +96,7 @@ jobs:
           export ALLOW_DEMO_CHECKOUT=1
           export STRIPE_WEBHOOK_SECRET=whsec_dummy
           export RESEND_API_KEY=re_dummy
-          export EMAIL_FROM="CycleX <noreply@example.com>"
+          export EMAIL_FROM="BicycleMarket <noreply@example.com>"
           export CRON_SECRET=dummy-cron-secret
           pnpm test:e2e
 

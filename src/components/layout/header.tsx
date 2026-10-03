@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { SearchBar } from "@/components/layout/search-bar";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { SessionUser } from "@/lib/session";
+import { SITE_NAME } from "@/lib/constants";
 
 type HeaderProps = {
   user: SessionUser | null;
@@ -22,7 +23,7 @@ export function Header({ user, unreadCount }: HeaderProps) {
           href="/"
           className="inline-flex min-h-11 shrink-0 items-center text-lg font-bold tracking-tight text-primary md:text-xl"
         >
-          CycleX
+          {SITE_NAME}
         </Link>
 
         <div className="hidden flex-1 md:block">

@@ -110,7 +110,7 @@ Stripe と Resend は、用意ができてから足す。
 STRIPE_SECRET_KEY             sk_test_xxx
 STRIPE_WEBHOOK_SECRET         whsec_xxx
 RESEND_API_KEY                re_xxx
-EMAIL_FROM                    CycleX <noreply@example.com>
+EMAIL_FROM                    BicycleMarket <noreply@example.com>
 ```
 
 `NEXT_PUBLIC_APP_URL` は初回デプロイでドメインが決まってから設定し、

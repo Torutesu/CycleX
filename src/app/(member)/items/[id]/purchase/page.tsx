@@ -13,6 +13,7 @@ import { listingImageUrl } from "@/lib/images";
 import { formatPrice } from "@/lib/utils";
 import { DELIVERY_METHODS, PREFECTURES, labelOf } from "@/lib/constants";
 import { isDemoCheckout } from "@/lib/demo";
+import { SITE_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "購入手続き" };
 
@@ -117,7 +118,7 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
           </p>
         ) : (
           <p>
-            お支払いは決済代行サービス(Stripe)の決済ページで行います。カード情報が CycleX
+            お支払いは決済代行サービス(Stripe)の決済ページで行います。カード情報が {SITE_NAME}
             に保存されることはありません。決済後は取引画面から発送・受取のご連絡ができます。
           </p>
         )}

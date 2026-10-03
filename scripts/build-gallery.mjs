@@ -134,7 +134,7 @@ const sections = GROUPS.map(
 
 const nav = GROUPS.map((g) => `<a href="#${g.id}">${g.label}</a>`).join("");
 
-const html = `<title>CycleX 画面ギャラリー</title>
+const html = `<title>BicycleMarket 画面ギャラリー</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -278,7 +278,7 @@ const html = `<title>CycleX 画面ギャラリー</title>
 <div class="wrap">
   <header class="hero">
     <p class="eyebrow">Screen Gallery / MVP</p>
-    <h1>CycleX 画面ギャラリー</h1>
+    <h1>BicycleMarket 画面ギャラリー</h1>
     <p class="lede">
       自転車・パーツに特化した C2C マーケットプレイスの実装済み画面です。
       すべてスマホ幅を基準に設計し、PC はレスポンシブで展開します。画面をタップすると全体を拡大表示します。

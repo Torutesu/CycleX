@@ -5,6 +5,19 @@
 
 import { jstYear } from "@/lib/utils";
 
+// ============================================================
+// サイト名
+// ============================================================
+
+/**
+ * サービス名。画面・メール・ページタイトルのすべてがここを見る。
+ * 散らばっていると改称のたびに取りこぼすため、1か所に置く。
+ */
+export const SITE_NAME = "BicycleMarket";
+
+/** 一言説明。トップの説明文とフッターで共用する */
+export const SITE_TAGLINE = "自転車・パーツの個人間売買マーケットプレイス";
+
 export type Option<T extends string = string> = { value: T; label: string };
 
 /** Option 配列から value のユニオン型 tuple を取り出す(Zod enum 用) */

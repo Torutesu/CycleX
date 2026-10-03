@@ -3,6 +3,8 @@
  * category が null のものは通知設定で無効化できない(取引の重大な変更・認証系)。
  */
 
+import { SITE_NAME } from "@/lib/constants";
+
 export type NotificationCategory = "transaction" | "message" | "review";
 
 export type MailKind =
@@ -25,7 +27,7 @@ type MailKindMeta = {
 };
 
 export const MAIL_KINDS: Record<MailKind, MailKindMeta> = {
-  welcome: { subject: "CycleX へようこそ", category: null },
+  welcome: { subject: `${SITE_NAME} へようこそ`, category: null },
   listing_paid_seller: { subject: "商品が購入されました", category: "transaction" },
   purchase_confirmed: { subject: "ご購入ありがとうございます", category: "transaction" },
   tx_shipped: { subject: "発送・受渡のご連絡があります", category: "transaction" },

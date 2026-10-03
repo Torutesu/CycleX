@@ -68,7 +68,7 @@ describe("メールの送信", () => {
     process.env = {
       ...original,
       RESEND_API_KEY: "re_live_dummy",
-      EMAIL_FROM: "CycleX <no-reply@cyclex.jp>",
+      EMAIL_FROM: "BicycleMarket <no-reply@bicyclemarket.jp>",
     };
     vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -85,7 +85,7 @@ describe("メールの送信", () => {
     expect(sendSpy).toHaveBeenCalledTimes(1);
     const sent = sendSpy.mock.calls[0][0];
     expect(sent.to).toBe("buyer@example.com");
-    expect(sent.from).toBe("CycleX <no-reply@cyclex.jp>");
+    expect(sent.from).toBe("BicycleMarket <no-reply@bicyclemarket.jp>");
     expect(sent.subject).toBe("ご購入ありがとうございます");
     expect(sent.html).toContain("さとう 様");
     expect(sent.html).toContain("取引が成立しました。");
@@ -116,7 +116,7 @@ describe("メールの送信", () => {
   it("送信元が空のまま登録されていても、既定の送信元で送る", async () => {
     process.env.EMAIL_FROM = "   ";
     await sendMail({ userId: "u1", kind: "purchase_confirmed", body: BODY });
-    expect(sendSpy.mock.calls[0][0].from).toBe("CycleX <noreply@example.com>");
+    expect(sendSpy.mock.calls[0][0].from).toBe("BicycleMarket <noreply@example.com>");
   });
 
   it("鍵が無い環境では送らず、記録だけ残す", async () => {
