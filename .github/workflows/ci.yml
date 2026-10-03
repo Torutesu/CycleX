@@ -73,6 +73,11 @@ jobs:
       - name: Start Supabase
         run: pnpm supabase start -x studio,logflare,vector,supavisor,edge-runtime,realtime,postgres-meta
 
+      # 本番は SQL Editor に貼って更新する。更地に流せるだけでなく、
+      # 古い版の関数が残っているデータベースにも流せることを確かめる
+      - name: 本番セットアップ SQL が既存の環境にも流せるか
+        run: pnpm db:hosted:verify
+
       # 検索の並び順・件数・ページ送りは、並んでいる商品を見て確かめる。
       # 空のデータベースでは確かめようがないので、先に入れておく
       - name: Seed demo data

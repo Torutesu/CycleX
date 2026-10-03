@@ -845,6 +845,12 @@ create policy admin_audit_admin_select on public.admin_audit_logs
 --   security invoker(既定)なので、呼び出した利用者の権限と RLS がそのまま効く。
 -- =============================================================
 
+-- 引数名や戻り値の列が違う同名の関数が既にあると、create or replace は
+-- 置き換えを拒否する(42P13)。本番には、このリポジトリの外で作られた
+-- 引数名の違う版が残っていたため、作る前に一度落とす。
+-- この関数はアプリから直接呼ぶだけで、ほかの DB オブジェクトは依存していない。
+-- cascade は付けない(依存が見つかったら、黙って消さずにエラーで止める)。
+drop function if exists public.category_listing_counts();
 create or replace function public.category_listing_counts()
 returns table (category text, count bigint)
 language sql
@@ -887,6 +893,12 @@ grant execute on function public.category_listing_counts() to anon, authenticate
 -- security invoker のままなので、他人の ID を渡しても
 -- RLS で見えるぶん(公開中・取引中)しか数えられない。
 -- -------------------------------------------------------------
+-- 引数名や戻り値の列が違う同名の関数が既にあると、create or replace は
+-- 置き換えを拒否する(42P13)。本番には、このリポジトリの外で作られた
+-- 引数名の違う版が残っていたため、作る前に一度落とす。
+-- この関数はアプリから直接呼ぶだけで、ほかの DB オブジェクトは依存していない。
+-- cascade は付けない(依存が見つかったら、黙って消さずにエラーで止める)。
+drop function if exists public.listing_status_counts(uuid);
 create or replace function public.listing_status_counts(seller uuid)
 returns table (status text, count bigint)
 language sql
@@ -911,6 +923,12 @@ grant execute on function public.listing_status_counts(uuid) to anon, authentica
 -- 相手の未読数まで数えられてしまわないよう、service role からのみ実行できる。
 -- 呼び出し側(Server Component)は本人であることを確認済み。
 -- -------------------------------------------------------------
+-- 引数名や戻り値の列が違う同名の関数が既にあると、create or replace は
+-- 置き換えを拒否する(42P13)。本番には、このリポジトリの外で作られた
+-- 引数名の違う版が残っていたため、作る前に一度落とす。
+-- この関数はアプリから直接呼ぶだけで、ほかの DB オブジェクトは依存していない。
+-- cascade は付けない(依存が見つかったら、黙って消さずにエラーで止める)。
+drop function if exists public.unread_message_count(uuid);
 create or replace function public.unread_message_count(target_user uuid)
 returns bigint
 language sql
@@ -956,6 +974,12 @@ grant execute on function public.unread_message_count(uuid) to service_role;
 --   unread_message_count と同じく service role からのみ実行できる。
 --   呼び出し側(Server Component)は本人であることを確認済み。
 -- =============================================================
+-- 引数名や戻り値の列が違う同名の関数が既にあると、create or replace は
+-- 置き換えを拒否する(42P13)。本番には、このリポジトリの外で作られた
+-- 引数名の違う版が残っていたため、作る前に一度落とす。
+-- この関数はアプリから直接呼ぶだけで、ほかの DB オブジェクトは依存していない。
+-- cascade は付けない(依存が見つかったら、黙って消さずにエラーで止める)。
+drop function if exists public.thread_summaries(uuid);
 create or replace function public.thread_summaries(target_user uuid)
 returns table (
   thread_id uuid,

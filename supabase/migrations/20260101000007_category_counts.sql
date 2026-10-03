@@ -12,6 +12,12 @@
 --   security invoker(既定)なので、呼び出した利用者の権限と RLS がそのまま効く。
 -- =============================================================
 
+-- 引数名や戻り値の列が違う同名の関数が既にあると、create or replace は
+-- 置き換えを拒否する(42P13)。本番には、このリポジトリの外で作られた
+-- 引数名の違う版が残っていたため、作る前に一度落とす。
+-- この関数はアプリから直接呼ぶだけで、ほかの DB オブジェクトは依存していない。
+-- cascade は付けない(依存が見つかったら、黙って消さずにエラーで止める)。
+drop function if exists public.category_listing_counts();
 create or replace function public.category_listing_counts()
 returns table (category text, count bigint)
 language sql
