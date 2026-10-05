@@ -86,7 +86,7 @@ describe("メールの送信", () => {
     const sent = sendSpy.mock.calls[0][0];
     expect(sent.to).toBe("buyer@example.com");
     expect(sent.from).toBe("BicycleMarket <no-reply@bicyclemarket.jp>");
-    expect(sent.subject).toBe("ご購入ありがとうございます");
+    expect(sent.subject).toBe("【BicycleMarket】お支払いが完了しました");
     expect(sent.html).toContain("さとう 様");
     expect(sent.html).toContain("取引が成立しました。");
     // HTML を見ない環境向けの本文も必ず添える

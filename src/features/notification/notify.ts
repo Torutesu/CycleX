@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMail, findLastSentAt } from "@/lib/email/send";
 import { shouldThrottleMessageNotification } from "@/lib/email/kinds";
 import { formatDateTime, formatPrice } from "@/lib/utils";
-import { SITE_NAME } from "@/lib/constants";
+import { SITE_NAME, REVIEW_AUTO_PUBLISH_DAYS } from "@/lib/constants";
 
 /**
  * FR-13 のメール通知フック。
@@ -82,7 +82,9 @@ export async function notifyPaid(transactionId: string): Promise<void> {
       kind: "listing_paid_seller",
       refId: tx.id,
       body: {
-        intro: "出品中の商品が購入されました。取引画面から発送・受渡のご連絡をお願いします。",
+        intro: tx.isInPerson
+          ? "出品中の商品が購入され、お支払いが完了しました。取引画面で購入者と受け渡しの日時・場所をご相談ください。"
+          : "出品中の商品が購入され、お支払いが完了しました。取引画面で配送先を確認し、商品の発送をお願いします。発送後は、取引画面から発送の連絡をしてください。",
         details,
         cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
       },
@@ -92,7 +94,9 @@ export async function notifyPaid(transactionId: string): Promise<void> {
       kind: "purchase_confirmed",
       refId: tx.id,
       body: {
-        intro: "お支払いが完了しました。出品者からの発送・受渡のご連絡をお待ちください。",
+        intro: tx.isInPerson
+          ? "ご購入ありがとうございます。お支払いが完了しました。取引画面で出品者と受け渡しの日時・場所をご相談ください。"
+          : "ご購入ありがとうございます。お支払いが完了しました。出品者からの発送の連絡をお待ちください。",
         details,
         cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
       },
@@ -114,11 +118,11 @@ export async function notifyShipped(transactionId: string): Promise<void> {
     refId: tx.id,
     body: {
       intro: tx.isInPerson
-        ? "出品者から受渡についてのご連絡がありました。"
+        ? "出品者から受け渡しについての連絡がありました。取引画面で内容をご確認ください。"
         : "出品者が商品を発送しました。",
       details,
       cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
-      outro: "商品を受け取ったら、取引画面から受取確認をお願いします。",
+      outro: "実際に商品を受け取り、商品の状態を確認してから、取引画面で受取確認をお願いします。",
     },
   });
 }
@@ -133,10 +137,11 @@ export async function notifyReceived(transactionId: string): Promise<void> {
     kind: "tx_received",
     refId: tx.id,
     body: {
-      intro: "購入者が商品の受取を確認しました。取引相手の評価をお願いします。",
+      intro:
+        "購入者が商品の受け取りを確認しました。取引画面で状況を確認し、まだ評価していない場合は購入者の評価をお願いします。",
       details: [{ label: "商品", value: tx.listingTitle }],
       cta: { label: "評価を登録する", path: `/transactions/${tx.id}/review` },
-      outro: "評価は双方が登録した時点で公開されます。",
+      outro: `評価は双方が登録した時点で公開されます。片方だけが評価した場合は、その評価の登録から${REVIEW_AUTO_PUBLISH_DAYS}日経過後に自動公開され、取引が完了します。`,
     },
   });
 }
@@ -159,7 +164,7 @@ export async function notifyReviewRequested(
       intro: "取引相手が評価を登録しました。あなたの評価をお待ちしています。",
       details: [{ label: "商品", value: tx.listingTitle }],
       cta: { label: "評価を登録する", path: `/transactions/${tx.id}/review` },
-      outro: "双方の評価が揃うと、お互いの評価が公開され取引が完了します。",
+      outro: `双方の評価が揃うと評価が公開され、取引が完了します。片方だけが評価した場合は、その評価の登録から${REVIEW_AUTO_PUBLISH_DAYS}日経過後に自動公開され、取引が完了します。`,
     },
   });
 }
