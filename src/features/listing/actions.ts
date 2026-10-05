@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireVerifiedUser } from "@/lib/session";
 import { assertRateLimit } from "@/lib/rate-limit";
 import { ok, fail, toUserMessage, AppError, type ActionResult } from "@/lib/errors";
-import { MAX_DRAFTS, type ListingStatus } from "@/lib/constants";
+import { MAX_DRAFTS, PRICE_MIN, type ListingStatus } from "@/lib/constants";
 import { IMAGE_BUCKETS, isOwnedImagePath } from "@/lib/images";
 import { removeStorageObjects } from "@/lib/storage";
 import {
@@ -22,6 +22,7 @@ import {
   canEditListing,
   canRepublishListing,
   canWithdrawListing,
+  priceError,
 } from "@/features/listing/rules";
 
 type SaveResult = ActionResult<{ id: string }>;
@@ -258,13 +259,21 @@ async function changeStatus(
 
     const { data } = await admin
       .from("listings")
-      .select("seller_id, status")
+      .select("seller_id, status, price")
       .eq("id", listingId)
       .maybeSingle();
 
     if (!data) throw new AppError("商品が見つかりません。");
     if (data.seller_id !== user.id) throw new AppError("この商品を操作する権限がありません。");
     if (!guard(data.status as ListingStatus)) throw new AppError(errorMessage);
+
+    // 再公開は価格を入れ直さずに公開へ戻す。価格の下限ができる前に取下げた商品が、
+    // 下限を割ったまま並ばないようにする
+    if (to === "published" && priceError(data.price)) {
+      throw new AppError(
+        `希望価格が${PRICE_MIN.toLocaleString()}円未満のため、このままでは再公開できません。編集から価格を見直して公開してください。`,
+      );
+    }
 
     await assertNoActiveTransaction(listingId);
 

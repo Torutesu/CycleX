@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calcFee,
+  priceError,
   canDeleteListing,
   canEditListing,
   canPurchase,
@@ -71,5 +72,26 @@ describe("calcFee", () => {
     expect(calcFee(0, 0.1)).toEqual({ fee: 0, payout: 0 });
     expect(calcFee(-100, 0.1)).toEqual({ fee: 0, payout: 0 });
     expect(calcFee(Number.NaN, 0.1)).toEqual({ fee: 0, payout: 0 });
+  });
+});
+
+describe("priceError", () => {
+  it("3,000 円から 9,999,999 円までは出品できる", () => {
+    expect(priceError(3000)).toBeNull();
+    expect(priceError(9999999)).toBeNull();
+  });
+
+  it("範囲の外は、範囲を示して止める", () => {
+    const message = "希望価格は3,000円〜9,999,999円で入力してください";
+    expect(priceError(2999)).toBe(message);
+    expect(priceError(300)).toBe(message);
+    expect(priceError(0)).toBe(message);
+    expect(priceError(10000000)).toBe(message);
+  });
+
+  it("未入力と、整数でない値も止める", () => {
+    expect(priceError(null)).toBe("希望価格を入力してください");
+    expect(priceError(3000.5)).not.toBeNull();
+    expect(priceError(Number.NaN)).not.toBeNull();
   });
 });

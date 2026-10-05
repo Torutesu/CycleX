@@ -1,4 +1,4 @@
-import type { ListingStatus } from "@/lib/constants";
+import { PRICE_MAX, PRICE_MIN, type ListingStatus } from "@/lib/constants";
 
 /**
  * 出品まわりの純粋な業務ルール。
@@ -58,4 +58,18 @@ export function calcFee(price: number, feeRate: number): { fee: number; payout: 
   if (!Number.isFinite(price) || price <= 0) return { fee: 0, payout: 0 };
   const fee = Math.floor(price * feeRate);
   return { fee, payout: price - fee };
+}
+
+/**
+ * 出品できる価格かどうか。できない場合は利用者に見せる理由を返す。
+ *
+ * 公開・公開中の編集・取下げ後の再公開・入力中の表示が、すべてここを通る。
+ * 文言が場所ごとにずれると「さっきと言っていることが違う」になるため、1 か所で持つ。
+ */
+export function priceError(price: number | null): string | null {
+  if (price === null) return "希望価格を入力してください";
+  if (!Number.isInteger(price) || price < PRICE_MIN || price > PRICE_MAX) {
+    return `希望価格は${PRICE_MIN.toLocaleString()}円〜${PRICE_MAX.toLocaleString()}円で入力してください`;
+  }
+  return null;
 }

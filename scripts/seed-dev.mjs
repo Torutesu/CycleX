@@ -69,13 +69,17 @@ function weighted(pairs) {
   return pairs[pairs.length - 1][0];
 }
 
+/** 出品価格の下限。src/lib/constants.ts の PRICE_MIN と同じ値にしておく */
+const PRICE_MIN = 3000;
+
 /** 相場・状態・年式から値段を決め、切りの良い数字に丸める */
 function priceOf([min, max], condition, year) {
   const base = randomInt(min, max);
   const age = Math.min(0.35, Math.max(0, THIS_YEAR - year) * 0.03);
   const value = base * CONDITION_FACTOR[condition] * (1 - age);
   const unit = value < 20000 ? 500 : 1000;
-  return Math.max(unit, Math.round(value / unit) * unit);
+  // 状態と年式で下げた結果が下限を割ると、データベースが公開を拒む
+  return Math.max(PRICE_MIN, Math.round(value / unit) * unit);
 }
 
 const { data: users } = await supabase

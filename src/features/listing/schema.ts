@@ -12,13 +12,12 @@ import {
   MODEL_YEAR_MIN,
   PARTS_SUBCATEGORIES,
   PREFECTURES,
-  PRICE_MAX,
-  PRICE_MIN,
   TITLE_MAX,
   TITLE_MIN,
   modelYearMax,
   optionValues,
 } from "@/lib/constants";
+import { priceError } from "@/features/listing/rules";
 
 const categoryValues = optionValues(CATEGORIES);
 const subcategoryValues = optionValues(PARTS_SUBCATEGORIES);
@@ -158,14 +157,8 @@ export const publishSchema = listingFormSchema.superRefine((values, ctx) => {
     add("description", `商品説明は${DESCRIPTION_MIN}文字以上で入力してください`);
   }
 
-  if (values.price === null) {
-    add("price", "希望価格を入力してください");
-  } else if (values.price < PRICE_MIN || values.price > PRICE_MAX) {
-    add(
-      "price",
-      `希望価格は${PRICE_MIN.toLocaleString()}円〜${PRICE_MAX.toLocaleString()}円で入力してください`,
-    );
-  }
+  const priceProblem = priceError(values.price);
+  if (priceProblem) add("price", priceProblem);
 
   if (!values.deliveryMethod) {
     add("deliveryMethod", "受渡方法を選択してください");
