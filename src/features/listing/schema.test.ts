@@ -77,11 +77,15 @@ describe("publishSchema", () => {
     ).toBe(true);
   });
 
-  it("価格の境界値を検証する", () => {
-    expect(publishSchema.safeParse(validInput({ price: 299 })).success).toBe(false);
-    expect(publishSchema.safeParse(validInput({ price: 300 })).success).toBe(true);
+  it("価格の境界値を検証する(下限は 3,000 円)", () => {
+    expect(publishSchema.safeParse(validInput({ price: 2999 })).success).toBe(false);
+    expect(publishSchema.safeParse(validInput({ price: 3000 })).success).toBe(true);
     expect(publishSchema.safeParse(validInput({ price: 9999999 })).success).toBe(true);
     expect(publishSchema.safeParse(validInput({ price: 10000000 })).success).toBe(false);
+  });
+
+  it("下書きは 3,000 円未満でも保存できる(公開時に確かめる)", () => {
+    expect(draftSchema.safeParse(validInput({ price: 1000 })).success).toBe(true);
   });
 
   it("商品説明は10文字以上", () => {

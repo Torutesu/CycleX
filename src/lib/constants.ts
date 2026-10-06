@@ -300,7 +300,8 @@ export const PRICE_PRESETS = [
 // 数値制約
 // ============================================================
 
-export const PRICE_MIN = 300;
+/** 出品価格の下限(甲の指定)。DB 側も同じ値で止めている(20260101000013_price_min.sql) */
+export const PRICE_MIN = 3_000;
 export const PRICE_MAX = 9_999_999;
 export const MAX_IMAGES = 10;
 export const MAX_DRAFTS = 20;

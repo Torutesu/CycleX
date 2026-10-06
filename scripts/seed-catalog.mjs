@@ -6,6 +6,7 @@
  * 実際に売られている組み合わせと、その相場の幅を持たせる。
  *
  * price は新品同様のときの目安(円)。状態と年式で下げて使う。
+ * 出品価格の下限(3,000 円)を割る車種は載せない。
  * since はその車種が出た年の目安。
  */
 
@@ -715,10 +716,10 @@ export const PARTS = [
   {
     sub: "accessory",
     brand: "Trek",
-    model: "Bontrager ボトルケージ 2個セット",
-    price: [1500, 3500],
+    model: "Bontrager Ion 200 RT フロントライト",
+    price: [3500, 6000],
   },
-  { sub: "accessory", brand: "Giant", model: "フロアポンプ", price: [2500, 5000] },
+  { sub: "accessory", brand: "Giant", model: "フロアポンプ", price: [3500, 6500] },
 ];
 
 export const SIZE_CM = { XS: [44, 47], S: [48, 50], M: [51, 54], L: [55, 57], XL: [58, 60] };

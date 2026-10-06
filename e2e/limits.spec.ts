@@ -17,6 +17,7 @@ let goneId = "";
 let soldListingId = "";
 let raceListingId = "";
 let goneListingId = "";
+let cheapWithdrawnId = "";
 
 test.describe.configure({ mode: "serial" });
 
@@ -74,11 +75,36 @@ test.beforeAll(async () => {
     .select("id")
     .single();
   goneListingId = gone!.id;
+
+  // 下限(3,000円)ができる前に出品され、いまは取下げている商品。
+  // 取下げ中の行の作成はデータベースも止めない
+  const { data: cheap } = await db
+    .from("listings")
+    .insert({
+      ...base,
+      seller_id: sellerId,
+      title: `下限前の取下げ ${STAMP}`,
+      price: 1000,
+      status: "withdrawn",
+    })
+    .select("id")
+    .single();
+  cheapWithdrawnId = cheap!.id;
 });
 
 test.afterAll(async () => {
   const db = adminDb();
-  const ids = [soldListingId, raceListingId, goneListingId].filter(Boolean);
+  const { data: made } = await db.from("listings").select("id").like("title", `%${STAMP}%`);
+  const ids = [
+    ...new Set([
+      soldListingId,
+      raceListingId,
+      goneListingId,
+      cheapWithdrawnId,
+      ...(made ?? []).map((row) => row.id),
+    ]),
+  ].filter(Boolean);
+  await db.from("listing_images").delete().in("listing_id", ids);
   await db.from("transactions").delete().in("listing_id", ids);
   await db.from("threads").delete().in("listing_id", ids);
   await db.from("reports").delete().in("target_id", ids);
@@ -198,17 +224,101 @@ test("価格は下限と上限の外だと公開できない", async ({ page }) 
   await page.click("#shippingFromPref");
   await page.click('[role="option"]:has-text("東京都")');
 
-  // 下限より安い
-  await page.fill("#price", "100");
+  const rangeError = page.getByText("希望価格は3,000円〜9,999,999円で入力してください").first();
+  const payout = page.getByText("受取額の目安");
+
+  // 下限より 1 円安い。打った時点でエラーが出て、受取額は出さない
+  await page.fill("#price", "2999");
+  await expect(rangeError).toBeVisible();
+  await expect(payout).toHaveCount(0);
+  await expect(page.locator("#price")).toHaveAttribute("aria-invalid", "true");
+
+  // 公開を押しても、サーバーが断って進まない
   await page.click('button:has-text("公開する")');
-  await expect(page.getByText(/300円/).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("入力内容を確認してください").first()).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(rangeError).toBeVisible();
+  await expect(page).toHaveURL(/\/sell/);
 
   // 上限より高い
   await page.fill("#price", "20000000");
-  await page.click('button:has-text("公開する")');
-  await expect(page.getByText(/9,999,999円|9999999/).first()).toBeVisible({ timeout: 20_000 });
+  await expect(rangeError).toBeVisible();
 
-  await expect(page).toHaveURL(/\/sell/);
+  // ちょうど下限なら、エラーが消えて公開できる
+  await page.fill("#price", "3000");
+  await expect(rangeError).toHaveCount(0);
+  await expect(payout).toBeVisible();
+  await page.click('button:has-text("公開する")');
+  await page.waitForURL(/\/items\//, { timeout: 30_000 });
+  await expect(page.getByText("¥3,000").first()).toBeVisible();
+});
+
+test("公開の応答を待つ間に価格を直したら、古いエラーは出さない", async ({ page }) => {
+  await login(page, SELLER);
+  await page.goto("/sell");
+  await page.evaluate(() => window.localStorage.clear());
+  await page.reload();
+
+  await page.fill("#title", `応答待ちの修正 ${STAMP}`);
+  await page.fill("#price", "2999");
+
+  // 公開の送信を 1.5 秒止め、その間に価格を直す(遅い回線の再現)
+  await page.route(
+    (url) => url.pathname === "/sell",
+    async (route) => {
+      if (route.request().method() === "POST") await new Promise((r) => setTimeout(r, 1500));
+      await route.continue();
+    },
+  );
+  await page.click('button:has-text("公開する")');
+  await page.fill("#price", "5000");
+
+  // 応答(ほかの必須項目が足りない、で断られる)が届いたあとも、価格のエラーは出ない
+  await expect(page.getByText("入力内容を確認してください").first()).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page.getByText("希望価格は3,000円〜9,999,999円で入力してください")).toHaveCount(0);
+  // 直していない項目のエラーは出る
+  await expect(page.getByText("コンディションを選択してください").first()).toBeVisible();
+});
+
+test("3,000円未満のまま取下げていた商品は、再公開できない", async ({ page }) => {
+  await login(page, SELLER);
+  await page.goto("/mypage/listings?status=withdrawn");
+
+  const title = `下限前の取下げ ${STAMP}`;
+  await page.getByRole("button", { name: `${title} の操作` }).click();
+  await page.getByRole("menuitem", { name: "再公開する" }).click();
+  await expect(
+    page.getByText("希望価格が3,000円未満のため、このままでは再公開できません").first(),
+  ).toBeVisible({ timeout: 20_000 });
+
+  // 取下げのまま残っている
+  const { data } = await adminDb()
+    .from("listings")
+    .select("status")
+    .eq("id", cheapWithdrawnId)
+    .single();
+  expect(data?.status).toBe("withdrawn");
+});
+
+test("画面を通さなくても、3,000円未満では公開できない", async () => {
+  // サーバーの検証に抜けがあっても、データベースが止める
+  const db = adminDb();
+  const { error: viaInsert } = await db.from("listings").insert({
+    seller_id: sellerId,
+    title: `直接公開 ${STAMP}`,
+    price: 2999,
+    status: "published",
+  });
+  expect(viaInsert?.message ?? "").toContain("3,000円以上");
+
+  const { error: viaRepublish } = await db
+    .from("listings")
+    .update({ status: "published" })
+    .eq("id", cheapWithdrawnId);
+  expect(viaRepublish?.message ?? "").toContain("3,000円以上");
 });
 
 test("画像は10枚までしか追加できない", async ({ page }) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,7 @@ import { BrandPicker } from "@/features/listing/components/brand-picker";
 import { ImageUploader } from "@/features/listing/components/image-uploader";
 import { useFormBackup } from "@/features/listing/components/use-form-backup";
 import { saveDraft, publishListing } from "@/features/listing/actions";
-import { calcFee } from "@/features/listing/rules";
+import { calcFee, priceError } from "@/features/listing/rules";
 import {
   CATEGORIES,
   COMPONENTS,
@@ -31,6 +31,8 @@ import {
   MILEAGES,
   MODEL_YEAR_MIN,
   PARTS_SUBCATEGORIES,
+  PRICE_MAX,
+  PRICE_MIN,
   PREFECTURES,
   TITLE_MAX,
   isBikeCategory,
@@ -128,6 +130,11 @@ export function ListingForm({
   // 一覧から外した画像。保存が成功した時点でサーバ側が Storage から消す
   const [discardedPaths, setDiscardedPaths] = useState<string[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  // 送信後の応答を待つ間に直された項目を見分けるため、最新の入力を控えておく
+  const latestValues = useRef(values);
+  useEffect(() => {
+    latestValues.current = values;
+  }, [values]);
   const [formError, setFormError] = useState<string | null>(null);
 
   // 新規作成のときだけ、入力途中の控えを端末に持つ。
@@ -140,6 +147,16 @@ export function ListingForm({
   const showBikeFields = isBikeCategory(values.category);
   const priceNumber = Number(values.price);
   const { fee, payout } = calcFee(Number.isFinite(priceNumber) ? priceNumber : 0, feeRate);
+  // 打っている途中で範囲外だと分かるようにする。判定は公開時と同じ関数なので、
+  // 値が入っていればこちらを優先する(直したのに前回のエラーが残る、を防ぐ)。
+  // 空欄のときだけ、公開を試したときの「入力してください」を出す
+  const priceFilled = values.price.trim() !== "";
+  const livePriceError = priceFilled ? priceError(priceNumber) : null;
+  const priceErrors = priceFilled
+    ? livePriceError
+      ? [livePriceError]
+      : undefined
+    : fieldErrors.price;
 
   const years = Array.from(
     { length: modelYearMax() - MODEL_YEAR_MIN + 1 },
@@ -148,6 +165,13 @@ export function ListingForm({
 
   function set<K extends keyof ListingFormDefaults>(key: K, value: ListingFormDefaults[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
+    // 直した項目のエラーは消す。残すと、上部の「足りない項目」に直したはずの項目が並び続ける
+    setFieldErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key as string];
+      return next;
+    });
   }
 
   // 上部にまとめて出す「足りない項目」。フォームの並び順に揃える
@@ -185,13 +209,22 @@ export function ListingForm({
   function submit(mode: "draft" | "publish") {
     setFieldErrors({});
     setFormError(null);
+    const sent = values;
 
     startTransition(async () => {
       const payload = buildPayload();
       const result = mode === "draft" ? await saveDraft(payload) : await publishListing(payload);
 
       if (!result.ok) {
-        const errors = result.fieldErrors ?? {};
+        // 応答を待つ間に直した項目のエラーは出さない。
+        // 通信が遅いと、直したあとに古い「ここが違う」が戻ってきてしまう
+        const now = latestValues.current as Record<string, unknown>;
+        const before = sent as Record<string, unknown>;
+        const errors = Object.fromEntries(
+          Object.entries(result.fieldErrors ?? {}).filter(
+            ([key]) => !(key in now) || now[key] === before[key],
+          ),
+        );
         setFormError(result.error);
         setFieldErrors(errors);
         toast.error(result.error);
@@ -535,8 +568,8 @@ export function ListingForm({
           id="price"
           label="希望価格(税込)"
           required
-          hint="300円〜9,999,999円"
-          errors={fieldErrors.price}
+          hint={`${PRICE_MIN.toLocaleString()}円〜${PRICE_MAX.toLocaleString()}円`}
+          errors={priceErrors}
         >
           <div className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -548,12 +581,14 @@ export function ListingForm({
               inputMode="numeric"
               value={values.price}
               onChange={(e) => set("price", e.target.value)}
+              aria-invalid={priceErrors ? true : undefined}
+              aria-describedby={priceErrors ? "price-error" : "price-hint"}
               className="h-11 pl-7 tabular-nums"
             />
           </div>
         </Field>
 
-        {priceNumber > 0 && (
+        {priceNumber > 0 && !livePriceError && (
           <dl className="rounded-lg bg-muted/50 p-4 text-sm">
             <div className="flex justify-between">
               <dt className="text-muted-foreground">販売手数料({Math.round(feeRate * 100)}%)</dt>
