@@ -60,7 +60,7 @@ export function renderHtml(recipientName: string, body: MailBody): string {
     <hr style="margin:24px 0 16px;border:none;border-top:1px solid #DFE8E4;">
     <p style="margin:0;font-size:11px;color:#5C6663;line-height:1.7;">
       このメールは ${SITE_NAME} から自動送信されています。<br>
-      通知の設定は<a href="${absoluteUrl("/mypage/settings")}" style="color:#0E7C6B;">設定画面</a>から変更できます。
+      一部の重要なお知らせを除き、通知の設定は<a href="${absoluteUrl("/mypage/settings")}" style="color:#0E7C6B;">設定画面</a>から変更できます。
     </p>
   </div>
 </body>
@@ -88,7 +88,7 @@ export function renderText(recipientName: string, body: MailBody): string {
     "",
     "----",
     `このメールは ${SITE_NAME} から自動送信されています。`,
-    `通知の設定: ${absoluteUrl("/mypage/settings")}`,
+    `一部の重要なお知らせを除き、通知の設定: ${absoluteUrl("/mypage/settings")}`,
   );
 
   return lines.join("\n");

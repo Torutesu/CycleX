@@ -27,19 +27,34 @@ type MailKindMeta = {
 };
 
 export const MAIL_KINDS: Record<MailKind, MailKindMeta> = {
-  welcome: { subject: `${SITE_NAME} へようこそ`, category: null },
-  listing_paid_seller: { subject: "商品が購入されました", category: "transaction" },
-  purchase_confirmed: { subject: "ご購入ありがとうございます", category: "transaction" },
-  tx_shipped: { subject: "発送・受渡のご連絡があります", category: "transaction" },
-  tx_received: { subject: "受取確認のお知らせ", category: "transaction" },
-  tx_completed: { subject: "取引が完了しました", category: "transaction" },
+  welcome: { subject: `【${SITE_NAME}】会員登録が完了しました`, category: null },
+  listing_paid_seller: {
+    subject: `【${SITE_NAME}】商品が購入されました（お支払い確認済み）`,
+    category: "transaction",
+  },
+  purchase_confirmed: {
+    subject: `【${SITE_NAME}】お支払いが完了しました`,
+    category: "transaction",
+  },
+  tx_shipped: { subject: `【${SITE_NAME}】発送・お受け渡しのご案内`, category: "transaction" },
+  tx_received: {
+    subject: `【${SITE_NAME}】商品の受け取りが確認されました`,
+    category: "transaction",
+  },
+  tx_completed: { subject: `【${SITE_NAME}】取引が完了しました`, category: "transaction" },
   // トラブル対応に関わるため、設定に関わらず必ず送る
-  tx_canceled: { subject: "取引がキャンセルされました", category: null },
-  review_requested: { subject: "評価のお願い", category: "review" },
-  review_received: { subject: "評価が届きました", category: "review" },
-  new_message: { subject: "新着メッセージがあります", category: "message" },
+  tx_canceled: { subject: `【${SITE_NAME}】取引がキャンセルされました`, category: null },
+  review_requested: { subject: `【${SITE_NAME}】取引相手の評価をお願いします`, category: "review" },
+  review_received: {
+    subject: `【${SITE_NAME}】取引相手からの評価が公開されました`,
+    category: "review",
+  },
+  new_message: { subject: `【${SITE_NAME}】新しいメッセージが届きました`, category: "message" },
   // 運営あて。応答期限があるため設定に関わらず必ず送る
-  admin_dispute: { subject: "【要対応】チャージバックの申し立てがありました", category: null },
+  admin_dispute: {
+    subject: `【${SITE_NAME}・要対応】チャージバックの申し立てがありました`,
+    category: null,
+  },
 };
 
 /**
