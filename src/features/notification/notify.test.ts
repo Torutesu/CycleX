@@ -59,6 +59,15 @@ describe("取引通知の宛先・状態・日本語文面", () => {
         kind: "purchase_confirmed",
         refId: "tx-test",
       });
+      if (method === "shipping") {
+        expect(buyer.body.intro).toContain("住所・氏名・電話番号を出品者へお知らせ");
+        expect(buyer.body.intro).toContain("取引画面の「メッセージ」");
+        expect(seller.body.intro).toContain("購入者が連絡したお届け先");
+        expect(seller.body.intro).toContain("取引画面の「メッセージ」");
+      } else {
+        expect(buyer.body.intro).not.toContain("住所・氏名・電話番号");
+        expect(seller.body.intro).not.toContain("お届け先");
+      }
       for (const mail of [seller, buyer]) {
         expect(mail.body.intro).toContain("お支払いが完了");
         expect(mail.body.intro).toContain(method === "in_person" ? "日時・場所" : "発送");
