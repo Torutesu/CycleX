@@ -33,6 +33,11 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [
+          // 公開準備中は全レスポンスを検索対象外にする。解除時は環境変数を外して再デプロイ。
+          // robots.txt でクロール自体を止めると、この noindex を読めなくなるため止めない。
+          ...(process.env.NEXT_PUBLIC_NOINDEX === "1"
+            ? [{ key: "X-Robots-Tag", value: "noindex, nofollow" }]
+            : []),
           // 他サイトへの iframe 埋め込みを禁じる(クリックジャッキング対策)
           { key: "X-Frame-Options", value: "DENY" },
           // Content-Type の推測を止める
