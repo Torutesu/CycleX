@@ -20,6 +20,7 @@ const notoSansJp = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
+  robots: process.env.NEXT_PUBLIC_NOINDEX === "1" ? { index: false, follow: false } : undefined,
   // OGP 画像や canonical の相対 URL を解決するための基準
   metadataBase: new URL(appBaseUrl()),
   title: {
