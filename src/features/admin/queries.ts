@@ -445,7 +445,30 @@ export async function findStateMismatches(): Promise<StateMismatch[]> {
       .limit(MISMATCH_LIMIT),
   ]);
 
-  const rows = [...(inProgress.data ?? []), ...(completed.data ?? []), ...(canceled.data ?? [])];
+  // キャンセル履歴は再購入後も残る。別の決済済み取引があれば「取引中」は正常。
+  // 支払い待ち・完了は除外せず、それぞれの本来の状態ズレを見逃さない。
+  for (const result of [inProgress, completed, canceled]) {
+    if (result.error) throw new Error("取引と商品の状態を取得できませんでした。");
+  }
+  const canceledRows = canceled.data ?? [];
+  const listingIds = [
+    ...new Set(canceledRows.flatMap((row) => (row.listings ? [row.listings.id] : []))),
+  ];
+  const activeListingIds = new Set<string>();
+  if (listingIds.length > 0) {
+    const { data, error } = await supabase
+      .from("transactions")
+      .select("listing_id")
+      .in("listing_id", listingIds)
+      .in("status", ["paid", "shipped", "received"]);
+    if (error) throw new Error("再購入後の取引状態を取得できませんでした。");
+    for (const row of data ?? []) activeListingIds.add(row.listing_id);
+  }
+  const rows = [
+    ...(inProgress.data ?? []),
+    ...(completed.data ?? []),
+    ...canceledRows.filter((row) => !row.listings || !activeListingIds.has(row.listings.id)),
+  ];
 
   const mismatches: StateMismatch[] = [];
 
