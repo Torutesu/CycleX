@@ -81,7 +81,9 @@ export async function generateMetadata({
       title,
       description,
       url: `/items/${listing.id}`,
-      images: listing.imagePaths[0] ? [listingImageUrl(listing.imagePaths[0])] : undefined,
+      images: listing.imagePaths[0]
+        ? [listingImageUrl(listing.imagePaths[0])]
+        : ["/brand/share.png"],
     },
   };
 }

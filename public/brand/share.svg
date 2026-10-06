@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#F7F5EC"/>
+  <path d="M785 0H1200V630H665Z" fill="#0B5047"/>
+  <circle cx="1130" cy="80" r="215" fill="none" stroke="#237568" stroke-width="1.5"/>
+  <circle cx="1130" cy="80" r="260" fill="none" stroke="#237568" stroke-width="1.5"/>
+  <g transform="translate(64 52)">
+    <rect width="54" height="54" rx="14" fill="#0E7C6B"/>
+    <g fill="none" stroke="#FFFDF5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="14" cy="34" r="8"/><circle cx="40" cy="34" r="8"/>
+      <path d="M14 34 21 20 29 34H14M21 20H34L29 34M40 34 33 16H38M18 16H24M21 16V20"/>
+    </g>
+  </g>
+  <text x="134" y="91" font-family="Helvetica,Arial,sans-serif" font-size="37" font-weight="700" letter-spacing="-1.4" fill="#0B5047">bicyclemarket</text>
+  <text x="68" y="209" font-family="Hiragino Sans,sans-serif" font-size="18" font-weight="600" letter-spacing="3" fill="#0E7C6B">自転車・パーツのマーケットプレイス</text>
+  <g font-family="Hiragino Sans,sans-serif" font-size="61" font-weight="700" letter-spacing="-2" fill="#143E37">
+    <text x="64" y="299">乗らなくなった1台を、</text>
+    <text x="64" y="384">次の人へ。</text>
+  </g>
+  <text x="68" y="452" font-family="Hiragino Sans,sans-serif" font-size="22" fill="#51675D">好きな1台と、また走り出そう。</text>
+  <path d="M68 524H624" stroke="#D4DCCE" stroke-width="1"/>
+  <text x="68" y="570" font-family="Helvetica,Arial,sans-serif" font-size="21" font-weight="600" fill="#0B5047">bicyclemarket.app</text>
+  <g transform="translate(768 233)" fill="none" stroke="#E8F3C7" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="69" cy="175" r="66"/><circle cx="284" cy="175" r="66"/>
+    <path d="M69 175 128 56 196 175H69M128 56H241L196 175M284 175 226 17H267Q287 17 287 37Q287 55 267 55M106 26H153M128 26V56"/>
+  </g>
+  <text x="831" y="548" font-family="Helvetica,Arial,sans-serif" font-size="12" letter-spacing="4" fill="#D3E6C3">A NEW CHAPTER. A NEW RIDE.</text>
+</svg>
