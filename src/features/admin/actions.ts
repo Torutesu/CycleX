@@ -10,6 +10,7 @@ import {
   canSuspendListing,
   canSuspendUser,
   canSuspendUserWithTransactions,
+  findSameBrand,
   SUSPENDABLE_LISTING_STATUSES,
 } from "@/features/admin/rules";
 import { recordAdminAction } from "@/features/admin/audit";
@@ -321,6 +322,17 @@ const brandNameSchema = z
   .min(1, "ブランド名を入力してください")
   .max(80, "ブランド名は80文字以内で入力してください");
 
+/** 表記だけが違う同じブランドがあれば止める(改名のときは自分自身を除く) */
+async function assertNoSameBrand(name: string, exceptId?: string): Promise<void> {
+  const { data } = await createAdminClient().from("brands").select("id, name");
+  const same = findSameBrand(data ?? [], name, exceptId);
+  if (same) {
+    throw new AppError(
+      `「${same.name}」がすでに登録されています。大文字・小文字や記号の違いは同じブランドとして扱います。`,
+    );
+  }
+}
+
 export async function createBrand(
   _prev: ActionResult<undefined> | null,
   formData: FormData,
@@ -331,6 +343,8 @@ export async function createBrand(
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? "入力内容を確認してください");
     }
+
+    await assertNoSameBrand(parsed.data);
 
     const supabase = createAdminClient();
     const { data: created, error } = await supabase
@@ -368,6 +382,8 @@ export async function renameBrand(
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? "入力内容を確認してください");
     }
+
+    await assertNoSameBrand(parsed.data, brandId);
 
     const supabase = createAdminClient();
     const { error } = await supabase.from("brands").update({ name: parsed.data }).eq("id", brandId);

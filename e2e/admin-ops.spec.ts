@@ -226,6 +226,21 @@ test("ブランドを足して、名前を変えて、無効にできる", async
   await expect(page.getByRole("option", { name: renamed })).toHaveCount(0);
 });
 
+test("表記だけが違う同じブランドは足せない", async ({ page }) => {
+  await login(page, ADMIN);
+  await page.goto("/admin/brands");
+
+  // 既存の「Trek」を大文字で足そうとする
+  await page.getByLabel("ブランド名").first().fill("TREK");
+  await page.getByRole("button", { name: /追加/ }).click();
+  await expect(page.getByText("「Trek」がすでに登録されています").first()).toBeVisible({
+    timeout: 20_000,
+  });
+
+  const { data } = await adminDb().from("brands").select("name").ilike("name", "trek");
+  expect((data ?? []).map((row) => row.name)).toEqual(["Trek"]);
+});
+
 test("運営は取引をキャンセルでき、商品が戻る", async ({ page }) => {
   const buyerId = await ensureUser(REPORTER, "運営テスト通報者");
   await adminDb().from("listings").update({ status: "trading" }).eq("id", listingId);

@@ -8,6 +8,8 @@ import {
   needsRefund,
   canSuspendUserWithTransactions,
   detectStateMismatch,
+  brandKey,
+  findSameBrand,
 } from "@/features/admin/rules";
 import type { ListingStatus, TransactionStatus } from "@/lib/constants";
 
@@ -151,5 +153,40 @@ describe("detectStateMismatch", () => {
 
   it("支払い待ちの段階では商品の状態を問わない", () => {
     expect(detectStateMismatch("pending_payment", "published")).toBeNull();
+  });
+});
+
+describe("findSameBrand", () => {
+  const brands = [
+    { id: "1", name: "Trek" },
+    { id: "2", name: "E.B.S" },
+    { id: "3", name: "KhodaaBloom" },
+    { id: "4", name: "SOMA FABRICATIONS" },
+  ];
+
+  it("大文字小文字・記号・空白・全角だけの違いは同じブランドとみなす", () => {
+    expect(findSameBrand(brands, "TREK")?.name).toBe("Trek");
+    expect(findSameBrand(brands, " trek ")?.name).toBe("Trek");
+    expect(findSameBrand(brands, "ＴＲＥＫ")?.name).toBe("Trek");
+    expect(findSameBrand(brands, "EBS")?.name).toBe("E.B.S");
+    expect(findSameBrand(brands, "Khodaa-Bloom")?.name).toBe("KhodaaBloom");
+    expect(findSameBrand(brands, "Khodaa Bloom")?.name).toBe("KhodaaBloom");
+    expect(findSameBrand(brands, "soma fabrications")?.name).toBe("SOMA FABRICATIONS");
+  });
+
+  it("別のブランドは通す", () => {
+    expect(findSameBrand(brands, "Trek Bicycle")).toBeNull();
+    expect(findSameBrand(brands, "SOMA")).toBeNull();
+    expect(findSameBrand(brands, "Bianchi")).toBeNull();
+  });
+
+  it("改名では自分自身を除く(tern → Tern のような表記の直しはできる)", () => {
+    expect(findSameBrand(brands, "TREK", "1")).toBeNull();
+    expect(findSameBrand(brands, "TREK", "2")?.name).toBe("Trek");
+  });
+
+  it("比較用の形", () => {
+    expect(brandKey("Khodaa-Bloom")).toBe("khodaabloom");
+    expect(brandKey("E.B.S")).toBe("ebs");
   });
 });

@@ -17,7 +17,7 @@ Codex などの PC 操作エージェントに渡して、管理画面(Supabase 
    報告で触れるときは「設定した」とだけ書く。
 2. **対象を毎回確かめる。** 違っていたら操作せずに止まる。
    - Supabase:プロジェクト名 `CycleX2.0`、URL に `esqwuifhnlyjuxqjicar` が入っていること
-   - Vercel:ドメインが `cycle-x-six.vercel.app` のプロジェクトであること
+   - Vercel:ドメインに `bicyclemarket.app` が付いているプロジェクトであること
 3. **消す・無効にする・作り直すのは、この手順書に書いてある対象だけ。**
    見慣れないキーやトークンがあっても触らない。
 4. **Stripe はテストモードだけを操作する。** 本番モード(Live)の画面では何も変更しない。
@@ -32,7 +32,7 @@ Codex などの PC 操作エージェントに渡して、管理画面(Supabase 
 
 | 項目 | 値 |
 |---|---|
-| 公開中のサイト | `https://cycle-x-six.vercel.app` |
+| 公開中のサイト | `https://bicyclemarket.app`(旧 URL `https://cycle-x-six.vercel.app` も同じサイトに届く) |
 | Supabase プロジェクト | `CycleX2.0`(ref:`esqwuifhnlyjuxqjicar`) |
 | Supabase の URL | `https://esqwuifhnlyjuxqjicar.supabase.co` |
 | GitHub | `Torutesu/CycleX`(ブランチ `claude/bicycle-c2c-mvp-chct00`) |
@@ -73,8 +73,10 @@ Codex などの PC 操作エージェントに渡して、管理画面(Supabase 
 **手順**
 
 1. Supabase → Authentication → URL Configuration
-2. Site URL:`https://cycle-x-six.vercel.app`
-3. Redirect URLs に追加:`https://cycle-x-six.vercel.app/auth/callback`
+2. Site URL:`https://bicyclemarket.app`
+3. Redirect URLs に追加:`https://bicyclemarket.app/auth/callback`
+   (メールのリンクは、サイトが名乗っている `bicyclemarket.app` に戻ってくる。
+   以前 `cycle-x-six.vercel.app` を入れていた場合は、そちらは残したままでよい)
 4. 保存
 5. Authentication → Sign In / Providers → Email を開き、**Confirm email が有効**になっていることを確かめる
    (無効なら有効にする。アプリは確認メールを前提に作っている)
@@ -86,7 +88,7 @@ Codex などの PC 操作エージェントに渡して、管理画面(Supabase 
 3. **新しいパスワードを入れる画面**(URL が `/reset-password/update`)に着けば成功
 
 **うまくいかないとき:** トップページに着いてしまう場合は、Redirect URLs に
-`https://cycle-x-six.vercel.app/**` も追加して、もう一度試す。
+`https://bicyclemarket.app/**` も追加して、もう一度試す。
 
 ---
 
@@ -226,7 +228,8 @@ node scripts/seed-images.mjs         # 商品の画像
 2. 開発者(Developers)→ API キー → シークレットキー(`sk_test_` で始まる)をコピー
    → Vercel の `STRIPE_SECRET_KEY` に登録
 3. 開発者 → Webhook → エンドポイントを追加
-   - URL:`https://cycle-x-six.vercel.app/api/webhooks/stripe`
+   - URL:`https://bicyclemarket.app/api/webhooks/stripe`
+     (すでに `cycle-x-six.vercel.app` で作ってあれば、そのままでも届く。作り直さなくてよい)
    - 受け取るイベント(この 5 つだけ):
      - `checkout.session.completed`
      - `checkout.session.async_payment_succeeded`

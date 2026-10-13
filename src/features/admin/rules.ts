@@ -114,3 +114,28 @@ export function detectStateMismatch(
 
   return `取引が「${txStatus}」なので商品は「${expected}」であるべきですが、「${listingStatus}」になっています`;
 }
+
+/**
+ * ブランド名を、表記ゆれを無視して比べるための形にする。
+ *
+ * 一意制約は大文字小文字を区別するため、「TREK」と既存の「Trek」は別物として
+ * 登録できてしまい、出品フォームに同じブランドが 2 つ並ぶ。
+ * 先方から届いた一覧にも GIANT / Giant、EBS / E.B.S、Khodaa-Bloom / KhodaaBloom
+ * のような揺れがあった。大文字小文字・全角半角・空白・記号(- . _ ・)の違いは同じとみなす。
+ */
+export function brandKey(name: string): string {
+  return name
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\s\-._・]/g, "");
+}
+
+/** 表記だけが違う同じブランドを探す。改名のときは自分自身を除く */
+export function findSameBrand<T extends { id: string; name: string }>(
+  brands: readonly T[],
+  name: string,
+  exceptId?: string,
+): T | null {
+  const key = brandKey(name);
+  return brands.find((brand) => brand.id !== exceptId && brandKey(brand.name) === key) ?? null;
+}
