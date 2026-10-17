@@ -604,7 +604,17 @@ export function ListingForm({
           </dl>
         )}
 
-        <Field id="deliveryMethod" label="受渡方法" required errors={fieldErrors.deliveryMethod}>
+        <Field
+          id="deliveryMethod"
+          label="受渡方法"
+          required
+          hint={
+            values.deliveryMethod === "shipping_collect"
+              ? "着払いで発送します。送料は購入者が受け取り時に配送業者へ支払い、価格には含めません"
+              : undefined
+          }
+          errors={fieldErrors.deliveryMethod}
+        >
           <Select value={values.deliveryMethod} onValueChange={(v) => set("deliveryMethod", v)}>
             <SelectTrigger id="deliveryMethod" className="h-11 w-full">
               <SelectValue placeholder="選択してください" />

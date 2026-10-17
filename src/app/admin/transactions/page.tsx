@@ -48,7 +48,7 @@ export default async function AdminTransactionsPage({
     <>
       <AdminHeader
         title="取引管理"
-        description="取引の確認と、トラブル時のキャンセル操作を行います。返金は Stripe ダッシュボードで別途実施してください。"
+        description="取引の確認と、トラブル時のキャンセル操作を行います。「詳細・メッセージ」から購入者と出品者のやり取りを確認できます。返金は Stripe ダッシュボードで別途実施してください。"
       />
 
       {refundPending > 0 && params.refund !== "pending" && (
@@ -176,7 +176,18 @@ export default async function AdminTransactionsPage({
                   <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
                     {formatDate(tx.createdAt)}
                   </td>
-                  <td className="px-4 py-2.5">
+                  <td className="space-y-1.5 px-4 py-2.5">
+                    {/*
+                      詳細を開くと、メッセージの閲覧として操作記録に残る。
+                      先読みで記録が増えないよう prefetch しない
+                    */}
+                    <Link
+                      href={`/admin/transactions/${tx.id}`}
+                      prefetch={false}
+                      className="block text-xs font-medium whitespace-nowrap text-primary hover:underline"
+                    >
+                      詳細・メッセージ
+                    </Link>
                     {cancellable ? (
                       <ReasonDialog
                         trigger="キャンセル"
@@ -189,9 +200,7 @@ export default async function AdminTransactionsPage({
                         successMessage="取引をキャンセルしました"
                         warning="返金はこの操作では行われません。必要な場合は Stripe ダッシュボードから別途実施してください。"
                       />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               );

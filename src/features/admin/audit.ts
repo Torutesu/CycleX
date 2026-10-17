@@ -9,6 +9,8 @@ export type AdminAction =
   | "suspend_listing"
   | "unsuspend_listing"
   | "cancel_transaction"
+  /** 取引のメッセージを閲覧した(当事者間のやり取りを見たことを残す) */
+  | "view_messages"
   | "resolve_report"
   | "create_brand"
   | "rename_brand"

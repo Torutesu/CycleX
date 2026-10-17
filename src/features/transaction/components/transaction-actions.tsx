@@ -71,7 +71,9 @@ export function ShipForm({
           placeholder={
             isInPerson
               ? "例: 今週土曜10時に◯◯駅東口でいかがでしょうか。"
-              : "例: ヤマト運輸 1234-5678-9012 で発送しました。"
+              : deliveryMethod === "shipping_collect"
+                ? "例: ヤマト運輸 1234-5678-9012 で着払いにて発送しました。"
+                : "例: ヤマト運輸 1234-5678-9012 で発送しました。"
           }
         />
       </Field>

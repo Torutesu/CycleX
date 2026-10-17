@@ -21,6 +21,8 @@ type TransactionContext = {
   listingTitle: string;
   shippingNote: string | null;
   isInPerson: boolean;
+  /** 配送(着払い)。送料は購入者が受け取り時に配送業者へ払う */
+  isCollect: boolean;
 };
 
 /** 通知に必要な取引の情報をまとめて引く */
@@ -42,6 +44,7 @@ async function loadTransaction(transactionId: string): Promise<TransactionContex
     listingTitle: data.listings.title,
     shippingNote: data.shipping_note,
     isInPerson: data.listings.delivery_method === "in_person",
+    isCollect: data.listings.delivery_method === "shipping_collect",
   };
 }
 
@@ -84,7 +87,9 @@ export async function notifyPaid(transactionId: string): Promise<void> {
       body: {
         intro: tx.isInPerson
           ? "出品中の商品が購入され、お支払いが完了しました。取引画面で購入者と受け渡しの日時・場所をご相談ください。"
-          : "出品中の商品が購入され、お支払いが完了しました。取引画面の「メッセージ」から、購入者が連絡したお届け先をご確認のうえ、商品を発送してください。発送後は、取引画面から発送の連絡をしてください。",
+          : tx.isCollect
+            ? "出品中の商品が購入され、お支払いが完了しました。取引画面の「メッセージ」から、購入者が連絡したお届け先をご確認のうえ、商品を着払いで発送してください。送料は購入者が受け取り時に配送業者へ支払います。発送後は、取引画面から発送の連絡をしてください。"
+            : "出品中の商品が購入され、お支払いが完了しました。取引画面の「メッセージ」から、購入者が連絡したお届け先をご確認のうえ、商品を発送してください。発送後は、取引画面から発送の連絡をしてください。",
         details,
         cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
       },
@@ -96,7 +101,9 @@ export async function notifyPaid(transactionId: string): Promise<void> {
       body: {
         intro: tx.isInPerson
           ? "ご購入ありがとうございます。お支払いが完了しました。取引画面で出品者と受け渡しの日時・場所をご相談ください。"
-          : "ご購入ありがとうございます。お支払いが完了しました。取引画面の「メッセージ」から、お届け先の住所・氏名・電話番号を出品者へお知らせください。連絡後は、出品者からの発送の連絡をお待ちください。",
+          : tx.isCollect
+            ? "ご購入ありがとうございます。お支払いが完了しました。取引画面の「メッセージ」から、お届け先の住所・氏名・電話番号を出品者へお知らせください。連絡後は、出品者からの発送の連絡をお待ちください。この商品は送料が着払いのため、商品を受け取るときに配送業者へ送料をお支払いください。"
+            : "ご購入ありがとうございます。お支払いが完了しました。取引画面の「メッセージ」から、お届け先の住所・氏名・電話番号を出品者へお知らせください。連絡後は、出品者からの発送の連絡をお待ちください。",
         details,
         cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
       },
@@ -119,7 +126,9 @@ export async function notifyShipped(transactionId: string): Promise<void> {
     body: {
       intro: tx.isInPerson
         ? "出品者から受け渡しについての連絡がありました。取引画面で内容をご確認ください。"
-        : "出品者が商品を発送しました。",
+        : tx.isCollect
+          ? "出品者が商品を着払いで発送しました。商品を受け取るときに、配送業者へ送料をお支払いください。"
+          : "出品者が商品を発送しました。",
       details,
       cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
       outro: "実際に商品を受け取り、商品の状態を確認してから、取引画面で受取確認をお願いします。",

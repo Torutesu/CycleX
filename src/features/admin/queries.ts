@@ -291,6 +291,107 @@ export async function listTransactions(options: {
   return paged(items, count ?? 0, options.page);
 }
 
+export type AdminTransactionDetail = {
+  id: string;
+  status: string;
+  price: number;
+  shippingNote: string | null;
+  createdAt: string;
+  paidAt: string | null;
+  shippedAt: string | null;
+  receivedAt: string | null;
+  completedAt: string | null;
+  canceledAt: string | null;
+  canceledReason: string | null;
+  stripeSessionId: string | null;
+  stripePaymentIntentId: string | null;
+  listing: { id: string; title: string; deliveryMethod: string | null };
+  buyer: { id: string; displayName: string } | null;
+  seller: { id: string; displayName: string } | null;
+  messages: {
+    id: string;
+    body: string;
+    createdAt: string;
+    from: "buyer" | "seller" | "other";
+    readAt: string | null;
+  }[];
+};
+
+/**
+ * 取引の詳細と、当事者間のメッセージ(トラブル対応で運営が確認する)。
+ *
+ * メッセージのスレッドは「商品 × 購入者」で1つ。購入前の質問から
+ * 購入後のお届け先・受け渡しの相談までが同じスレッドに続いている。
+ * 閲覧は既読にしない(当事者の未読表示を運営の閲覧で変えない)。
+ */
+export async function getTransactionDetail(id: string): Promise<AdminTransactionDetail | null> {
+  const supabase = createAdminClient();
+  const { data: tx } = await supabase
+    .from("transactions")
+    .select(
+      `id, status, price, shipping_note, created_at, paid_at, shipped_at, received_at,
+       completed_at, canceled_at, canceled_reason, stripe_session_id, stripe_payment_intent_id,
+       listing_id, buyer_id, seller_id,
+       listings!inner(id, title, delivery_method),
+       buyer:users!transactions_buyer_id_fkey(id, display_name),
+       seller:users!transactions_seller_id_fkey(id, display_name)`,
+    )
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!tx?.listings) return null;
+
+  const { data: thread } = await supabase
+    .from("threads")
+    .select("id")
+    .eq("listing_id", tx.listing_id)
+    .eq("buyer_id", tx.buyer_id)
+    .maybeSingle();
+
+  const { data: messages } = thread
+    ? await supabase
+        .from("messages")
+        .select("id, sender_id, body, created_at, read_at")
+        .eq("thread_id", thread.id)
+        .order("created_at", { ascending: true })
+    : { data: [] };
+
+  return {
+    id: tx.id,
+    status: tx.status,
+    price: tx.price,
+    shippingNote: tx.shipping_note,
+    createdAt: tx.created_at,
+    paidAt: tx.paid_at,
+    shippedAt: tx.shipped_at,
+    receivedAt: tx.received_at,
+    completedAt: tx.completed_at,
+    canceledAt: tx.canceled_at,
+    canceledReason: tx.canceled_reason,
+    stripeSessionId: tx.stripe_session_id,
+    stripePaymentIntentId: tx.stripe_payment_intent_id,
+    listing: {
+      id: tx.listings.id,
+      title: tx.listings.title,
+      deliveryMethod: tx.listings.delivery_method,
+    },
+    buyer: tx.buyer ? { id: tx.buyer.id, displayName: tx.buyer.display_name } : null,
+    seller: tx.seller ? { id: tx.seller.id, displayName: tx.seller.display_name } : null,
+    messages: (messages ?? []).map((message) => ({
+      id: message.id,
+      body: message.body,
+      createdAt: message.created_at,
+      from:
+        message.sender_id === tx.buyer_id
+          ? "buyer"
+          : message.sender_id === tx.seller_id
+            ? "seller"
+            : "other",
+      readAt: message.read_at,
+    })),
+  };
+}
+
 /**
  * 返金対応が必要な取引の件数。
  * 管理画面の導線に出し、手動返金の取りこぼしを防ぐ。

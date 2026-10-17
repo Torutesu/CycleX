@@ -111,7 +111,8 @@ for (let i = 0; i < COUNT; i += 1) {
   const condition = weighted(CONDITION_WEIGHTS);
   const seller = pick(users);
   const pref = seller.prefecture ?? String(randomInt(1, 47)).padStart(2, "0");
-  const delivery = Math.random() > 0.25 ? "shipping" : "in_person";
+  const roll = Math.random();
+  const delivery = roll < 0.6 ? "shipping" : roll < 0.75 ? "shipping_collect" : "in_person";
   const year = isParts
     ? null
     : randomInt(

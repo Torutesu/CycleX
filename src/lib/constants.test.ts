@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   CATEGORIES,
   CONDITIONS,
+  DELIVERY_METHODS,
   PREFECTURES,
   TRANSACTION_STATUSES,
   isBikeCategory,
   labelOf,
   modelYearMax,
+  priceNoteFor,
 } from "@/lib/constants";
 
 describe("ドメイン定数", () => {
@@ -45,5 +47,13 @@ describe("ドメイン定数", () => {
   it("年式の上限は翌年まで", () => {
     const year = new Date(Date.now() + 9 * 60 * 60 * 1000).getUTCFullYear();
     expect(modelYearMax()).toBe(year + 1);
+  });
+
+  it("価格の横の注記は、送料が価格に含まれるかどうかを受渡方法ごとに言い分ける", () => {
+    expect(labelOf(DELIVERY_METHODS, "shipping_collect")).toBe("配送(着払い)");
+    expect(priceNoteFor("shipping")).toBe("送料込み・税込");
+    expect(priceNoteFor("shipping_collect")).toBe("税込・送料は着払い");
+    expect(priceNoteFor("in_person")).toBe("税込");
+    expect(priceNoteFor(null)).toBe("税込");
   });
 });

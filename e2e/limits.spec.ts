@@ -220,7 +220,7 @@ test("価格は下限と上限の外だと公開できない", async ({ page }) 
   await page.click('[role="option"]:has-text("目立った傷や汚れなし")');
   await page.fill("#description", "価格の境界を確認するための出品です。");
   await page.click("#deliveryMethod");
-  await page.click('[role="option"]:has-text("配送")');
+  await page.click('[role="option"]:has-text("配送(送料込み)")');
   await page.click("#shippingFromPref");
   await page.click('[role="option"]:has-text("東京都")');
 

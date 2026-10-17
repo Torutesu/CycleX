@@ -41,7 +41,7 @@ async function fillListingForm(page: Page, title: string, price: string) {
   await page.fill("#description", "E2E で出品の操作を確認するための商品です。状態は良好です。");
   await page.fill("#price", price);
   await page.click("#deliveryMethod");
-  await page.click('[role="option"]:has-text("配送")');
+  await page.click('[role="option"]:has-text("配送(送料込み)")');
   await page.click("#shippingFromPref");
   await page.click('[role="option"]:has-text("東京都")');
 }

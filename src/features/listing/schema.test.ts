@@ -77,6 +77,15 @@ describe("publishSchema", () => {
     ).toBe(true);
   });
 
+  it("配送(着払い)を選べ、受渡地域は求めない", () => {
+    expect(
+      publishSchema.safeParse(validInput({ deliveryMethod: "shipping_collect" })).success,
+    ).toBe(true);
+    expect(
+      publishSchema.safeParse(validInput({ deliveryMethod: "cash_on_delivery" })).success,
+    ).toBe(false);
+  });
+
   it("価格の境界値を検証する(下限は 3,000 円)", () => {
     expect(publishSchema.safeParse(validInput({ price: 2999 })).success).toBe(false);
     expect(publishSchema.safeParse(validInput({ price: 3000 })).success).toBe(true);

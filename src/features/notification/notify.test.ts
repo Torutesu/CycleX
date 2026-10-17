@@ -42,7 +42,7 @@ beforeEach(() => {
 });
 
 describe("取引通知の宛先・状態・日本語文面", () => {
-  it.each(["shipping", "in_person"])(
+  it.each(["shipping", "shipping_collect", "in_person"])(
     "購入通知は双方に送り、%s の次の行動を案内する",
     async (method) => {
       mocks.delivery = method;
@@ -59,7 +59,7 @@ describe("取引通知の宛先・状態・日本語文面", () => {
         kind: "purchase_confirmed",
         refId: "tx-test",
       });
-      if (method === "shipping") {
+      if (method !== "in_person") {
         expect(buyer.body.intro).toContain("住所・氏名・電話番号を出品者へお知らせ");
         expect(buyer.body.intro).toContain("取引画面の「メッセージ」");
         expect(seller.body.intro).toContain("購入者が連絡したお届け先");
@@ -67,6 +67,13 @@ describe("取引通知の宛先・状態・日本語文面", () => {
       } else {
         expect(buyer.body.intro).not.toContain("住所・氏名・電話番号");
         expect(seller.body.intro).not.toContain("お届け先");
+      }
+      // 着払いのときだけ、送料を受け取り時に払うことを双方に伝える
+      if (method === "shipping_collect") {
+        expect(seller.body.intro).toContain("着払いで発送");
+        expect(buyer.body.intro).toContain("配送業者へ送料をお支払いください");
+      } else {
+        for (const mail of [seller, buyer]) expect(mail.body.intro).not.toContain("着払い");
       }
       for (const mail of [seller, buyer]) {
         expect(mail.body.intro).toContain("お支払いが完了");
@@ -84,7 +91,7 @@ describe("取引通知の宛先・状態・日本語文面", () => {
       }
     },
   );
-  it.each(["shipping", "in_person"])(
+  it.each(["shipping", "shipping_collect", "in_person"])(
     "%s の発送・受け渡し通知は実際の受け取り後の確認を案内する",
     async (method) => {
       mocks.delivery = method;
@@ -92,6 +99,8 @@ describe("取引通知の宛先・状態・日本語文面", () => {
       const mail = mocks.send.mock.calls[0][0];
       expect(mail.userId).toBe("buyer");
       expect(mail.body.intro).toContain(method === "in_person" ? "受け渡し" : "発送しました");
+      if (method === "shipping_collect")
+        expect(mail.body.intro).toContain("送料をお支払いください");
       expect(mail.body.outro).toContain("実際に商品を受け取り");
       expect(mail.body.outro).toContain("商品の状態を確認してから");
     },

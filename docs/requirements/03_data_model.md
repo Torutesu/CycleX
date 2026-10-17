@@ -69,7 +69,7 @@ erDiagram
 | condition | text | NOT NULL(公開時) | 'new'/'like_new'/'good'/'fair'/'poor'/'junk' |
 | description | text | | 10〜2,000 文字(公開時必須) |
 | price | int | | 公開時必須。公開に入るとき・公開中に変えるときは 3,000〜9,999,999(トリガー `trg_listing_price_min`)。行としては 300〜9,999,999 を許す(下書きのため) |
-| delivery_method | text | | 'shipping' / 'in_person' |
+| delivery_method | text | | 'shipping'(送料込み) / 'shipping_collect'(着払い) / 'in_person' |
 | shipping_from_pref | text | | 発送元都道府県 |
 | meetup_pref | text | | 対面受渡の都道府県 |
 | favorites_count | int | NOT NULL default 0 | 非正規化カウンタ |

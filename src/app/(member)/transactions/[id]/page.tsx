@@ -104,7 +104,9 @@ export default async function TransactionPage({
             <p className="mt-1 text-sm text-muted-foreground">
               {transaction.listing.deliveryMethod === "in_person"
                 ? "お支払いが完了しています。購入者と待ち合わせのご相談をしてから、ご連絡ください。"
-                : "お支払いが完了しています。購入者からメッセージでお届け先が届いたら、発送してご連絡ください。"}
+                : transaction.listing.deliveryMethod === "shipping_collect"
+                  ? "お支払いが完了しています。購入者からメッセージでお届け先が届いたら、着払いで発送してご連絡ください(送料は購入者が受け取り時に支払います)。"
+                  : "お支払いが完了しています。購入者からメッセージでお届け先が届いたら、発送してご連絡ください。"}
             </p>
             <div className="mt-4">
               <ShipForm

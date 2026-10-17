@@ -11,7 +11,7 @@ import { PurchaseButton } from "@/features/transaction/components/purchase-butto
 import { canPurchase } from "@/features/listing/rules";
 import { listingImageUrl } from "@/lib/images";
 import { formatPrice } from "@/lib/utils";
-import { DELIVERY_METHODS, PREFECTURES, labelOf } from "@/lib/constants";
+import { DELIVERY_METHODS, PREFECTURES, labelOf, priceNoteFor } from "@/lib/constants";
 import { isDemoCheckout } from "@/lib/demo";
 import { SITE_NAME } from "@/lib/constants";
 
@@ -105,8 +105,14 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
           <span className="text-xl font-bold tabular-nums">{formatPrice(listing.price)}</span>
         </div>
         <p className="mt-1 text-right text-xs text-muted-foreground">
-          {listing.deliveryMethod === "shipping" ? "送料込み・税込" : "税込"}
+          {priceNoteFor(listing.deliveryMethod)}
         </p>
+        {listing.deliveryMethod === "shipping_collect" && (
+          <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950">
+            この商品は送料が着払いです。上の金額に送料は含まれていません。
+            商品を受け取るときに、配送業者へ送料をお支払いください。
+          </p>
+        )}
       </section>
 
       <div className="mt-4 flex items-start gap-2.5 rounded-lg bg-muted/50 p-3.5 text-xs text-muted-foreground">

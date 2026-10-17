@@ -152,10 +152,21 @@ export type ComponentGrade = (typeof COMPONENTS)[number]["value"];
 
 export const DELIVERY_METHODS = [
   { value: "shipping", label: "配送(送料込み)" },
+  { value: "shipping_collect", label: "配送(着払い)" },
   { value: "in_person", label: "対面(手渡し)" },
 ] as const satisfies readonly Option[];
 
 export type DeliveryMethod = (typeof DELIVERY_METHODS)[number]["value"];
+
+/**
+ * 価格の横に添える送料の扱い。商品ページと購入画面で同じ言い方にそろえる。
+ * 着払いは、価格に送料が入っていないことを購入前にはっきり伝える必要がある。
+ */
+export function priceNoteFor(method: string | null | undefined): string {
+  if (method === "shipping") return "送料込み・税込";
+  if (method === "shipping_collect") return "税込・送料は着払い";
+  return "税込";
+}
 
 /** JIS X 0401 都道府県コード */
 export const PREFECTURES = [
