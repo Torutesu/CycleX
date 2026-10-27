@@ -1,23 +1,11 @@
 import type { Metadata } from "next";
-import { LegalPage } from "@/components/legal-page";
+import { LegalArticles, LegalPage, type LegalArticle } from "@/components/legal-page";
 import { SITE_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "プライバシーポリシー" };
 
-/** 番号付きの項目。sub は項目の下に並べる箇条書き */
-type Item = string | { text: string; sub: string[] };
-
-type Article = {
-  heading: string;
-  /** 項目の前に置く本文 */
-  lead?: string[];
-  items?: Item[];
-  /** 番号を振らない箇条書き(問い合わせ窓口など) */
-  bullets?: string[];
-};
-
 // 甲より支給の正式原稿。文言は原稿のまま掲載する
-const articles: Article[] = [
+const articles: LegalArticle[] = [
   {
     heading: "第1条（基本方針）",
     lead: [
@@ -179,39 +167,7 @@ const articles: Article[] = [
 export default function PrivacyPage() {
   return (
     <LegalPage title="プライバシーポリシー" draft={false}>
-      {articles.map((article) => (
-        <section key={article.heading} className="space-y-2">
-          <h2 className="text-base font-semibold text-foreground">{article.heading}</h2>
-          {article.lead?.map((text) => (
-            <p key={text}>{text}</p>
-          ))}
-          {article.items && (
-            <ol className="list-decimal space-y-1.5 pl-5">
-              {article.items.map((item) =>
-                typeof item === "string" ? (
-                  <li key={item}>{item}</li>
-                ) : (
-                  <li key={item.text}>
-                    {item.text}
-                    <ul className="mt-1 list-disc space-y-1 pl-5">
-                      {item.sub.map((text) => (
-                        <li key={text}>{text}</li>
-                      ))}
-                    </ul>
-                  </li>
-                ),
-              )}
-            </ol>
-          )}
-          {article.bullets && (
-            <ul className="list-disc space-y-1 pl-5">
-              {article.bullets.map((text) => (
-                <li key={text}>{text}</li>
-              ))}
-            </ul>
-          )}
-        </section>
-      ))}
+      <LegalArticles articles={articles} />
     </LegalPage>
   );
 }
