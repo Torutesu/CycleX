@@ -19,10 +19,38 @@ import {
 } from "@/components/ui/dialog";
 import { SubmitButton } from "@/components/form/submit-button";
 import { submitReport } from "@/features/report/actions";
-import { REPORT_DETAIL_MAX, REPORT_REASONS } from "@/lib/constants";
+import { REPORT_DETAIL_MAX, reportReasonsFor, type ReportTargetType } from "@/lib/constants";
+
+/** 対象ごとの文言。取引は「通報」ではなく、当事者からの「申告」として受け付ける */
+const COPY: Record<
+  ReportTargetType,
+  { trigger: string; title: string; description: string; submit: string; done: string }
+> = {
+  listing: {
+    trigger: "この商品を通報する",
+    title: "商品の通報",
+    description: "運営で内容を確認します。通報したことが相手に伝わることはありません。",
+    submit: "通報する",
+    done: "通報を受け付けました。運営で内容を確認します。",
+  },
+  user: {
+    trigger: "この利用者を通報する",
+    title: "利用者の通報",
+    description: "運営で内容を確認します。通報したことが相手に伝わることはありません。",
+    submit: "通報する",
+    done: "通報を受け付けました。運営で内容を確認します。",
+  },
+  transaction: {
+    trigger: "取引の問題を運営に申告する",
+    title: "取引の問題を申告",
+    description: "運営が取引の内容とメッセージを確認し、必要に応じて取引の当事者にご連絡します。",
+    submit: "申告する",
+    done: "申告を受け付けました。運営で内容を確認します。",
+  },
+};
 
 type Props = {
-  targetType: "listing" | "user";
+  targetType: ReportTargetType;
   targetId: string;
   /** 未ログインならログイン画面へ誘導する */
   isLoggedIn: boolean;
@@ -31,12 +59,13 @@ type Props = {
   className?: string;
 };
 
-/** FR-11: 商品・利用者の通報フォーム */
+/** FR-11: 商品・利用者の通報と、取引の問題の申告のフォーム */
 export function ReportDialog({ targetType, targetId, isLoggedIn, returnTo, className }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const copy = COPY[targetType];
 
   async function handleSubmit(formData: FormData) {
     const result = await submitReport(null, formData);
@@ -47,7 +76,7 @@ export function ReportDialog({ targetType, targetId, isLoggedIn, returnTo, class
     setError(null);
     setOpen(false);
     setReason("");
-    toast.success("通報を受け付けました。運営で内容を確認します。");
+    toast.success(copy.done);
   }
 
   return (
@@ -67,16 +96,14 @@ export function ReportDialog({ targetType, targetId, isLoggedIn, returnTo, class
         }
       >
         <Flag className="size-3.5" aria-hidden />
-        {targetType === "listing" ? "この商品を通報する" : "この利用者を通報する"}
+        {copy.trigger}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{targetType === "listing" ? "商品の通報" : "利用者の通報"}</DialogTitle>
-            <DialogDescription>
-              運営で内容を確認します。通報したことが相手に伝わることはありません。
-            </DialogDescription>
+            <DialogTitle>{copy.title}</DialogTitle>
+            <DialogDescription>{copy.description}</DialogDescription>
           </DialogHeader>
 
           <form action={handleSubmit} className="space-y-5">
@@ -100,7 +127,7 @@ export function ReportDialog({ targetType, targetId, isLoggedIn, returnTo, class
                 onValueChange={setReason}
                 className="mt-2 gap-0"
               >
-                {REPORT_REASONS.map((option) => (
+                {reportReasonsFor(targetType).map((option) => (
                   <div key={option.value} className="flex min-h-11 items-center gap-2.5">
                     <RadioGroupItem value={option.value} id={`reason-${option.value}`} />
                     <Label
@@ -142,7 +169,7 @@ export function ReportDialog({ targetType, targetId, isLoggedIn, returnTo, class
                 disabled={!reason}
                 pendingLabel="送信中..."
               >
-                通報する
+                {copy.submit}
               </SubmitButton>
             </DialogFooter>
           </form>

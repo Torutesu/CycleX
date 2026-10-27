@@ -15,6 +15,7 @@ import { nextActionFor } from "@/features/transaction/state";
 import { waitingNotice } from "@/features/transaction/guidance";
 import { StatusTimeline } from "@/features/transaction/components/status-timeline";
 import { ShipForm, ReceiveButton } from "@/features/transaction/components/transaction-actions";
+import { ReportDialog } from "@/features/report/components/report-dialog";
 import { avatarImageUrl, listingImageUrl } from "@/lib/images";
 import { formatPrice, formatDateTime } from "@/lib/utils";
 import { TRANSACTION_STATUSES, labelOf } from "@/lib/constants";
@@ -186,6 +187,31 @@ export default async function TransactionPage({
           </>
         )}
       </section>
+
+      {/*
+        取引の問題の申告(利用規約 第11条2・第14条)。
+        支払い前は取引が成立していないので出さない
+      */}
+      {transaction.status !== "pending_payment" && (
+        <section className="mt-6 rounded-xl border bg-card p-4">
+          <h2 className="text-sm font-semibold">取引で問題があったとき</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            商品が届かない、説明と違う、破損・欠品があるなどの場合は、運営に申告してください。運営が取引の内容とメッセージを確認します。
+          </p>
+          {role === "buyer" && action === "receive" && (
+            <p className="mt-2 text-sm font-medium">
+              問題があるときは、受取確認をせずに、先に申告してください。
+            </p>
+          )}
+          <ReportDialog
+            targetType="transaction"
+            targetId={transaction.id}
+            isLoggedIn
+            returnTo={`/transactions/${transaction.id}`}
+            className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium hover:bg-accent"
+          />
+        </section>
+      )}
 
       {/* 商品 */}
       <section className="mt-6">

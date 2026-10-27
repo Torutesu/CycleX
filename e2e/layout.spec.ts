@@ -51,6 +51,7 @@ function pagesToCheck(): string[] {
     "/terms",
     "/privacy",
     "/tokushoho",
+    "/contact",
     "/mypage",
     "/mypage/listings",
     "/mypage/purchases",

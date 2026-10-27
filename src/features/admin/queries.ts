@@ -315,6 +315,15 @@ export type AdminTransactionDetail = {
     from: "buyer" | "seller" | "other";
     readAt: string | null;
   }[];
+  /** 当事者からの取引の問題の申告 */
+  reports: {
+    id: string;
+    reason: string;
+    detail: string | null;
+    status: string;
+    createdAt: string;
+    from: "buyer" | "seller" | "other";
+  }[];
 };
 
 /**
@@ -347,6 +356,13 @@ export async function getTransactionDetail(id: string): Promise<AdminTransaction
     .eq("listing_id", tx.listing_id)
     .eq("buyer_id", tx.buyer_id)
     .maybeSingle();
+
+  const { data: reports } = await supabase
+    .from("reports")
+    .select("id, reporter_id, reason, detail, status, created_at")
+    .eq("target_type", "transaction")
+    .eq("target_id", tx.id)
+    .order("created_at", { ascending: false });
 
   const { data: messages } = thread
     ? await supabase
@@ -388,6 +404,19 @@ export async function getTransactionDetail(id: string): Promise<AdminTransaction
             ? "seller"
             : "other",
       readAt: message.read_at,
+    })),
+    reports: (reports ?? []).map((report) => ({
+      id: report.id,
+      reason: report.reason,
+      detail: report.detail,
+      status: report.status,
+      createdAt: report.created_at,
+      from:
+        report.reporter_id === tx.buyer_id
+          ? "buyer"
+          : report.reporter_id === tx.seller_id
+            ? "seller"
+            : "other",
     })),
   };
 }
@@ -449,18 +478,28 @@ export async function listReports(options: {
   // 対象の名称を引く(商品はタイトル、利用者は表示名)
   const listingIds = rows.filter((r) => r.target_type === "listing").map((r) => r.target_id);
   const userIds = rows.filter((r) => r.target_type === "user").map((r) => r.target_id);
+  const transactionIds = rows
+    .filter((r) => r.target_type === "transaction")
+    .map((r) => r.target_id);
 
-  const [{ data: listings }, { data: users }] = await Promise.all([
+  const [{ data: listings }, { data: users }, { data: transactions }] = await Promise.all([
     listingIds.length > 0
       ? supabase.from("listings").select("id, title").in("id", listingIds)
       : Promise.resolve({ data: [] as { id: string; title: string }[] }),
     userIds.length > 0
       ? supabase.from("users").select("id, display_name").in("id", userIds)
       : Promise.resolve({ data: [] as { id: string; display_name: string }[] }),
+    transactionIds.length > 0
+      ? supabase.from("transactions").select("id, listings!inner(title)").in("id", transactionIds)
+      : Promise.resolve({ data: [] as { id: string; listings: { title: string } | null }[] }),
   ]);
 
   const listingMap = new Map((listings ?? []).map((l) => [l.id, l.title]));
   const userMap = new Map((users ?? []).map((u) => [u.id, u.display_name]));
+  // 取引は商品名で示す(取引 ID だけでは運営が見分けられない)
+  const transactionMap = new Map(
+    (transactions ?? []).map((t) => [t.id, `${t.listings?.title ?? "(不明な商品)"} の取引`]),
+  );
 
   const items: AdminReportRow[] = rows.map((row) => ({
     id: row.id,
@@ -469,7 +508,9 @@ export async function listReports(options: {
     targetLabel:
       row.target_type === "listing"
         ? (listingMap.get(row.target_id) ?? "(削除された商品)")
-        : (userMap.get(row.target_id) ?? "(削除された利用者)"),
+        : row.target_type === "transaction"
+          ? (transactionMap.get(row.target_id) ?? "(見つからない取引)")
+          : (userMap.get(row.target_id) ?? "(削除された利用者)"),
     reason: row.reason,
     detail: row.detail,
     status: row.status,

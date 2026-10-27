@@ -4,7 +4,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMail, findLastSentAt } from "@/lib/email/send";
 import { shouldThrottleMessageNotification } from "@/lib/email/kinds";
 import { formatDateTime, formatPrice } from "@/lib/utils";
-import { SITE_NAME, REVIEW_AUTO_PUBLISH_DAYS } from "@/lib/constants";
+import {
+  SITE_NAME,
+  REVIEW_AUTO_PUBLISH_DAYS,
+  TRANSACTION_STATUSES,
+  labelOf,
+  reportReasonLabel,
+} from "@/lib/constants";
 
 /**
  * FR-13 のメール通知フック。
@@ -289,6 +295,16 @@ export async function notifyNewMessage(threadId: string, senderId: string): Prom
 // 運営向け
 // ============================================================
 
+/** 運営あての通知の宛先(有効な管理者) */
+async function activeAdminIds(): Promise<string[]> {
+  const { data } = await createAdminClient()
+    .from("users")
+    .select("id")
+    .eq("role", "admin")
+    .eq("status", "active");
+  return (data ?? []).map((admin) => admin.id);
+}
+
 export type DisputeInfo = {
   /** Stripe の申し立て ID */
   disputeId: string;
@@ -338,21 +354,16 @@ export async function notifyDispute(info: DisputeInfo): Promise<void> {
     });
   }
 
-  const { data: admins } = await supabase
-    .from("users")
-    .select("id")
-    .eq("role", "admin")
-    .eq("status", "active");
-
-  if (!admins || admins.length === 0) {
+  const adminIds = await activeAdminIds();
+  if (adminIds.length === 0) {
     console.error("[dispute] 通知先の管理者が見つかりません", info.disputeId);
     return;
   }
 
   await Promise.all(
-    admins.map((admin) =>
+    adminIds.map((adminId) =>
       sendMail({
-        userId: admin.id,
+        userId: adminId,
         kind: "admin_dispute",
         refId: transaction?.id,
         body: {
@@ -366,6 +377,57 @@ export async function notifyDispute(info: DisputeInfo): Promise<void> {
               }
             : { label: "取引管理を開く", path: "/admin/transactions" },
           outro: "期限を過ぎると自動的に申し立てが認められ、代金が引き戻されます。",
+        },
+      }),
+    ),
+  );
+}
+
+/**
+ * 取引の問題の申告を運営へ知らせる(利用規約 第11条2・第14条)。
+ *
+ * 未着や破損は、発送の催促・キャンセル・返金の判断に期限が絡む。
+ * 管理画面を開くまで気づかない事態を防ぐ。
+ */
+export async function notifyTransactionReport(
+  transactionId: string,
+  reason: string,
+  detail: string | null,
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { data: tx } = await supabase
+    .from("transactions")
+    .select("id, status, price, listings!inner(title)")
+    .eq("id", transactionId)
+    .maybeSingle();
+  if (!tx) return;
+
+  const adminIds = await activeAdminIds();
+  if (adminIds.length === 0) {
+    console.error("[transaction report] 通知先の管理者が見つかりません", transactionId);
+    return;
+  }
+
+  const details = [
+    { label: "商品", value: tx.listings?.title ?? "(不明)" },
+    { label: "金額", value: formatPrice(tx.price) },
+    { label: "取引の状態", value: labelOf(TRANSACTION_STATUSES, tx.status) ?? tx.status },
+    { label: "申告の理由", value: reportReasonLabel(reason) },
+  ];
+  if (detail) details.push({ label: "申告の内容", value: detail });
+
+  await Promise.all(
+    adminIds.map((adminId) =>
+      sendMail({
+        userId: adminId,
+        kind: "admin_tx_report",
+        refId: tx.id,
+        body: {
+          intro:
+            "取引の当事者から、取引の問題が申告されました。取引の内容とメッセージを確認し、対応してください。",
+          details,
+          cta: { label: "取引の詳細・メッセージを開く", path: `/admin/transactions/${tx.id}` },
+          outro: "対応が済んだら、管理画面の「通報」で対応済みにしてください。",
         },
       }),
     ),

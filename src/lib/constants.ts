@@ -278,6 +278,36 @@ export const REPORT_REASONS = [
   { value: "other", label: "その他" },
 ] as const satisfies readonly Option[];
 
+/**
+ * 取引の問題の申告(利用規約 第11条2・第14条)。
+ * 取引画面から購入者・出品者が運営へ知らせる。
+ */
+export const TRANSACTION_REPORT_REASONS = [
+  { value: "not_received", label: "商品が届かない・受け渡しされない" },
+  { value: "not_as_described", label: "商品が説明と違う" },
+  { value: "damaged", label: "破損・欠品がある" },
+  { value: "no_response", label: "取引相手と連絡が取れない" },
+  { value: "other", label: "その他" },
+] as const satisfies readonly Option[];
+
+export type ReportTargetType = "listing" | "user" | "transaction";
+
+/** 対象ごとに選べる理由 */
+export function reportReasonsFor(targetType: ReportTargetType): readonly Option[] {
+  return targetType === "transaction" ? TRANSACTION_REPORT_REASONS : REPORT_REASONS;
+}
+
+/** 管理画面で、どの対象の通報でも理由を表示名にする */
+export function reportReasonLabel(reason: string): string {
+  return labelOf(REPORT_REASONS, reason) ?? labelOf(TRANSACTION_REPORT_REASONS, reason) ?? reason;
+}
+
+export const REPORT_TARGET_TYPES = [
+  { value: "listing", label: "商品" },
+  { value: "user", label: "利用者" },
+  { value: "transaction", label: "取引" },
+] as const satisfies readonly Option<ReportTargetType>[];
+
 export type ReportReason = (typeof REPORT_REASONS)[number]["value"];
 
 export const REPORT_STATUSES = [
@@ -310,6 +340,12 @@ export const PRICE_PRESETS = [
 // ============================================================
 // 数値制約
 // ============================================================
+
+/**
+ * 運営の問い合わせ先メールアドレス(利用規約 第21条2・プライバシーポリシー 第13条)。
+ * 甲から届くまでは null。null の間は「準備中」と表示する。
+ */
+export const SUPPORT_EMAIL: string | null = null;
 
 /** 出品価格の下限(甲の指定)。DB 側も同じ値で止めている(20260101000013_price_min.sql) */
 export const PRICE_MIN = 3_000;

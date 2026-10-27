@@ -6,6 +6,7 @@ const LINKS = [
   { href: "/terms", label: "利用規約" },
   { href: "/privacy", label: "プライバシーポリシー" },
   { href: "/tokushoho", label: "特定商取引法に基づく表記" },
+  { href: "/contact", label: "お問い合わせ" },
 ] as const;
 
 /** 共通フッター。規約類の文面は甲支給のため、掲載枠のみを用意する。 */

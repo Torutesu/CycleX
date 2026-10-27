@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { logout } from "@/features/auth/actions";
@@ -16,7 +17,11 @@ export default function SuspendedPage() {
       <h1 className="mt-4 text-xl font-bold">アカウントの利用を停止しています</h1>
       <p className="mt-3 text-sm text-muted-foreground">
         ご利用のアカウントは、運営による確認のため一時的に利用を停止しています。
-        お心当たりのない場合は、運営までお問い合わせください。
+        お心当たりのない場合は、
+        <Link href="/contact" className="font-medium text-primary hover:underline">
+          お問い合わせ
+        </Link>
+        の窓口から運営へご連絡ください。
       </p>
       <form action={logout} className="mt-8 w-full">
         <Button type="submit" variant="outline" className="h-11 w-full">

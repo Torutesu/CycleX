@@ -53,7 +53,7 @@ export default async function PurchaseCompletePage({
           <p className="mt-3 text-sm text-muted-foreground">
             {keepWaiting
               ? "決済代行サービスからの通知を待っています。この画面は自動で更新されます。"
-              : "お支払いが完了していれば、取引画面に反映されます。反映されない場合は、お手数ですが運営までお問い合わせください。"}
+              : "お支払いが完了していれば、取引画面に反映されます。反映されない場合は、お手数ですがお問い合わせの窓口から運営までご連絡ください。"}
           </p>
         </>
       ) : transaction.status === "canceled" ? (
@@ -73,7 +73,9 @@ export default async function PurchaseCompletePage({
           <p className="mt-2 text-sm text-muted-foreground">{transaction.listing.title}</p>
           <p className="mt-1 text-lg font-bold tabular-nums">{formatPrice(transaction.price)}</p>
           <p className="mt-4 text-sm text-muted-foreground">
-            出品者からの発送・受渡のご連絡をお待ちください。 やり取りは取引画面から行えます。
+            {
+              "お支払いが完了し、出品者との売買契約が成立しました。出品者からの発送・受渡のご連絡をお待ちください。やり取りは取引画面から行えます。"
+            }
           </p>
           <Button asChild className="mt-8 h-11 w-full">
             <Link href={`/transactions/${transaction.id}`}>取引画面へ</Link>

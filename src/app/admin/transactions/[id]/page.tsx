@@ -12,8 +12,10 @@ import { requireAdmin } from "@/lib/session";
 import { formatDateTime, formatPrice, cn } from "@/lib/utils";
 import {
   DELIVERY_METHODS,
+  REPORT_STATUSES,
   TRANSACTION_STATUSES,
   labelOf,
+  reportReasonLabel,
   type TransactionStatus,
 } from "@/lib/constants";
 
@@ -134,6 +136,39 @@ export default async function AdminTransactionDetailPage({
           </p>
         )}
       </section>
+
+      {tx.reports.length > 0 && (
+        <section className="mt-5 rounded-xl border border-destructive/40 bg-background p-4">
+          <h2 className="text-sm font-semibold">当事者からの申告</h2>
+          <ul className="mt-3 space-y-3">
+            {tx.reports.map((report) => (
+              <li key={report.id} className="text-sm">
+                <p className="flex flex-wrap items-center gap-2">
+                  <Badge variant={report.status === "open" ? "destructive" : "secondary"}>
+                    {labelOf(REPORT_STATUSES, report.status)}
+                  </Badge>
+                  <span className="font-medium">{reportReasonLabel(report.reason)}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {report.from === "buyer" ? "購入者" : report.from === "seller" ? "出品者" : "—"}
+                    ・{formatDateTime(report.createdAt)}
+                  </span>
+                </p>
+                {report.detail && (
+                  <p className="mt-1.5 rounded-lg bg-muted/50 p-3 whitespace-pre-wrap">
+                    {report.detail}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/admin/reports?target_type=transaction"
+            className="mt-3 inline-block text-xs font-medium text-primary hover:underline"
+          >
+            通報管理で対応済みにする
+          </Link>
+        </section>
+      )}
 
       <section className="mt-5 rounded-xl border bg-background p-4">
         <h2 className="text-sm font-semibold">

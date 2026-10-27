@@ -67,7 +67,12 @@ describe("MAIL_KINDS", () => {
       (kind) => MAIL_KINDS[kind].category === null,
     );
     // 認証系・トラブル対応・運営あての通知は設定で止められない
-    expect(alwaysSend.sort()).toEqual(["admin_dispute", "tx_canceled", "welcome"]);
+    expect(alwaysSend.sort()).toEqual([
+      "admin_dispute",
+      "admin_tx_report",
+      "tx_canceled",
+      "welcome",
+    ]);
   });
 });
 

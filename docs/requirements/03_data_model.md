@@ -164,9 +164,9 @@ erDiagram
 |---|---|---|---|
 | id | uuid | PK | |
 | reporter_id | uuid | FK→users NOT NULL | |
-| target_type | text | NOT NULL | 'listing' / 'user' |
+| target_type | text | NOT NULL | 'listing' / 'user' / 'transaction' |
 | target_id | uuid | NOT NULL | |
-| reason | text | NOT NULL | 'prohibited' / 'fraud' / 'inappropriate' / 'tos_violation' / 'other' |
+| reason | text | NOT NULL | 商品・利用者: 'prohibited' / 'fraud' / 'inappropriate' / 'tos_violation'、取引: 'not_received' / 'not_as_described' / 'damaged' / 'no_response'、共通: 'other' |
 | detail | text | | 〜1,000 文字 |
 | status | text | NOT NULL default 'open' | 'open' / 'resolved' |
 | resolved_by | uuid | FK→users | 対応した管理者 |

@@ -9,7 +9,7 @@ import {
 import { TrendChart } from "@/features/admin/components/trend-chart";
 import { AdminHeader } from "@/features/admin/components/admin-table";
 import { formatPrice, formatDateTime } from "@/lib/utils";
-import { REPORT_REASONS, TRANSACTION_STATUSES, labelOf } from "@/lib/constants";
+import { TRANSACTION_STATUSES, labelOf, reportReasonLabel } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "ダッシュボード" };
 
@@ -141,7 +141,7 @@ export default async function AdminDashboardPage() {
                   </Badge>
                   <span className="min-w-0 flex-1 truncate">{report.targetLabel}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {labelOf(REPORT_REASONS, report.reason)}
+                    {reportReasonLabel(report.reason)}
                   </span>
                 </li>
               ))}

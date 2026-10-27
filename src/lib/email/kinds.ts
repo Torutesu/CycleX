@@ -18,7 +18,8 @@ export type MailKind =
   | "review_requested"
   | "review_received"
   | "new_message"
-  | "admin_dispute";
+  | "admin_dispute"
+  | "admin_tx_report";
 
 type MailKindMeta = {
   subject: string;
@@ -53,6 +54,11 @@ export const MAIL_KINDS: Record<MailKind, MailKindMeta> = {
   // 運営あて。応答期限があるため設定に関わらず必ず送る
   admin_dispute: {
     subject: `【${SITE_NAME}・要対応】チャージバックの申し立てがありました`,
+    category: null,
+  },
+  // 運営あて。取引の問題の申告(利用規約 第11条2)。返金や発送の対応が遅れないよう必ず送る
+  admin_tx_report: {
+    subject: `【${SITE_NAME}・要対応】取引の問題が申告されました`,
     category: null,
   },
 };

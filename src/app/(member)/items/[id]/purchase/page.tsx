@@ -136,6 +136,14 @@ export default async function PurchasePage({ params }: { params: Promise<{ id: s
           disabled={!user.emailVerified}
           price={listing.price}
         />
+        {/* 売買契約の成立時点(利用規約 第7条2) */}
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          お支払いが完了した時点で、出品者との売買契約が成立します。購入前に
+          <Link href="/terms" className="mx-0.5 text-primary hover:underline">
+            利用規約
+          </Link>
+          をご確認ください。
+        </p>
       </div>
     </div>
   );

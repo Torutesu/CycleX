@@ -9,6 +9,8 @@ import {
   labelOf,
   modelYearMax,
   priceNoteFor,
+  reportReasonLabel,
+  reportReasonsFor,
 } from "@/lib/constants";
 
 describe("ドメイン定数", () => {
@@ -55,5 +57,22 @@ describe("ドメイン定数", () => {
     expect(priceNoteFor("shipping_collect")).toBe("税込・送料は着払い");
     expect(priceNoteFor("in_person")).toBe("税込");
     expect(priceNoteFor(null)).toBe("税込");
+  });
+
+  it("取引の申告には取引向けの理由を出し、管理画面ではどの理由も表示名にする", () => {
+    const values = (type: "listing" | "user" | "transaction") =>
+      reportReasonsFor(type).map((option) => option.value);
+    expect(values("transaction")).toEqual([
+      "not_received",
+      "not_as_described",
+      "damaged",
+      "no_response",
+      "other",
+    ]);
+    expect(values("listing")).not.toContain("not_received");
+    expect(values("user")).toEqual(values("listing"));
+    expect(reportReasonLabel("not_received")).toBe("商品が届かない・受け渡しされない");
+    expect(reportReasonLabel("fraud")).toBe("詐欺の疑い");
+    expect(reportReasonLabel("unknown_reason")).toBe("unknown_reason");
   });
 });
