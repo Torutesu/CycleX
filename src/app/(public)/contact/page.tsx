@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Flag, Mail, ShieldAlert } from "lucide-react";
-import { SUPPORT_EMAIL } from "@/lib/constants";
+import { REPORT_DEADLINE_DAYS, SUPPORT_EMAIL } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "お問い合わせ" };
 
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "お問い合わせ" };
  *
  * 取引の問題と通報はサイト内から送れる。取引画面から申告すると、
  * どの取引の話かが運営に伝わり、メッセージもそのまま確認できるため、そちらへ案内する。
- * メールの窓口は甲から届くまで「準備中」と出す(SUPPORT_EMAIL)。
+ * それ以外はメール(SUPPORT_EMAIL)で受ける。
  */
 export default function ContactPage() {
   return (
@@ -30,6 +30,10 @@ export default function ContactPage() {
             {
               "商品が届かない、説明と違う、破損・欠品がある、取引相手と連絡が取れないなどの場合は、その取引の取引画面にある「取引の問題を運営に申告する」から申告してください。運営が取引の内容とメッセージを確認します。"
             }
+            <Link href="/rules" className="ml-1 text-primary underline underline-offset-2">
+              取引ルール
+            </Link>
+            {`もあわせてご確認ください(申告は受取確認から${REPORT_DEADLINE_DAYS}日以内)。`}
           </p>
           <div className="mt-3 flex flex-wrap gap-x-5 text-sm">
             <Link
@@ -68,18 +72,12 @@ export default function ContactPage() {
             アカウントについてのご相談、個人情報の開示・訂正・削除等のご請求など、上記以外のお問い合わせはこちらへご連絡ください。
           </p>
           <p className="mt-3 text-sm">
-            {SUPPORT_EMAIL ? (
-              <a
-                href={`mailto:${SUPPORT_EMAIL}`}
-                className="font-medium text-primary break-all hover:underline"
-              >
-                {SUPPORT_EMAIL}
-              </a>
-            ) : (
-              <span className="text-muted-foreground">
-                メールでの窓口は準備中です。決まりしだい、このページに掲載します。
-              </span>
-            )}
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="font-medium break-all text-primary hover:underline"
+            >
+              {SUPPORT_EMAIL}
+            </a>
           </p>
         </section>
       </div>

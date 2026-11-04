@@ -19,6 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/terms"), changeFrequency: "yearly", priority: 0.3 },
     { url: absoluteUrl("/privacy"), changeFrequency: "yearly", priority: 0.3 },
     { url: absoluteUrl("/contact"), changeFrequency: "yearly", priority: 0.3 },
+    { url: absoluteUrl("/rules"), changeFrequency: "yearly", priority: 0.3 },
     { url: absoluteUrl("/tokushoho"), changeFrequency: "yearly", priority: 0.3 },
   ];
 

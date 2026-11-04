@@ -1,10 +1,14 @@
-import { REVIEW_AUTO_PUBLISH_DAYS } from "@/lib/constants";
+import { REPORT_DEADLINE_DAYS, REVIEW_AUTO_PUBLISH_DAYS } from "@/lib/constants";
 
 /**
  * 評価の公開判定(FR-10)。
  *
  * 報復評価を抑止するため、双方の評価が揃うまで相互に非公開とする。
  * 一方だけが評価したまま 14 日が経過した場合も公開し、取引を完了させる。
+ *
+ * 取引の完了は、購入者が問題を申告できる期間(受取確認から REPORT_DEADLINE_DAYS 日)が
+ * 過ぎてからにする。完了した取引は運営もキャンセルできないため、期間内の申告に
+ * キャンセル・返金で応じられなくなるのを防ぐ。申告が未対応のあいだも完了させない。
  */
 
 export type ReviewInput = {
@@ -31,32 +35,36 @@ function daysSince(iso: string, now: Date): number {
  * @param reviews    この取引に登録済みの評価(0〜2件)
  * @param receivedAt 受取確認の日時。null なら未受取
  * @param now        判定基準時刻
+ * @param hasOpenReport 運営が未対応の、取引の問題の申告があるか
  */
 export function resolveReviewPublication(
   reviews: ReviewInput[],
   receivedAt: string | null,
   now: Date,
+  hasOpenReport = false,
 ): PublicationDecision {
   const unique = new Map(reviews.map((review) => [review.reviewerId, review]));
   const count = unique.size;
+  const canComplete =
+    !hasOpenReport && receivedAt !== null && daysSince(receivedAt, now) >= REPORT_DEADLINE_DAYS;
 
-  // 双方が評価した → 即時公開し取引完了
+  // 双方が評価した → 即時公開。完了は申告の期間が過ぎてから
   if (count >= 2) {
-    return { publish: true, complete: true, requestReview: false };
+    return { publish: true, complete: canComplete, requestReview: false };
   }
 
   if (count === 1) {
     const [only] = [...unique.values()];
     // 片方の評価から14日経過 → 公開して完了させる
     if (daysSince(only.createdAt, now) >= REVIEW_AUTO_PUBLISH_DAYS) {
-      return { publish: true, complete: true, requestReview: false };
+      return { publish: true, complete: canComplete, requestReview: false };
     }
     return { publish: false, complete: false, requestReview: true };
   }
 
   // 評価ゼロのまま受取から14日経過 → 完了だけさせる
   if (receivedAt && daysSince(receivedAt, now) >= REVIEW_AUTO_PUBLISH_DAYS) {
-    return { publish: false, complete: true, requestReview: false };
+    return { publish: false, complete: canComplete, requestReview: false };
   }
 
   return { publish: false, complete: false, requestReview: false };

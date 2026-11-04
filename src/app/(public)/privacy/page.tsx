@@ -158,15 +158,14 @@ const articles: LegalArticle[] = [
       `サービス名：${SITE_NAME}`,
       "個人情報取扱事業者・運営者：鈴木財恩",
       "所在地：神奈川県茅ヶ崎市浜竹4-3-5-201",
-      // 支給原稿で未記入。SUPPORT_EMAIL が決まるまで「準備中」
-      `問い合わせ先：${SUPPORT_EMAIL ?? "準備中"}`,
+      `問い合わせ先：${SUPPORT_EMAIL}`,
     ],
   },
 ];
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="プライバシーポリシー" draft={false}>
+    <LegalPage title="プライバシーポリシー">
       <LegalArticles articles={articles} />
     </LegalPage>
   );

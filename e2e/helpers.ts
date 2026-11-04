@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { Page } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -70,3 +70,26 @@ export const TEST_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
 );
+
+/**
+ * 受取確認から、購入者が問題を申告できる期間(3日)が過ぎたことにする。
+ * 取引の完了はこの期間が過ぎてからなので、日付を戻して日次バッチに拾わせる。
+ */
+export async function passReportWindow(transactionId: string): Promise<void> {
+  const fourDaysAgo = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await adminDb()
+    .from("transactions")
+    .update({ received_at: fourDaysAgo })
+    .eq("id", transactionId);
+  if (error) throw new Error(`受取日時を戻せません: ${error.message}`);
+}
+
+/** 日次バッチ(取引の自動完了など)を、実際の入口から動かす */
+export async function runDailyBatch(request: APIRequestContext): Promise<void> {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) throw new Error("CRON_SECRET が設定されていない");
+  const response = await request.get("/api/cron/daily", {
+    headers: { authorization: `Bearer ${secret}` },
+  });
+  if (!response.ok()) throw new Error(`日次バッチが失敗: ${response.status()}`);
+}

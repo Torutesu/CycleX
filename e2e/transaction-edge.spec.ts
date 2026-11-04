@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { adminDb, ensureUser, login } from "./helpers";
+import { adminDb, ensureUser, login, passReportWindow, runDailyBatch } from "./helpers";
 
 /**
  * 取引の異常系と通知(FR-08 / FR-09 / FR-10 / FR-13)。
@@ -172,7 +172,7 @@ test("評価は一度きりで、片側だけのうちは公開されない", as
     .toContain("review_requested");
 });
 
-test("双方が評価すると公開され、取引が完了する", async ({ page }) => {
+test("双方が評価すると公開され、申告の期間が過ぎると取引が完了する", async ({ page }) => {
   const { data: transaction } = await adminDb()
     .from("transactions")
     .select("id")
@@ -186,12 +186,13 @@ test("双方が評価すると公開され、取引が完了する", async ({ pa
   await page.getByRole("button", { name: "評価を登録する" }).click();
   await page.waitForURL(/reviewed=1/, { timeout: 30_000 });
 
+  // 受取確認から3日(購入者が問題を申告できる期間)は、評価がそろっても完了しない
   const { data: after } = await adminDb()
     .from("transactions")
     .select("status")
     .eq("id", transaction!.id)
     .single();
-  expect(after?.status).toBe("completed");
+  expect(after?.status).toBe("received");
 
   const { data: reviews } = await adminDb()
     .from("reviews")
@@ -204,6 +205,22 @@ test("双方が評価すると公開され、取引が完了する", async ({ pa
   await page.goto(`/users/${sellerId}`);
   await expect(page.getByText("丁寧な梱包で、状態も説明どおりでした。")).toBeVisible();
 
+  // 期間が過ぎると日次バッチで完了し、双方に知らせる
+  await passReportWindow(transaction!.id);
+  await runDailyBatch(page.request);
+  await expect
+    .poll(
+      async () => {
+        const { data } = await adminDb()
+          .from("transactions")
+          .select("status")
+          .eq("id", transaction!.id)
+          .single();
+        return data?.status;
+      },
+      { timeout: 20_000 },
+    )
+    .toBe("completed");
   await expect
     .poll(() => mailKinds(transaction!.id), { timeout: 20_000 })
     .toContain("tx_completed");

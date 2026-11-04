@@ -6,6 +6,7 @@ import { shouldThrottleMessageNotification } from "@/lib/email/kinds";
 import { formatDateTime, formatPrice } from "@/lib/utils";
 import {
   SITE_NAME,
+  REPORT_DEADLINE_DAYS,
   REVIEW_AUTO_PUBLISH_DAYS,
   TRANSACTION_STATUSES,
   labelOf,
@@ -137,7 +138,7 @@ export async function notifyShipped(transactionId: string): Promise<void> {
           : "出品者が商品を発送しました。",
       details,
       cta: { label: "取引画面を開く", path: `/transactions/${tx.id}` },
-      outro: "実際に商品を受け取り、商品の状態を確認してから、取引画面で受取確認をお願いします。",
+      outro: `実際に商品を受け取り、商品の状態を確認してから、取引画面で受取確認をお願いします。説明と違う・破損や欠品があるなどの問題があるときは、受取確認をせずに取引画面から運営へ申告してください(受取確認後は${REPORT_DEADLINE_DAYS}日以内)。`,
     },
   });
 }
@@ -156,7 +157,7 @@ export async function notifyReceived(transactionId: string): Promise<void> {
         "購入者が商品の受け取りを確認しました。取引画面で状況を確認し、まだ評価していない場合は購入者の評価をお願いします。",
       details: [{ label: "商品", value: tx.listingTitle }],
       cta: { label: "評価を登録する", path: `/transactions/${tx.id}/review` },
-      outro: `評価は双方が登録した時点で公開されます。片方だけが評価した場合は、その評価の登録から${REVIEW_AUTO_PUBLISH_DAYS}日経過後に自動公開され、取引が完了します。`,
+      outro: `評価は双方が登録した時点で公開されます。片方だけが評価した場合は、その評価の登録から${REVIEW_AUTO_PUBLISH_DAYS}日経過後に自動公開され、取引が完了します。取引の完了は、購入者が問題を申告できる受取確認から${REPORT_DEADLINE_DAYS}日が過ぎてからです。`,
     },
   });
 }
@@ -179,7 +180,7 @@ export async function notifyReviewRequested(
       intro: "取引相手が評価を登録しました。あなたの評価をお待ちしています。",
       details: [{ label: "商品", value: tx.listingTitle }],
       cta: { label: "評価を登録する", path: `/transactions/${tx.id}/review` },
-      outro: `双方の評価が揃うと評価が公開され、取引が完了します。片方だけが評価した場合は、その評価の登録から${REVIEW_AUTO_PUBLISH_DAYS}日経過後に自動公開され、取引が完了します。`,
+      outro: `双方の評価が揃うと評価が公開され、受取確認から${REPORT_DEADLINE_DAYS}日が過ぎると取引が完了します。片方だけが評価した場合は、その評価の登録から${REVIEW_AUTO_PUBLISH_DAYS}日経過後に自動公開され、取引が完了します。`,
     },
   });
 }

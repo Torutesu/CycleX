@@ -16,9 +16,14 @@ import { waitingNotice } from "@/features/transaction/guidance";
 import { StatusTimeline } from "@/features/transaction/components/status-timeline";
 import { ShipForm, ReceiveButton } from "@/features/transaction/components/transaction-actions";
 import { ReportDialog } from "@/features/report/components/report-dialog";
+import {
+  canReportTransaction,
+  reportDeadline,
+  transactionReportReasons,
+} from "@/features/report/rules";
 import { avatarImageUrl, listingImageUrl } from "@/lib/images";
 import { formatPrice, formatDateTime } from "@/lib/utils";
-import { TRANSACTION_STATUSES, labelOf } from "@/lib/constants";
+import { REPORT_DEADLINE_DAYS, TRANSACTION_STATUSES, labelOf } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "取引画面" };
 
@@ -43,8 +48,17 @@ export default async function TransactionPage({
     role,
     transaction.listing.deliveryMethod,
     transaction.hasReviewed,
+    transaction.counterpartyReviewed,
   );
   const avatarSrc = avatarImageUrl(transaction.counterparty.avatarUrl);
+  // 取引の問題の申告。購入者は受取確認から REPORT_DEADLINE_DAYS 日まで(取引ルール)
+  const deadline = reportDeadline(transaction.receivedAt);
+  const reportable = canReportTransaction(
+    transaction.status,
+    role,
+    transaction.receivedAt,
+    new Date(),
+  );
 
   // 取引連絡は購入前の質問と同じスレッドで続ける(FR-07)
   const buyerId = transaction.buyerId;
@@ -196,20 +210,47 @@ export default async function TransactionPage({
         <section className="mt-6 rounded-xl border bg-card p-4">
           <h2 className="text-sm font-semibold">取引で問題があったとき</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            商品が届かない、説明と違う、破損・欠品があるなどの場合は、運営に申告してください。運営が取引の内容とメッセージを確認します。
+            商品が届かない、説明と違う、破損・欠品があるなどの場合は、運営に申告してください。運営が取引の内容とメッセージを確認し、
+            <Link href="/rules" className="mx-0.5 text-primary underline underline-offset-2">
+              取引ルール
+            </Link>
+            に沿って返品・キャンセル・返金を判断します。
           </p>
-          {role === "buyer" && action === "receive" && (
-            <p className="mt-2 text-sm font-medium">
-              問題があるときは、受取確認をせずに、先に申告してください。
+          {role === "buyer" && transaction.status === "paid" && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              発送前であれば、出品者と合意のうえでキャンセルを申告できます。
             </p>
           )}
-          <ReportDialog
-            targetType="transaction"
-            targetId={transaction.id}
-            isLoggedIn
-            returnTo={`/transactions/${transaction.id}`}
-            className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium hover:bg-accent"
-          />
+          {role === "buyer" && action === "receive" && (
+            <p className="mt-2 text-sm font-medium">
+              問題があるときは、受取確認をせずに、先に申告してください。受取確認をしたあとは、
+              {REPORT_DEADLINE_DAYS}日以内に申告してください。
+            </p>
+          )}
+          {role === "buyer" && deadline && reportable && (
+            <p className="mt-2 text-sm font-medium">
+              申告の期限: {formatDateTime(deadline)} まで(受取確認から{REPORT_DEADLINE_DAYS}日)
+            </p>
+          )}
+          {reportable ? (
+            <ReportDialog
+              targetType="transaction"
+              targetId={transaction.id}
+              reasons={transactionReportReasons(transaction.status)}
+              isLoggedIn
+              returnTo={`/transactions/${transaction.id}`}
+              className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium hover:bg-accent"
+            />
+          ) : (
+            <p className="mt-2 text-sm">
+              受取確認から{REPORT_DEADLINE_DAYS}
+              日を過ぎたため、取引画面からの申告は締め切りました。お困りの場合は
+              <Link href="/contact" className="mx-0.5 text-primary underline underline-offset-2">
+                お問い合わせ
+              </Link>
+              の窓口へご連絡ください。
+            </p>
+          )}
         </section>
       )}
 

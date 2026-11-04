@@ -18,7 +18,7 @@ import {
 import { Field } from "@/components/form/field";
 import { SubmitButton } from "@/components/form/submit-button";
 import { markReceived, markShipped } from "@/features/transaction/actions";
-import { SHIPPING_NOTE_MAX } from "@/lib/constants";
+import { REPORT_DEADLINE_DAYS, SHIPPING_NOTE_MAX } from "@/lib/constants";
 import type { ActionResult } from "@/lib/errors";
 
 /** 出品者の「発送・受渡連絡」フォーム */
@@ -104,8 +104,7 @@ export function ReceiveButton({ transactionId }: { transactionId: string }) {
           <DialogHeader>
             <DialogTitle>受取を確認しますか?</DialogTitle>
             <DialogDescription>
-              商品の状態をご確認のうえ操作してください。受取確認後は取り消せません。
-              確認すると、双方で評価を登録できるようになります。
+              {`商品の状態をご確認のうえ操作してください。受取確認後は取り消せません。確認すると、双方で評価を登録できるようになります。商品に問題があった場合の申告は、受取確認から${REPORT_DEADLINE_DAYS}日以内です。`}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-2">

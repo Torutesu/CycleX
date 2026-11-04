@@ -243,7 +243,7 @@ const articles: LegalArticle[] = [
 
 export default function TermsPage() {
   return (
-    <LegalPage title="利用規約" draft={false}>
+    <LegalPage title="利用規約">
       <LegalArticles articles={articles} />
     </LegalPage>
   );

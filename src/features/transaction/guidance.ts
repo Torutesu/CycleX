@@ -1,3 +1,5 @@
+import { REPORT_DEADLINE_DAYS } from "@/lib/constants";
+
 /**
  * 相手の操作待ちのときに出す案内(FR-08)。
  *
@@ -21,7 +23,16 @@ export function waitingNotice(
   role: "buyer" | "seller",
   deliveryMethod: string | null,
   hasReviewed: boolean,
+  counterpartyReviewed = false,
 ): WaitingNotice {
+  // 双方が評価しても、購入者が問題を申告できる期間が過ぎるまでは完了しない
+  if (status === "received" && hasReviewed && counterpartyReviewed) {
+    return {
+      title: "取引の完了をお待ちください",
+      detail: `評価は公開されました。受取確認から${REPORT_DEADLINE_DAYS}日たつと、取引が完了します。`,
+    };
+  }
+
   if (status === "received" && hasReviewed) {
     return { title: "相手の評価をお待ちください" };
   }

@@ -63,6 +63,7 @@ describe("ドメイン定数", () => {
     const values = (type: "listing" | "user" | "transaction") =>
       reportReasonsFor(type).map((option) => option.value);
     expect(values("transaction")).toEqual([
+      "cancel_agreed",
       "not_received",
       "not_as_described",
       "damaged",

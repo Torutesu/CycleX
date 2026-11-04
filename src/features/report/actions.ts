@@ -14,7 +14,13 @@ import {
   type ActionResult,
 } from "@/lib/errors";
 import { notifyTransactionReport } from "@/features/notification/notify";
-import { REPORT_DETAIL_MAX, reportReasonsFor } from "@/lib/constants";
+import { canReportTransaction, transactionReportReasons } from "@/features/report/rules";
+import {
+  REPORT_DEADLINE_DAYS,
+  REPORT_DETAIL_MAX,
+  reportReasonsFor,
+  type TransactionStatus,
+} from "@/lib/constants";
 
 const reportSchema = z.object({
   targetType: z.enum(["listing", "user", "transaction"]),
@@ -67,11 +73,27 @@ export async function submitReport(
       // 取引の申告は、その取引の当事者だけができる
       const { data } = await supabase
         .from("transactions")
-        .select("id, buyer_id, seller_id")
+        .select("id, buyer_id, seller_id, status, received_at")
         .eq("id", targetId)
         .maybeSingle();
       if (!data || (data.buyer_id !== user.id && data.seller_id !== user.id)) {
         throw new AppError("対象の取引が見つかりません。");
+      }
+      const status = data.status as TransactionStatus;
+      const role = data.buyer_id === user.id ? "buyer" : "seller";
+      if (!canReportTransaction(status, role, data.received_at, new Date())) {
+        throw new AppError(
+          status === "pending_payment"
+            ? "お支払いが完了していない取引は申告できません。"
+            : `受取確認から${REPORT_DEADLINE_DAYS}日を過ぎたため、取引画面からは申告できません。お問い合わせ窓口へご連絡ください。`,
+        );
+      }
+      if (!transactionReportReasons(status).some((option) => option.value === reason)) {
+        throw new AppError(
+          reason === "cancel_agreed"
+            ? "発送後の取引は、合意によるキャンセルの対象外です。"
+            : "理由を選択してください",
+        );
       }
     } else {
       const { data } = await supabase

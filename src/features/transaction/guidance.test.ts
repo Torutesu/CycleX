@@ -48,4 +48,15 @@ describe("waitingNotice", () => {
       expect(waitingNotice(status, "seller", "shipping", true).showMessageLink).toBeUndefined();
     }
   });
+
+  it("双方が評価したあとは、申告の期間が過ぎて完了するのを待つと案内する", () => {
+    for (const role of ["buyer", "seller"] as const) {
+      const notice = waitingNotice("received", role, "shipping", true, true);
+      expect(notice.title).toBe("取引の完了をお待ちください");
+      expect(notice.detail).toContain("受取確認から3日たつと、取引が完了します");
+    }
+    expect(waitingNotice("received", "buyer", "shipping", true, false).title).toBe(
+      "相手の評価をお待ちください",
+    );
+  });
 });

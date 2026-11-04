@@ -5,6 +5,7 @@ import { SITE_NAME, SITE_TAGLINE } from "@/lib/constants";
 const LINKS = [
   { href: "/terms", label: "利用規約" },
   { href: "/privacy", label: "プライバシーポリシー" },
+  { href: "/rules", label: "取引ルール" },
   { href: "/tokushoho", label: "特定商取引法に基づく表記" },
   { href: "/contact", label: "お問い合わせ" },
 ] as const;

@@ -8,6 +8,7 @@ import { requireVerifiedUser } from "@/lib/session";
 import { fail, toUserMessage, AppError, type ActionResult } from "@/lib/errors";
 import { REVIEW_COMMENT_MAX } from "@/lib/constants";
 import { getTransaction, transitionTransaction } from "@/features/transaction/service";
+import { hasOpenTransactionReport } from "@/features/report/queries";
 import { canSubmitReview, resolveReviewPublication } from "@/features/review/rules";
 import {
   notifyCompleted,
@@ -94,7 +95,12 @@ export async function submitReview(
       createdAt: review.created_at,
     }));
 
-    const decision = resolveReviewPublication(reviews, transaction.receivedAt, new Date());
+    const decision = resolveReviewPublication(
+      reviews,
+      transaction.receivedAt,
+      new Date(),
+      await hasOpenTransactionReport(transactionId),
+    );
 
     if (decision.publish) {
       await supabase

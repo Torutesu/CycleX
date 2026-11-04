@@ -283,6 +283,7 @@ export const REPORT_REASONS = [
  * 取引画面から購入者・出品者が運営へ知らせる。
  */
 export const TRANSACTION_REPORT_REASONS = [
+  { value: "cancel_agreed", label: "発送前のキャンセル(相手と合意済み)" },
   { value: "not_received", label: "商品が届かない・受け渡しされない" },
   { value: "not_as_described", label: "商品が説明と違う" },
   { value: "damaged", label: "破損・欠品がある" },
@@ -291,6 +292,9 @@ export const TRANSACTION_REPORT_REASONS = [
 ] as const satisfies readonly Option[];
 
 export type ReportTargetType = "listing" | "user" | "transaction";
+
+/** 購入者が取引の問題を申告できる期限(受取確認から何日以内か。甲の指定) */
+export const REPORT_DEADLINE_DAYS = 3;
 
 /** 対象ごとに選べる理由 */
 export function reportReasonsFor(targetType: ReportTargetType): readonly Option[] {
@@ -341,11 +345,8 @@ export const PRICE_PRESETS = [
 // 数値制約
 // ============================================================
 
-/**
- * 運営の問い合わせ先メールアドレス(利用規約 第21条2・プライバシーポリシー 第13条)。
- * 甲から届くまでは null。null の間は「準備中」と表示する。
- */
-export const SUPPORT_EMAIL: string | null = null;
+/** 運営の問い合わせ先メールアドレス(利用規約 第21条2・プライバシーポリシー 第13条。甲の指定) */
+export const SUPPORT_EMAIL = "bicyclemarket.support@gmail.com";
 
 /** 出品価格の下限(甲の指定)。DB 側も同じ値で止めている(20260101000013_price_min.sql) */
 export const PRICE_MIN = 3_000;

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { adminDb, ensureUser, login, userDb } from "./helpers";
+import { adminDb, ensureUser, login, passReportWindow, runDailyBatch, userDb } from "./helpers";
 
 /**
  * 利用規約で「サイト上にある」としているものが、実際にあること。
@@ -55,6 +55,7 @@ test.afterAll(async () => {
   const db = adminDb();
   if (txId) {
     await db.from("reports").delete().eq("target_id", txId);
+    await db.from("reviews").delete().eq("transaction_id", txId);
     await db.from("email_logs").delete().eq("ref_id", txId);
     await db.from("transaction_events").delete().eq("transaction_id", txId);
   }
@@ -97,7 +98,9 @@ test("購入者は取引画面から取引の問題を申告でき、運営に�
 
   await page.getByRole("button", { name: "取引の問題を運営に申告する" }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByRole("radio")).toHaveCount(5);
+  // 発送前なので、合意によるキャンセルも選べる
+  await expect(dialog.getByRole("radio")).toHaveCount(6);
+  await expect(dialog.getByLabel("発送前のキャンセル(相手と合意済み)")).toBeVisible();
   await dialog.getByLabel("商品が届かない・受け渡しされない").click();
   await dialog.locator("textarea").fill("発送の連絡から1週間たっても届きません。");
   await dialog.getByRole("button", { name: "申告する" }).click();
@@ -153,6 +156,56 @@ test("運営は申告を通報管理で見つけ、取引の詳細とメッセ�
   await expect(page.getByText("発送の連絡から1週間たっても届きません。")).toBeVisible();
 });
 
+test("申告が未対応のあいだは、評価がそろって期間が過ぎても取引を完了させない", async ({ page }) => {
+  // 受け取り・相互評価が済み、受取確認から3日が過ぎた状態にする
+  const db = adminDb();
+  const { data: tx } = await db
+    .from("transactions")
+    .select("buyer_id, seller_id")
+    .eq("id", txId)
+    .single();
+  await db
+    .from("transactions")
+    .update({ status: "received", shipped_at: new Date().toISOString() })
+    .eq("id", txId);
+  await passReportWindow(txId);
+  await db.from("reviews").insert([
+    { transaction_id: txId, reviewer_id: tx!.buyer_id, reviewee_id: tx!.seller_id, rating: 2 },
+    { transaction_id: txId, reviewer_id: tx!.seller_id, reviewee_id: tx!.buyer_id, rating: 4 },
+  ]);
+
+  await runDailyBatch(page.request);
+  const status = async () =>
+    (await db.from("transactions").select("status").eq("id", txId).single()).data?.status;
+  expect(await status()).toBe("received");
+
+  // 運営が対応済みにすると、次の日次バッチで完了する
+  await db
+    .from("reports")
+    .update({ status: "resolved" })
+    .eq("target_id", txId)
+    .eq("status", "open");
+  await runDailyBatch(page.request);
+  await expect.poll(status, { timeout: 20_000 }).toBe("completed");
+});
+
+test("購入者は受取確認から3日を過ぎると、取引画面から申告できない", async ({ page }) => {
+  // 直前のテストで、受取確認は4日前になっている
+  await login(page, BUYER);
+  await page.goto(`/transactions/${txId}`);
+  await expect(page.getByText("取引画面からの申告は締め切りました")).toBeVisible();
+  await expect(page.getByRole("button", { name: "取引の問題を運営に申告する" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "お問い合わせ" }).first()).toBeVisible();
+
+  // 出品者には期限が無い。発送後なので合意によるキャンセルは選べない
+  await login(page, SELLER);
+  await page.goto(`/transactions/${txId}`);
+  await page.getByRole("button", { name: "取引の問題を運営に申告する" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("radio")).toHaveCount(5);
+  await expect(dialog.getByLabel("発送前のキャンセル(相手と合意済み)")).toHaveCount(0);
+});
+
 test("取引と関係のない会員は、その取引を申告できない", async ({ page }) => {
   // 取引画面そのものが開けないので、申告の操作にたどり着けない
   await login(page, OUTSIDER);
@@ -172,6 +225,30 @@ test("取引と関係のない会員は、その取引を申告できない", as
   expect(error?.code).toBe("42501");
 });
 
+test("取引ルールと特商法表記がフッターから開け、甲の決めた条件が載っている", async ({ page }) => {
+  await page.context().clearCookies();
+  await page.goto("/");
+  await page.locator("footer").getByRole("link", { name: "取引ルール" }).click();
+  await expect(page).toHaveURL(/\/rules$/);
+  for (const text of [
+    "商品が届かない場合",
+    "購入者の都合による返品・キャンセルは、原則としてお受けできません",
+    "商品を受け取ってから3日以内",
+    "商品代金の全額を返金します",
+    "出品者に販売手数料(商品代金の7%)はかかりません",
+    "決済手数料は、原則として運営が負担します",
+    "商品代金の決済は必ずサイト内で行ってください",
+  ]) {
+    await expect(page.getByText(text, { exact: false }).first(), text).toBeVisible();
+  }
+
+  await page.goto("/tokushoho");
+  await expect(page.getByText("ダミー")).toHaveCount(0);
+  await expect(page.getByText("鈴木財恩").first()).toBeVisible();
+  await expect(page.getByText("bicyclemarket.support@gmail.com")).toBeVisible();
+  await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
+});
+
 test("お問い合わせの窓口がフッターから開け、申告と通報の方法がわかる", async ({ page }) => {
   await page.context().clearCookies();
   await page.goto("/");
@@ -183,4 +260,8 @@ test("お問い合わせの窓口がフッターから開け、申告と通報�
     page.getByRole("heading", { name: "問題のある商品・利用者を見つけたとき" }),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "その他のお問い合わせ" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "bicyclemarket.support@gmail.com" })).toHaveAttribute(
+    "href",
+    "mailto:bicyclemarket.support@gmail.com",
+  );
 });

@@ -27,16 +27,35 @@ describe("resolveReviewPublication", () => {
     expect(result).toEqual({ publish: false, complete: false, requestReview: true });
   });
 
-  it("双方が評価したら即時公開して完了させる", () => {
-    const result = resolveReviewPublication(
-      [
-        { reviewerId: BUYER, createdAt: daysAgo(1) },
-        { reviewerId: SELLER, createdAt: daysAgo(0) },
-      ],
-      daysAgo(2),
-      NOW,
-    );
-    expect(result).toEqual({ publish: true, complete: true, requestReview: false });
+  const BOTH = [
+    { reviewerId: BUYER, createdAt: daysAgo(1) },
+    { reviewerId: SELLER, createdAt: daysAgo(0) },
+  ];
+
+  it("双方が評価したら即時公開する。完了は受取確認から3日(申告の期間)が過ぎてから", () => {
+    expect(resolveReviewPublication(BOTH, daysAgo(2), NOW)).toEqual({
+      publish: true,
+      complete: false,
+      requestReview: false,
+    });
+    expect(resolveReviewPublication(BOTH, daysAgo(3), NOW)).toEqual({
+      publish: true,
+      complete: true,
+      requestReview: false,
+    });
+  });
+
+  it("運営が未対応の申告があるあいだは、どの場合も完了させない", () => {
+    expect(resolveReviewPublication(BOTH, daysAgo(5), NOW, true).complete).toBe(false);
+    expect(
+      resolveReviewPublication(
+        [{ reviewerId: BUYER, createdAt: daysAgo(14) }],
+        daysAgo(15),
+        NOW,
+        true,
+      ).complete,
+    ).toBe(false);
+    expect(resolveReviewPublication([], daysAgo(14), NOW, true).complete).toBe(false);
   });
 
   it("片方の評価から14日経過で公開・完了する", () => {

@@ -1,10 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
-import { adminDb, ensureUser, login } from "./helpers";
+import { adminDb, ensureUser, login, passReportWindow, runDailyBatch } from "./helpers";
 
 /**
  * 取引の通し(FR-08 / FR-09)。
  *
- * 購入 → 支払い → 発送 → 受取確認 → 相互評価 → 取引完了 までを1本で検証する。
+ * 購入 → 支払い → 発送 → 受取確認 → 相互評価 → (申告の期間の経過)→ 取引完了 までを1本で検証する。
  * 支払いは Stripe を構成していない環境向けのデモ決済を使うが、
  * 確定処理は本番の Webhook と同じ関数を通るため、状態遷移は本番と同じ経路。
  */
@@ -118,7 +118,7 @@ test("購入 → 支払い → 発送 → 受取確認 → 相互評価", async 
   // 登録できたら取引画面へ戻る。評価画面に留まったままなら失敗している
   await expect(page).toHaveURL(/\/transactions\/[0-9a-f-]+\?reviewed=1$/, { timeout: 20_000 });
 
-  // --- 出品者も評価すると取引が完了する ---
+  // --- 出品者も評価する ---
   await login(page, SELLER);
   await page.goto(`${txPath}/review`);
   await page.getByRole("button", { name: "5 / 5" }).click();
@@ -126,7 +126,19 @@ test("購入 → 支払い → 発送 → 受取確認 → 相互評価", async 
   await page.getByRole("button", { name: "評価を登録する" }).click();
   await expect(page).toHaveURL(/\/transactions\/[0-9a-f-]+\?reviewed=1$/, { timeout: 20_000 });
 
-  // 双方の評価がそろった時点で取引が完了する
+  // 双方の評価がそろっても、購入者が問題を申告できる期間(受取確認から3日)は完了しない
+  const { data: reviewed } = await adminDb()
+    .from("transactions")
+    .select("id, status")
+    .eq("listing_id", listingId)
+    .single();
+  expect(reviewed?.status).toBe("received");
+  await page.goto(txPath);
+  await expect(page.getByRole("heading", { name: "取引の完了をお待ちください" })).toBeVisible();
+
+  // 期間が過ぎると、日次バッチで取引が完了する
+  await passReportWindow(reviewed!.id);
+  await runDailyBatch(page.request);
   await expect
     .poll(
       async () => {

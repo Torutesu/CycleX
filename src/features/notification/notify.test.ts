@@ -102,6 +102,7 @@ describe("取引通知の宛先・状態・日本語文面", () => {
       if (method === "shipping_collect")
         expect(mail.body.intro).toContain("送料をお支払いください");
       expect(mail.body.outro).toContain("実際に商品を受け取り");
+      expect(mail.body.outro).toContain("受取確認後は3日以内");
       expect(mail.body.outro).toContain("商品の状態を確認してから");
     },
   );

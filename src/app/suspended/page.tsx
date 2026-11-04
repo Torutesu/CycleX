@@ -18,7 +18,7 @@ export default function SuspendedPage() {
       <p className="mt-3 text-sm text-muted-foreground">
         ご利用のアカウントは、運営による確認のため一時的に利用を停止しています。
         お心当たりのない場合は、
-        <Link href="/contact" className="font-medium text-primary hover:underline">
+        <Link href="/contact" className="font-medium text-primary underline underline-offset-2">
           お問い合わせ
         </Link>
         の窓口から運営へご連絡ください。

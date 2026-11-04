@@ -19,7 +19,12 @@ import {
 } from "@/components/ui/dialog";
 import { SubmitButton } from "@/components/form/submit-button";
 import { submitReport } from "@/features/report/actions";
-import { REPORT_DETAIL_MAX, reportReasonsFor, type ReportTargetType } from "@/lib/constants";
+import {
+  REPORT_DETAIL_MAX,
+  reportReasonsFor,
+  type Option,
+  type ReportTargetType,
+} from "@/lib/constants";
 
 /** 対象ごとの文言。取引は「通報」ではなく、当事者からの「申告」として受け付ける */
 const COPY: Record<
@@ -52,6 +57,8 @@ const COPY: Record<
 type Props = {
   targetType: ReportTargetType;
   targetId: string;
+  /** 選べる理由。省略すると対象ごとの既定の一覧 */
+  reasons?: readonly Option[];
   /** 未ログインならログイン画面へ誘導する */
   isLoggedIn: boolean;
   /** ログイン後に戻る先 */
@@ -60,7 +67,14 @@ type Props = {
 };
 
 /** FR-11: 商品・利用者の通報と、取引の問題の申告のフォーム */
-export function ReportDialog({ targetType, targetId, isLoggedIn, returnTo, className }: Props) {
+export function ReportDialog({
+  targetType,
+  targetId,
+  reasons,
+  isLoggedIn,
+  returnTo,
+  className,
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -127,7 +141,7 @@ export function ReportDialog({ targetType, targetId, isLoggedIn, returnTo, class
                 onValueChange={setReason}
                 className="mt-2 gap-0"
               >
-                {reportReasonsFor(targetType).map((option) => (
+                {(reasons ?? reportReasonsFor(targetType)).map((option) => (
                   <div key={option.value} className="flex min-h-11 items-center gap-2.5">
                     <RadioGroupItem value={option.value} id={`reason-${option.value}`} />
                     <Label
